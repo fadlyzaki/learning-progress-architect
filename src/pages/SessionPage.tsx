@@ -6,11 +6,13 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { getAuthHeaders } from '../lib/auth';
 import { useAppData } from '../hooks/useAppData';
+import { usePreferences } from '../lib/preferences';
 
 export function SessionPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data, loading, error } = useAppData();
+  const { t } = usePreferences();
   const taskId = Number(id);
   const task = data?.tasks.find((item) => item.id === taskId) ?? null;
   const goal = task ? data?.goals.find((item) => item.id === task.goal_id) ?? null : null;
@@ -67,7 +69,7 @@ export function SessionPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start the session.');
+        throw new Error(t('session.startFailed'));
       }
 
       setIsActive(true);
@@ -99,7 +101,7 @@ export function SessionPage() {
   }
 
   if (!data || !task) {
-    return <p className="text-zinc-500">{error ?? 'Task not found.'}</p>;
+    return <p className="text-[var(--text-muted)]">{error ?? t('session.notFound')}</p>;
   }
 
   return (
@@ -107,15 +109,15 @@ export function SessionPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <Badge variant="warning" className="mb-3 font-mono tracking-widest uppercase text-[10px]">
-            Active Session
+            {t('session.badge')}
           </Badge>
-          <h1 className="text-3xl font-mono uppercase tracking-tight font-bold text-zinc-100">
+          <h1 className="text-3xl font-mono font-bold uppercase tracking-tight text-[var(--text-primary)]">
             {task.title}
           </h1>
-          <p className="text-zinc-400 font-serif italic mt-2">{task.description}</p>
-          {goal && <p className="text-xs text-zinc-500 mt-3 uppercase tracking-widest font-mono">Goal: {goal.title}</p>}
+          <p className="mt-2 font-serif italic text-[var(--text-secondary)]">{task.description}</p>
+          {goal && <p className="mt-3 text-xs font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('common.goalLabel', { goal: goal.title })}</p>}
         </div>
-        <div className="flex items-center gap-4 bg-zinc-900/50 px-6 py-3 rounded-lg border border-zinc-800">
+        <div className="flex items-center gap-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] px-6 py-3">
           <div className="font-mono text-2xl font-bold text-amber-500 tracking-widest">
             {formatTime(time)}
           </div>
@@ -138,52 +140,50 @@ export function SessionPage() {
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
-          <Card className="bg-zinc-900/30 border-zinc-800/50">
+          <Card className="bg-[var(--bg-soft)]">
             <CardHeader>
-              <CardTitle className="text-xl">Learning Objectives</CardTitle>
+              <CardTitle className="text-xl">{t('session.objectives')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-3 text-zinc-300 list-disc list-inside">
-                <li>Understand why this topic matters inside your active roadmap.</li>
-                <li>Translate the concept into one concrete example you can explain.</li>
-                <li>Leave the session with a reusable mental model, not just notes.</li>
+              <ul className="list-inside list-disc space-y-3 text-[var(--text-primary)]">
+                <li>{t('session.objective1')}</li>
+                <li>{t('session.objective2')}</li>
+                <li>{t('session.objective3')}</li>
               </ul>
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-900/30 border-zinc-800/50">
+          <Card className="bg-[var(--bg-soft)]">
             <CardHeader>
-              <CardTitle className="text-xl">Notes & Reflection</CardTitle>
-              <CardDescription>
-                Use the comprehension step at the end to save the reflection to your session log.
-              </CardDescription>
+              <CardTitle className="text-xl">{t('session.notes')}</CardTitle>
+              <CardDescription>{t('session.notesBody')}</CardDescription>
             </CardHeader>
             <CardContent>
               <textarea
-                className="w-full h-48 bg-zinc-950 border border-zinc-800 rounded-md p-4 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none font-mono text-sm"
-                placeholder="Capture key takeaways, examples, or questions as you work."
+                className="app-field h-48"
+                placeholder={t('session.notesPlaceholder')}
               />
             </CardContent>
           </Card>
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-zinc-900/30 border-zinc-800/50">
+          <Card className="bg-[var(--bg-soft)]">
             <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
+              <CardTitle className="text-lg">{t('session.quickActions')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start gap-3 text-zinc-300 hover:text-zinc-100">
-                <Lightbulb className="w-4 h-4 text-amber-400" /> Explain Simply
+              <Button variant="outline" className="w-full justify-start gap-3">
+                <Lightbulb className="w-4 h-4 text-amber-400" /> {t('session.actionExplain')}
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3 text-zinc-300 hover:text-zinc-100">
-                <HelpCircle className="w-4 h-4 text-blue-400" /> Give an Example
+              <Button variant="outline" className="w-full justify-start gap-3">
+                <HelpCircle className="w-4 h-4 text-blue-400" /> {t('session.actionExample')}
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3 text-zinc-300 hover:text-zinc-100">
-                <MessageSquare className="w-4 h-4 text-green-400" /> Use an Analogy
+              <Button variant="outline" className="w-full justify-start gap-3">
+                <MessageSquare className="w-4 h-4 text-green-400" /> {t('session.actionAnalogy')}
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-3 text-zinc-300 hover:text-zinc-100 border-red-900/30 hover:bg-red-900/20">
-                <AlertTriangle className="w-4 h-4 text-red-400" /> I&apos;m Confused
+              <Button variant="outline" className="w-full justify-start gap-3 border-red-900/30 hover:bg-red-900/20">
+                <AlertTriangle className="w-4 h-4 text-red-400" /> {t('session.actionConfused')}
               </Button>
             </CardContent>
           </Card>
@@ -195,7 +195,7 @@ export function SessionPage() {
             onClick={handleComplete}
           >
             <CheckCircle2 className="w-5 h-5" />
-            Complete Session
+            {t('session.complete')}
           </Button>
         </div>
       </div>

@@ -1,21 +1,23 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Target, Map, BookOpen, Clock, Activity, LogOut } from 'lucide-react';
+import { Activity, BookOpen, Clock, LayoutDashboard, LogOut, Map, Target } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { clearStoredSession, getStoredSession } from '../lib/auth';
-
-const navItems = [
-  { icon: LayoutDashboard, label: 'Today', path: '/app' },
-  { icon: Target, label: 'Goals', path: '/app/goals' },
-  { icon: Map, label: 'Roadmap', path: '/app/roadmap' },
-  { icon: Clock, label: 'Reviews', path: '/app/reviews' },
-  { icon: Activity, label: 'Progress', path: '/app/progress' },
-  { icon: BookOpen, label: 'Reflections', path: '/app/reflections' },
-];
+import { usePreferences } from '../lib/preferences';
+import { PreferenceControls } from './PreferenceControls';
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const session = getStoredSession();
+  const { t } = usePreferences();
+  const navItems = [
+    { icon: LayoutDashboard, label: t('nav.today'), path: '/app' },
+    { icon: Target, label: t('nav.goals'), path: '/app/goals' },
+    { icon: Map, label: t('nav.roadmap'), path: '/app/roadmap' },
+    { icon: Clock, label: t('nav.reviews'), path: '/app/reviews' },
+    { icon: Activity, label: t('nav.progress'), path: '/app/progress' },
+    { icon: BookOpen, label: t('nav.reflections'), path: '/app/reflections' },
+  ];
 
   const handleSignOut = () => {
     clearStoredSession();
@@ -23,22 +25,32 @@ export function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex font-sans">
-      <aside className="w-64 border-r border-zinc-800 bg-zinc-950 flex-col hidden md:flex">
-        <div className="h-16 flex items-center justify-between px-6 border-b border-zinc-800">
+    <div className="app-shell min-h-screen flex font-sans">
+      <aside className="hidden w-72 flex-col border-r border-[var(--border-color)] bg-[var(--bg-panel)] backdrop-blur md:flex">
+        <div className="flex h-20 items-center justify-between border-b border-[var(--border-color)] px-6">
           <div className="flex flex-col">
-            <span className="font-mono font-bold tracking-[0.28em] uppercase text-amber-500 text-xs">Fadlyzaki</span>
-            <span className="font-mono font-semibold tracking-[0.18em] uppercase text-zinc-100 text-sm">Architect</span>
+            <span className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
+              {t('brand.name')}
+            </span>
+            <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
+              {t('brand.product')}
+            </span>
           </div>
         </div>
 
-        <div className="px-6 py-4 border-b border-zinc-800">
-          <div className="text-xs font-mono uppercase tracking-widest text-zinc-500">Human By Design</div>
-          <div className="mt-2 text-sm text-zinc-200">{session?.user.name}</div>
-          <div className="text-xs text-zinc-500">{session?.user.email}</div>
+        <div className="space-y-4 border-b border-[var(--border-color)] px-6 py-5">
+          <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[var(--text-muted)]">
+            {t('brand.tagline')}
+          </div>
+          <div className="text-sm text-[var(--text-primary)]">{session?.user.name}</div>
+          <div className="text-xs text-[var(--text-muted)]">{session?.user.email}</div>
+          <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+            {t('layout.summary')}
+          </p>
+          <PreferenceControls />
         </div>
 
-        <nav className="flex-1 py-6 px-4 space-y-1">
+        <nav className="flex-1 space-y-1.5 px-4 py-6">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
 
@@ -47,10 +59,10 @@ export function Layout() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  'flex items-center gap-3 rounded-xl border px-3.5 py-3 text-sm transition-colors',
                   isActive
-                    ? 'bg-zinc-800 text-zinc-100 font-medium'
-                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100',
+                    ? 'border-amber-500/30 bg-[var(--bg-card)] font-medium text-[var(--text-primary)] shadow-[0_0_24px_var(--glow-amber)]'
+                    : 'border-transparent text-[var(--text-secondary)] hover:border-[var(--border-color)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]',
                 )}
               >
                 <item.icon className="w-4 h-4" />
@@ -60,31 +72,38 @@ export function Layout() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-zinc-800">
+        <div className="border-t border-[var(--border-color)] p-4">
           <button
             type="button"
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100 transition-colors"
+            className="flex w-full items-center gap-3 rounded-xl border border-transparent px-3.5 py-3 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--border-color)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]"
           >
             <LogOut className="w-4 h-4" />
-            Sign Out
+            {t('auth.signOut')}
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-16 flex items-center justify-between px-4 border-b border-zinc-800 md:hidden bg-zinc-950">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex min-h-16 items-center justify-between gap-3 border-b border-[var(--border-color)] bg-[var(--bg-panel)] px-4 py-3 backdrop-blur md:hidden">
           <div className="flex flex-col">
-            <span className="font-mono font-bold tracking-[0.28em] uppercase text-amber-500 text-[10px]">Fadlyzaki</span>
-            <span className="font-mono font-semibold tracking-[0.18em] uppercase text-zinc-100 text-sm">Architect</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
+              {t('brand.name')}
+            </span>
+            <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
+              {t('brand.product')}
+            </span>
           </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center gap-2">
+            <PreferenceControls compact />
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              {t('auth.signOut')}
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12">

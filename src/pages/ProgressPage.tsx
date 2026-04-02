@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
 import { useAppData } from '../hooks/useAppData';
+import { usePreferences } from '../lib/preferences';
 
 function calculateStreak(sessionDates: string[]) {
   const uniqueDates = [...new Set(sessionDates.map((value) => value.slice(0, 10)))].sort().reverse();
@@ -39,6 +40,7 @@ function calculateStreak(sessionDates: string[]) {
 
 export function ProgressPage() {
   const { data, loading, error } = useAppData();
+  const { formatDate, t } = usePreferences();
 
   if (loading) {
     return (
@@ -49,7 +51,7 @@ export function ProgressPage() {
   }
 
   if (!data) {
-    return <p className="text-zinc-500">{error ?? 'Unable to load progress.'}</p>;
+    return <p className="text-[var(--text-muted)]">{error ?? 'Unable to load progress.'}</p>;
   }
 
   const activeGoal = data.goals[0] ?? null;
@@ -76,72 +78,72 @@ export function ProgressPage() {
     <div className="space-y-8 font-sans">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-mono uppercase tracking-tight font-bold text-zinc-100">
-            Progress
+          <h1 className="text-3xl font-mono font-bold uppercase tracking-tight text-[var(--text-primary)]">
+            {t('progress.title')}
           </h1>
-          <p className="text-zinc-400 font-serif italic mt-2">
-            Your learning journey, based on completed sessions and real task progress.
+          <p className="mt-2 font-serif italic text-[var(--text-secondary)]">
+            {t('progress.subtitle')}
           </p>
         </div>
       </div>
 
       <div className="grid md:grid-cols-4 gap-6">
-        <Card className="bg-zinc-900/30 border-zinc-800/50">
+        <Card className="bg-[var(--bg-soft)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-widest text-zinc-500">Total Study Time</CardTitle>
+            <CardTitle className="text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.totalStudyTime')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-mono font-bold text-zinc-100">{totalStudyMinutes}m</div>
+            <div className="text-3xl font-mono font-bold text-[var(--text-primary)]">{totalStudyMinutes}m</div>
             <div className="text-sm text-green-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> Built from completed sessions
+              <TrendingUp className="w-3 h-3" /> {t('progress.totalStudyTimeBody')}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900/30 border-zinc-800/50">
+        <Card className="bg-[var(--bg-soft)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-widest text-zinc-500">Tasks Completed</CardTitle>
+            <CardTitle className="text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.tasksCompleted')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-mono font-bold text-zinc-100">{completedTasks.length}</div>
-            <div className="text-sm text-zinc-400 mt-1">Across {data.goals.length} goals</div>
+            <div className="text-3xl font-mono font-bold text-[var(--text-primary)]">{completedTasks.length}</div>
+            <div className="mt-1 text-sm text-[var(--text-secondary)]">{t('progress.tasksCompletedBody', { count: data.goals.length })}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900/30 border-zinc-800/50">
+        <Card className="bg-[var(--bg-soft)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-widest text-zinc-500">Current Streak</CardTitle>
+            <CardTitle className="text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.currentStreak')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-mono font-bold text-amber-500">{streak} Days</div>
-            <div className="text-sm text-zinc-400 mt-1">Counted from completion history</div>
+            <div className="text-3xl font-mono font-bold text-amber-500">{t('progress.days', { count: streak })}</div>
+            <div className="mt-1 text-sm text-[var(--text-secondary)]">{t('progress.currentStreakBody')}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900/30 border-zinc-800/50">
+        <Card className="bg-[var(--bg-soft)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-widest text-zinc-500">Avg Confidence</CardTitle>
+            <CardTitle className="text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.averageConfidence')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-mono font-bold text-blue-400">{averageConfidence}%</div>
-            <div className="text-sm text-zinc-400 mt-1">Derived from comprehension checks</div>
+            <div className="mt-1 text-sm text-[var(--text-secondary)]">{t('progress.averageConfidenceBody')}</div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="bg-zinc-900/30 border-zinc-800/50">
+        <Card className="bg-[var(--bg-soft)]">
           <CardHeader>
-            <CardTitle className="text-xl">Active Goal Progress</CardTitle>
-            <CardDescription>{activeGoal?.title ?? 'No active goal yet'}</CardDescription>
+            <CardTitle className="text-xl">{t('progress.activeGoal')}</CardTitle>
+            <CardDescription>{activeGoal?.title ?? t('progress.noActiveGoal')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {activeGoal ? (
               <>
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-zinc-400">Overall Completion</span>
-                    <span className="font-mono text-zinc-200">
+                    <span className="text-[var(--text-secondary)]">{t('progress.overallCompletion')}</span>
+                    <span className="font-mono text-[var(--text-primary)]">
                       {Math.round(
                         ((data.tasks.filter((task) => task.goal_id === activeGoal.id && task.status === 'completed').length /
                           Math.max(data.tasks.filter((task) => task.goal_id === activeGoal.id).length, 1)) *
@@ -160,8 +162,8 @@ export function ProgressPage() {
                   />
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-zinc-800/50">
-                  <h4 className="font-mono uppercase tracking-widest text-xs text-zinc-500">Task Status</h4>
+                <div className="space-y-4 border-t border-[var(--border-color)] pt-4">
+                  <h4 className="text-xs font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.taskStatus')}</h4>
                   <div className="space-y-3">
                     {data.tasks
                       .filter((task) => task.goal_id === activeGoal.id)
@@ -172,12 +174,12 @@ export function ProgressPage() {
                           ) : (
                             <Activity className="w-4 h-4 text-amber-500" />
                           )}
-                          <span className="text-sm text-zinc-300 flex-1">{task.title}</span>
+                          <span className="flex-1 text-sm text-[var(--text-primary)]">{task.title}</span>
                           <Badge
                             variant={task.status === 'completed' ? 'success' : task.status === 'in_progress' ? 'warning' : 'secondary'}
                             className="text-[10px]"
                           >
-                            {task.status}
+                            {t(`status.${task.status}`)}
                           </Badge>
                         </div>
                       ))}
@@ -185,43 +187,43 @@ export function ProgressPage() {
                 </div>
               </>
             ) : (
-              <p className="text-zinc-500">Complete onboarding to unlock tracked progress.</p>
+              <p className="text-[var(--text-muted)]">{t('progress.unlock')}</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-zinc-900/30 border-zinc-800/50">
+        <Card className="bg-[var(--bg-soft)]">
           <CardHeader>
-            <CardTitle className="text-xl">Recent Activity</CardTitle>
-            <CardDescription>Your latest completed study sessions.</CardDescription>
+            <CardTitle className="text-xl">{t('progress.recentActivity')}</CardTitle>
+            <CardDescription>{t('progress.recentActivityBody')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-zinc-800 before:to-transparent">
+            <div className="relative space-y-4 before:absolute before:inset-0 before:ml-2 before:h-full before:w-0.5 before:-translate-x-px before:bg-gradient-to-b before:from-transparent before:via-[var(--border-color)] before:to-transparent">
               {recentSessions.length > 0 ? (
                 recentSessions.map((session) => {
                   const task = data.tasks.find((item) => item.id === session.task_id);
                   return (
                     <div key={session.id} className="relative flex items-center justify-between group">
-                      <div className="flex items-center justify-center w-4 h-4 rounded-full border-2 border-zinc-950 bg-amber-500 shadow shrink-0 z-10" />
-                      <div className="w-[calc(100%-2rem)] p-4 rounded-lg bg-zinc-950 border border-zinc-800/50">
+                      <div className="z-10 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-[var(--bg-void)] bg-amber-500 shadow" />
+                      <div className="w-[calc(100%-2rem)] rounded-lg border border-[var(--border-color)] bg-[var(--bg-void)] p-4">
                         <div className="flex items-center justify-between mb-1">
-                          <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider border-zinc-700 text-zinc-400">
-                            session
+                          <Badge variant="outline" className="border-[var(--border-strong)] text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)]">
+                            {t('common.session')}
                           </Badge>
-                          <span className="text-xs text-zinc-500 font-mono">
-                            {session.completed_at ? new Date(session.completed_at).toLocaleDateString() : 'Today'}
+                          <span className="text-xs font-mono text-[var(--text-muted)]">
+                            {session.completed_at ? formatDate(session.completed_at) : t('common.today')}
                           </span>
                         </div>
-                        <h4 className="text-sm font-medium text-zinc-200">{task?.title ?? 'Task'}</h4>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-zinc-400">
-                          <Clock className="w-3 h-3" /> {Math.round(session.duration_seconds / 60)} min
+                        <h4 className="text-sm font-medium text-[var(--text-primary)]">{task?.title ?? 'Task'}</h4>
+                        <div className="mt-2 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                          <Clock className="w-3 h-3" /> {t('common.minutes', { count: Math.round(session.duration_seconds / 60) })}
                         </div>
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <p className="text-zinc-500">Complete your first session to see activity here.</p>
+                <p className="text-[var(--text-muted)]">{t('progress.noActivity')}</p>
               )}
             </div>
           </CardContent>

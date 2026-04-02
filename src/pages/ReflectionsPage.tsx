@@ -2,9 +2,11 @@ import { BookOpen, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useAppData } from '../hooks/useAppData';
+import { usePreferences } from '../lib/preferences';
 
 export function ReflectionsPage() {
   const { data, loading, error } = useAppData();
+  const { formatDate, t } = usePreferences();
 
   if (loading) {
     return (
@@ -15,7 +17,7 @@ export function ReflectionsPage() {
   }
 
   if (!data) {
-    return <p className="text-zinc-500">{error ?? 'Unable to load reflections.'}</p>;
+    return <p className="text-[var(--text-muted)]">{error ?? 'Unable to load reflections.'}</p>;
   }
 
   const reflections = data.sessions.filter((session) => session.completed_at && (session.reflection || session.confusion));
@@ -24,11 +26,11 @@ export function ReflectionsPage() {
     <div className="space-y-8 font-sans">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-mono uppercase tracking-tight font-bold text-zinc-100">
-            Session Log
+          <h1 className="text-3xl font-mono font-bold uppercase tracking-tight text-[var(--text-primary)]">
+            {t('reflections.title')}
           </h1>
-          <p className="text-zinc-400 font-serif italic mt-2">
-            Your saved reflections from completed sessions.
+          <p className="mt-2 font-serif italic text-[var(--text-secondary)]">
+            {t('reflections.subtitle')}
           </p>
         </div>
       </div>
@@ -38,45 +40,47 @@ export function ReflectionsPage() {
           reflections.map((session) => {
             const task = data.tasks.find((item) => item.id === session.task_id);
             return (
-              <Card key={session.id} className="bg-zinc-900/30 border-zinc-800/50">
+              <Card key={session.id} className="bg-[var(--bg-soft)]">
                 <CardHeader className="pb-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <Badge variant="outline" className="mb-2 font-mono tracking-widest uppercase text-[10px] border-zinc-700 text-zinc-400">
-                        {session.completed_at ? new Date(session.completed_at).toLocaleDateString() : 'Unknown Date'}
+                      <Badge variant="outline" className="mb-2 border-[var(--border-strong)] text-[10px] font-mono uppercase tracking-widest text-[var(--text-secondary)]">
+                        {session.completed_at ? formatDate(session.completed_at) : t('common.unknownDate')}
                       </Badge>
-                      <CardTitle className="text-xl text-zinc-100">{task?.title ?? 'Task reflection'}</CardTitle>
-                      <CardDescription className="mt-1 text-zinc-400">
-                        Duration: {Math.round(session.duration_seconds / 60)} minutes
+                      <CardTitle className="text-xl text-[var(--text-primary)]">{task?.title ?? t('reflections.taskFallback')}</CardTitle>
+                      <CardDescription className="mt-1 text-[var(--text-secondary)]">
+                        {t('reflections.duration', { count: Math.round(session.duration_seconds / 60) })}
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <h4 className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-zinc-500">
-                      <BookOpen className="w-4 h-4 text-blue-400" /> Summary
+                    <h4 className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">
+                      <BookOpen className="w-4 h-4 text-blue-400" /> {t('reflections.summary')}
                     </h4>
-                    <p className="text-zinc-300 text-sm leading-relaxed">
-                      {session.reflection ?? 'No reflection was saved for this session.'}
+                    <p className="text-sm leading-relaxed text-[var(--text-primary)]">
+                      {session.reflection ?? t('reflections.summaryEmpty')}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <h4 className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-zinc-500">
-                      <AlertCircle className="w-4 h-4 text-amber-400" /> Blockers / Confusion
+                    <h4 className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">
+                      <AlertCircle className="w-4 h-4 text-amber-400" /> {t('reflections.blockers')}
                     </h4>
-                    <p className="text-zinc-300 text-sm leading-relaxed">
-                      {session.confusion ?? 'No blockers were recorded.'}
+                    <p className="text-sm leading-relaxed text-[var(--text-primary)]">
+                      {session.confusion ?? t('reflections.blockersEmpty')}
                     </p>
                   </div>
 
-                  <div className="space-y-2 pt-4 border-t border-zinc-800/50">
-                    <h4 className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-zinc-500">
-                      <ArrowRight className="w-4 h-4 text-green-400" /> Confidence
+                  <div className="space-y-2 border-t border-[var(--border-color)] pt-4">
+                    <h4 className="flex items-center gap-2 text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">
+                      <ArrowRight className="w-4 h-4 text-green-400" /> {t('reflections.confidence')}
                     </h4>
-                    <p className="text-zinc-300 text-sm leading-relaxed">
-                      {session.confidence ? `${session.confidence}/5 confidence at completion.` : 'No confidence score recorded.'}
+                    <p className="text-sm leading-relaxed text-[var(--text-primary)]">
+                      {session.confidence
+                        ? t('reflections.confidenceValue', { count: session.confidence })
+                        : t('reflections.confidenceEmpty')}
                     </p>
                   </div>
                 </CardContent>
@@ -84,9 +88,9 @@ export function ReflectionsPage() {
             );
           })
         ) : (
-          <Card className="bg-zinc-900/30 border-zinc-800/50">
-            <CardContent className="py-10 text-zinc-500">
-              Complete a session and save a reflection to build your log.
+          <Card className="bg-[var(--bg-soft)]">
+            <CardContent className="py-10 text-[var(--text-muted)]">
+              {t('reflections.empty')}
             </CardContent>
           </Card>
         )}

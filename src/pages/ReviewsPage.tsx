@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useAppData } from '../hooks/useAppData';
+import { usePreferences } from '../lib/preferences';
 
 export function ReviewsPage() {
   const { data, loading, error } = useAppData();
+  const { formatDate, t } = usePreferences();
 
   if (loading) {
     return (
@@ -17,7 +19,7 @@ export function ReviewsPage() {
   }
 
   if (!data) {
-    return <p className="text-zinc-500">{error ?? 'Unable to load reviews.'}</p>;
+    return <p className="text-[var(--text-muted)]">{error ?? 'Unable to load reviews.'}</p>;
   }
 
   const now = new Date();
@@ -32,27 +34,27 @@ export function ReviewsPage() {
     <div className="space-y-8 font-sans">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-mono uppercase tracking-tight font-bold text-zinc-100">
-            Review Center
+          <h1 className="text-3xl font-mono font-bold uppercase tracking-tight text-[var(--text-primary)]">
+            {t('reviews.title')}
           </h1>
-          <p className="text-zinc-400 font-serif italic mt-2">
-            Review cadence is now scheduled from your real comprehension scores.
+          <p className="mt-2 font-serif italic text-[var(--text-secondary)]">
+            {t('reviews.subtitle')}
           </p>
         </div>
         <div className="text-right">
           <Badge variant="destructive" className="font-mono tracking-widest uppercase text-xs">
-            {dueReviews.length} Due Now
+            {t('reviews.dueNow', { count: dueReviews.length })}
           </Badge>
         </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
-          <Card className="bg-zinc-900/30 border-zinc-800/50">
+          <Card className="bg-[var(--bg-soft)]">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
                 <RefreshCw className="w-5 h-5 text-amber-500" />
-                Due Reviews
+                {t('reviews.dueTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -60,37 +62,37 @@ export function ReviewsPage() {
                 dueReviews.map((review) => {
                   const task = data.tasks.find((item) => item.id === review.task_id);
                   return (
-                    <div key={review.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-zinc-950 border border-zinc-800 gap-4">
+                    <div key={review.id} className="flex flex-col justify-between gap-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-void)] p-4 sm:flex-row sm:items-center">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <Badge variant={review.priority === 'high' ? 'destructive' : review.priority === 'medium' ? 'warning' : 'secondary'} className="text-[10px] uppercase font-mono tracking-wider">
-                            {review.priority} Priority
+                            {t('reviews.priority', { priority: t(`priority.${review.priority}`) })}
                           </Badge>
-                          <span className="text-xs text-zinc-500 font-mono">
-                            Due: {new Date(review.due_date).toLocaleDateString()}
+                          <span className="text-xs font-mono text-[var(--text-muted)]">
+                            {t('common.dueLabel', { date: formatDate(review.due_date) })}
                           </span>
                         </div>
-                        <h4 className="font-medium text-zinc-200">{task?.title ?? 'Task review'}</h4>
+                        <h4 className="font-medium text-[var(--text-primary)]">{task?.title ?? t('reviews.taskReview')}</h4>
                       </div>
                       <Link to={`/app/session/${review.task_id}`}>
                         <Button variant="outline" className="shrink-0 gap-2">
-                          <Play className="w-4 h-4 fill-current" /> Start Review
+                          <Play className="w-4 h-4 fill-current" /> {t('reviews.startReview')}
                         </Button>
                       </Link>
                     </div>
                   );
                 })
               ) : (
-                <p className="text-zinc-500">No reviews are due right now.</p>
+                <p className="text-[var(--text-muted)]">{t('reviews.noneDue')}</p>
               )}
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-900/30 border-zinc-800/50">
+          <Card className="bg-[var(--bg-soft)]">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
-                Upcoming
+                {t('reviews.upcomingTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -98,33 +100,33 @@ export function ReviewsPage() {
                 upcomingReviews.slice(0, 5).map((review) => {
                   const task = data.tasks.find((item) => item.id === review.task_id);
                   return (
-                    <div key={review.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-zinc-950 border border-zinc-800/50 opacity-70 gap-4">
+                    <div key={review.id} className="flex flex-col justify-between gap-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-void)] p-4 opacity-70 sm:flex-row sm:items-center">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs text-zinc-500 font-mono">
-                            Due: {new Date(review.due_date).toLocaleDateString()}
+                          <span className="text-xs font-mono text-[var(--text-muted)]">
+                            {t('common.dueLabel', { date: formatDate(review.due_date) })}
                           </span>
                         </div>
-                        <h4 className="font-medium text-zinc-400">{task?.title ?? 'Task review'}</h4>
+                        <h4 className="font-medium text-[var(--text-secondary)]">{task?.title ?? t('reviews.taskReview')}</h4>
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <p className="text-zinc-500">Future reviews will appear after you complete sessions.</p>
+                <p className="text-[var(--text-muted)]">{t('reviews.noneUpcoming')}</p>
               )}
             </CardContent>
           </Card>
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-zinc-900/30 border-red-900/20">
+          <Card className="bg-[var(--bg-soft)] border-red-900/20">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
-                Weak Areas
+                {t('reviews.weakAreas')}
               </CardTitle>
-              <CardDescription>Lowest-confidence topics from your completed sessions.</CardDescription>
+              <CardDescription>{t('reviews.weakAreasBody')}</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3">
@@ -133,15 +135,15 @@ export function ReviewsPage() {
                     const task = data.tasks.find((item) => item.id === session.task_id);
                     return (
                       <li key={session.id} className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-zinc-300">{task?.title ?? 'Task'}</span>
+                        <span className="text-sm text-[var(--text-primary)]">{task?.title ?? 'Task'}</span>
                         <Badge variant={(session.confidence ?? 0) <= 2 ? 'destructive' : 'warning'} className="text-[10px]">
-                          Score: {session.confidence ?? 0}/5
+                          {t('reviews.score', { score: session.confidence ?? 0 })}
                         </Badge>
                       </li>
                     );
                   })
                 ) : (
-                  <li className="text-sm text-zinc-500">Confidence data will appear after your first session check-in.</li>
+                  <li className="text-sm text-[var(--text-muted)]">{t('reviews.noWeakAreas')}</li>
                 )}
               </ul>
             </CardContent>
