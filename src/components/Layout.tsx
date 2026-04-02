@@ -26,11 +26,14 @@ export function Layout() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex font-sans">
       <aside className="w-64 border-r border-zinc-800 bg-zinc-950 flex-col hidden md:flex">
         <div className="h-16 flex items-center justify-between px-6 border-b border-zinc-800">
-          <span className="font-mono font-bold tracking-widest uppercase text-amber-500">Architect</span>
+          <div className="flex flex-col">
+            <span className="font-mono font-bold tracking-[0.28em] uppercase text-amber-500 text-xs">Fadlyzaki</span>
+            <span className="font-mono font-semibold tracking-[0.18em] uppercase text-zinc-100 text-sm">Architect</span>
+          </div>
         </div>
 
         <div className="px-6 py-4 border-b border-zinc-800">
-          <div className="text-xs font-mono uppercase tracking-widest text-zinc-500">Signed in</div>
+          <div className="text-xs font-mono uppercase tracking-widest text-zinc-500">Human By Design</div>
           <div className="mt-2 text-sm text-zinc-200">{session?.user.name}</div>
           <div className="text-xs text-zinc-500">{session?.user.email}</div>
         </div>
@@ -71,7 +74,10 @@ export function Layout() {
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="h-16 flex items-center justify-between px-4 border-b border-zinc-800 md:hidden bg-zinc-950">
-          <span className="font-mono font-bold tracking-widest uppercase text-amber-500">Architect</span>
+          <div className="flex flex-col">
+            <span className="font-mono font-bold tracking-[0.28em] uppercase text-amber-500 text-[10px]">Fadlyzaki</span>
+            <span className="font-mono font-semibold tracking-[0.18em] uppercase text-zinc-100 text-sm">Architect</span>
+          </div>
           <button
             type="button"
             onClick={handleSignOut}

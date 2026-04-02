@@ -4,6 +4,8 @@ Learning Progress Architect is a guided learning workspace that turns a vague go
 
 The current product is optimized for a single learner working through a private study plan. It combines a React front end, an Express API, SQLite persistence, and Gemini-backed syllabus generation with a local fallback path when AI is unavailable.
 
+The product voice and interface are shaped by a simple design belief: software logic should meet human intuition, not fight it. The goal is not to add cleverness. The goal is to tame complexity and free up mental bandwidth when it matters most.
+
 ## What It Does
 
 - Authenticates a learner with email and password
@@ -14,6 +16,13 @@ The current product is optimized for a single learner working through a private 
 - Captures comprehension, blockers, and confidence after each session
 - Schedules future reviews based on learner confidence
 - Tracks progress, reflections, and review workload across the learning journey
+
+## Design Philosophy
+
+- Human by design
+- Resilience over optimization
+- Built for humans at their limit, not just their peak
+- Interfaces should scaffold intent, not consume attention
 
 ## Current Product Flow
 

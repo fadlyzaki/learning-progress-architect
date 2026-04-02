@@ -80,7 +80,7 @@ export function DashboardPage() {
             Welcome back, {data.user.name}.
           </h1>
           <p className="text-zinc-400 font-serif italic mt-2">
-            Your next step is ready and tied to your active roadmap.
+            Complexity is contained. Your next step is ready.
           </p>
         </div>
         <div className="flex items-center gap-3 bg-zinc-900/50 px-4 py-2 rounded-lg border border-zinc-800">
@@ -120,7 +120,7 @@ export function DashboardPage() {
             <div className="flex items-center gap-2 text-sm text-zinc-500">
               <AlertCircle className="w-4 h-4 text-blue-400" />
               <span>
-                Recommended because it supports your active goal:{' '}
+                Recommended because it supports your active goal and protects your mental bandwidth:{' '}
                 <strong className="text-zinc-300 font-medium">{activeGoal.title}</strong>
               </span>
             </div>
