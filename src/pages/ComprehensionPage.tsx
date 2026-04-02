@@ -4,9 +4,9 @@ import { CheckCircle2, ChevronRight, RefreshCw, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { getAuthHeaders } from '../lib/auth';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
+import { ApiError, apiFetch } from '../lib/api';
 
 export function ComprehensionPage() {
   const { id } = useParams();
@@ -21,6 +21,7 @@ export function ComprehensionPage() {
   const [explanation, setExplanation] = useState('');
   const [blockers, setBlockers] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const durationSeconds = typeof location.state === 'object' && location.state && 'durationSeconds' in location.state
     ? Number(location.state.durationSeconds) || 0
@@ -37,13 +38,13 @@ export function ComprehensionPage() {
     }
 
     setSubmitting(true);
+    setErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/tasks/${task.id}/complete`, {
+      await apiFetch(`/api/tasks/${task.id}/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           reflection: explanation,
@@ -53,13 +54,10 @@ export function ComprehensionPage() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(t('comprehension.saveFailed'));
-      }
-
       navigate('/app', { replace: true });
     } catch (submitError) {
       console.error(submitError);
+      setErrorMessage(submitError instanceof ApiError ? submitError.message : t('comprehension.saveFailed'));
       setSubmitting(false);
     }
   };
@@ -108,6 +106,19 @@ export function ComprehensionPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-8">
+          {errorMessage && (
+            <div className="mb-6 rounded-md border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+              <div>{errorMessage}</div>
+              <button
+                type="button"
+                className="mt-2 underline underline-offset-4"
+                onClick={() => void handleNext()}
+                disabled={submitting}
+              >
+                {t('comprehension.retrySave')}
+              </button>
+            </div>
+          )}
           {step === 1 && (
             <div className="space-y-6">
               <textarea

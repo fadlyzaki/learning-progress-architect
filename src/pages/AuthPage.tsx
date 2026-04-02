@@ -5,6 +5,7 @@ import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { setStoredSession } from '../lib/auth';
+import { ApiError, apiFetch } from '../lib/api';
 import type { AuthSession } from '../types';
 import { PreferenceControls } from '../components/PreferenceControls';
 import { usePreferences } from '../lib/preferences';
@@ -16,15 +17,35 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+    setFieldError(null);
+
+    if (type === 'signup' && !name.trim()) {
+      setFieldError(t('auth.name'));
+      setSubmitting(false);
+      return;
+    }
+
+    if (!email.trim() || !email.includes('@')) {
+      setFieldError(t('auth.email'));
+      setSubmitting(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setFieldError(t('auth.password'));
+      setSubmitting(false);
+      return;
+    }
 
     try {
-      const response = await fetch(type === 'signup' ? '/api/auth/signup' : '/api/auth/login', {
+      const payload = await apiFetch<AuthSession>(type === 'signup' ? '/api/auth/signup' : '/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,16 +57,11 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
         }),
       });
 
-      const payload = (await response.json()) as AuthSession | { error: string };
-      if (!response.ok || !('token' in payload)) {
-        throw new Error('error' in payload ? payload.error : 'Authentication failed.');
-      }
-
       setStoredSession(payload);
       navigate(type === 'signup' ? '/onboarding' : '/app', { replace: true });
     } catch (submitError) {
       console.error(submitError);
-      setError(submitError instanceof Error ? submitError.message : 'Authentication failed.');
+      setError(submitError instanceof ApiError ? submitError.message : 'Authentication failed.');
     } finally {
       setSubmitting(false);
     }
@@ -75,6 +91,11 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {fieldError && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+                {fieldError}
+              </div>
+            )}
             {type === 'signup' && (
               <div className="space-y-2">
                 <Label htmlFor="name">{t('auth.name')}</Label>

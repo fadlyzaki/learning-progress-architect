@@ -43,10 +43,60 @@ type SyllabusItem = {
   description: string;
 };
 
-const db = new Database('app.db');
+type ResourceMode = 'has_materials' | 'needs_plan';
+
+type ResourceType =
+  | 'link'
+  | 'course'
+  | 'book'
+  | 'article'
+  | 'documentation'
+  | 'notes'
+  | 'video'
+  | 'other';
+
+type ResourceRow = {
+  id: number;
+  user_id: string;
+  goal_id: number;
+  title: string;
+  type: ResourceType;
+  reference: string | null;
+  notes: string | null;
+  source_kind: 'user_supplied' | 'system_suggested';
+  created_at: string;
+};
+
+type TaskResourceRow = {
+  id: number;
+  user_id: string;
+  task_id: number;
+  resource_id: number;
+  relevance_note: string | null;
+};
+
+type LearningResourceInput = {
+  title: string;
+  type: ResourceType;
+  reference: string | null;
+  notes: string | null;
+};
+
+const db = new Database(process.env.DATABASE_FILE || 'app.db');
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
+
+const VALID_RESOURCE_TYPES = new Set<ResourceType>([
+  'link',
+  'course',
+  'book',
+  'article',
+  'documentation',
+  'notes',
+  'video',
+  'other',
+]);
 
 function nowIso() {
   return new Date().toISOString();
@@ -149,6 +199,29 @@ function migrateDatabase() {
       status TEXT NOT NULL DEFAULT 'pending',
       FOREIGN KEY(task_id) REFERENCES tasks(id)
     );
+
+    CREATE TABLE IF NOT EXISTS resources (
+      id INTEGER PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      goal_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL,
+      reference TEXT,
+      notes TEXT,
+      source_kind TEXT NOT NULL DEFAULT 'user_supplied',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(goal_id) REFERENCES goals(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS task_resources (
+      id INTEGER PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      task_id INTEGER NOT NULL,
+      resource_id INTEGER NOT NULL,
+      relevance_note TEXT,
+      FOREIGN KEY(task_id) REFERENCES tasks(id),
+      FOREIGN KEY(resource_id) REFERENCES resources(id)
+    );
   `);
 
   ensureColumn('goals', 'user_id TEXT');
@@ -156,6 +229,7 @@ function migrateDatabase() {
   ensureColumn('goals', 'preferred_style TEXT');
   ensureColumn('goals', "status TEXT DEFAULT 'active'");
   ensureColumn('goals', 'created_at TEXT');
+  ensureColumn('goals', "resource_mode TEXT DEFAULT 'needs_plan'");
 
   ensureColumn('tasks', 'user_id TEXT');
   ensureColumn('tasks', 'created_at TEXT');
@@ -170,6 +244,7 @@ function migrateDatabase() {
   db.exec(`
     UPDATE goals SET created_at = COALESCE(created_at, datetime('now')) WHERE created_at IS NULL;
     UPDATE goals SET status = COALESCE(status, 'active') WHERE status IS NULL;
+    UPDATE goals SET resource_mode = COALESCE(resource_mode, 'needs_plan') WHERE resource_mode IS NULL;
     UPDATE tasks SET created_at = COALESCE(created_at, datetime('now')) WHERE created_at IS NULL;
     UPDATE notes SET created_at = COALESCE(created_at, datetime('now')) WHERE created_at IS NULL;
     UPDATE notes SET kind = COALESCE(kind, 'plan') WHERE kind IS NULL;
@@ -234,7 +309,7 @@ function getAuthenticatedUser(req: Request): UserRow | null {
 function requireUser(req: Request, res: Response) {
   const user = getAuthenticatedUser(req);
   if (!user) {
-    res.status(401).json({ error: 'Unauthorized' });
+    jsonError(res, 401, 'Your session has expired. Please sign in again.', 'AUTH_REQUIRED');
     return null;
   }
 
@@ -248,31 +323,104 @@ function createSessionToken(userId: string) {
   return token;
 }
 
-function buildFallbackSyllabus(goal: string, level: string, preferredStyle?: string) {
+function sanitizeResourceInput(raw: unknown): LearningResourceInput[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .map((item) => {
+      const candidate = item as Record<string, unknown>;
+      const title = String(candidate?.title ?? '').trim();
+      const type = String(candidate?.type ?? '').trim() as ResourceType;
+      const reference = String(candidate?.reference ?? '').trim();
+      const notes = String(candidate?.notes ?? '').trim();
+
+      if (!title || !VALID_RESOURCE_TYPES.has(type)) {
+        return null;
+      }
+
+      return {
+        title,
+        type,
+        reference: reference || null,
+        notes: notes || null,
+      };
+    })
+    .filter((item): item is LearningResourceInput => Boolean(item));
+}
+
+function normalizeResourceMode(raw: unknown): ResourceMode {
+  return raw === 'has_materials' ? 'has_materials' : 'needs_plan';
+}
+
+function jsonError(res: Response, status: number, error: string, code: string) {
+  res.status(status).json({ error, code });
+}
+
+function buildFallbackSyllabus(
+  goal: string,
+  level: string,
+  preferredStyle?: string,
+  resources: LearningResourceInput[] = [],
+  resourceMode: ResourceMode = 'needs_plan',
+) {
   const styleLabel = preferredStyle ? ` using a ${preferredStyle.toLowerCase()} approach` : '';
+  const resourceHint =
+    resourceMode === 'has_materials' && resources.length > 0
+      ? ` Anchor the work around materials like ${resources
+          .slice(0, 2)
+          .map((resource) => resource.title)
+          .join(' and ')}.`
+      : ' Start with a lightweight plan and gather one strong reference per task.';
 
   return [
     {
       title: `Foundations of ${goal}`,
-      description: `Build the mental model, vocabulary, and first principles for ${goal} at a ${level.toLowerCase()} level${styleLabel}.`,
+      description: `Build the mental model, vocabulary, and first principles for ${goal} at a ${level.toLowerCase()} level${styleLabel}.${resourceHint}`,
     },
     {
       title: `Guided practice for ${goal}`,
-      description: `Work through focused exercises that turn the core ideas of ${goal} into repeatable habits.`,
+      description:
+        resourceMode === 'has_materials' && resources.length > 0
+          ? `Work through focused exercises using your provided materials to turn the core ideas of ${goal} into repeatable habits.`
+          : `Work through focused exercises that turn the core ideas of ${goal} into repeatable habits, and identify the best kind of resource to deepen each area.`,
     },
     {
       title: `Applied project for ${goal}`,
-      description: `Ship one practical outcome that proves you can apply ${goal} beyond tutorials.`,
+      description: `Ship one practical outcome that proves you can apply ${goal} beyond tutorials and passive study.`,
     },
   ];
 }
 
-async function generateSyllabus(goal: string, level: string, preferredStyle?: string) {
+async function generateSyllabus(
+  goal: string,
+  level: string,
+  preferredStyle?: string,
+  resources: LearningResourceInput[] = [],
+  resourceMode: ResourceMode = 'needs_plan',
+) {
   if (!ai) {
-    return buildFallbackSyllabus(goal, level, preferredStyle);
+    return buildFallbackSyllabus(goal, level, preferredStyle, resources, resourceMode);
   }
 
   try {
+    const resourceContext =
+      resourceMode === 'has_materials' && resources.length > 0
+        ? `
+        Use these learner-provided materials as primary planning anchors:
+        ${resources
+          .map(
+            (resource, index) =>
+              `${index + 1}. [${resource.type}] ${resource.title}${resource.reference ? ` | ${resource.reference}` : ''}${resource.notes ? ` | Notes: ${resource.notes}` : ''}`,
+          )
+          .join('\n')}
+      `
+        : `
+        The learner does not have materials yet.
+        Generate a roadmap that acts like a starter curriculum and make each task self-starting.
+      `;
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `
@@ -281,6 +429,9 @@ async function generateSyllabus(goal: string, level: string, preferredStyle?: st
         Goal: "${goal}"
         Level: "${level}"
         Preferred style: "${preferredStyle ?? 'mixed'}"
+        Resource mode: "${resourceMode}"
+        ${resourceContext}
+        Each task description should either reference the learner materials or explain how to begin without them.
         Return only JSON.
       `,
       config: {
@@ -307,7 +458,7 @@ async function generateSyllabus(goal: string, level: string, preferredStyle?: st
     console.error('Falling back to local syllabus generation.', error);
   }
 
-  return buildFallbackSyllabus(goal, level, preferredStyle);
+  return buildFallbackSyllabus(goal, level, preferredStyle, resources, resourceMode);
 }
 
 function buildEventSchedule(taskCount: number, weeklyHours: number) {
@@ -323,14 +474,59 @@ function buildEventSchedule(taskCount: number, weeklyHours: number) {
   }));
 }
 
-function buildPlanSummary(goal: string, level: string, hours: number, syllabus: SyllabusItem[]) {
+function buildPlanSummary(
+  goal: string,
+  level: string,
+  hours: number,
+  syllabus: SyllabusItem[],
+  resourceMode: ResourceMode,
+  resources: LearningResourceInput[],
+) {
   const lines = syllabus.map((item, index) => `${index + 1}. ${item.title}: ${item.description}`);
+  const resourceSection =
+    resourceMode === 'has_materials' && resources.length > 0
+      ? [
+          'Planning mode: learner-provided materials',
+          'Resources:',
+          ...resources.map(
+            (resource, index) =>
+              `- ${index + 1}. ${resource.title} [${resource.type}]${resource.reference ? ` | ${resource.reference}` : ''}`,
+          ),
+        ]
+      : [
+          'Planning mode: generated starting plan',
+          'Recommended resource types to gather next:',
+          '- One primary reference (documentation, book chapter, or course module)',
+          '- One practice-oriented resource (exercise, sandbox, or project prompt)',
+          '- One reinforcement resource (article, recap note, or worked example)',
+        ];
 
   return [
     `Goal: ${goal}`,
     `Level: ${level}`,
     `Weekly hours: ${hours}`,
+    ...resourceSection,
     ...lines,
+  ].join('\n');
+}
+
+function buildResourceNote(goal: string, resourceMode: ResourceMode, resources: LearningResourceInput[]) {
+  if (resourceMode === 'has_materials' && resources.length > 0) {
+    return [
+      `Resource posture for ${goal}: learner-supplied materials`,
+      ...resources.map(
+        (resource, index) =>
+          `${index + 1}. ${resource.title} [${resource.type}]${resource.reference ? ` | ${resource.reference}` : ''}`,
+      ),
+    ].join('\n');
+  }
+
+  return [
+    `Resource posture for ${goal}: start-from-zero plan`,
+    'Next best resource types:',
+    '1. A trusted primary reference',
+    '2. A practice environment or exercise source',
+    '3. A concise recap or example-based explanation',
   ].join('\n');
 }
 
@@ -358,13 +554,18 @@ async function startServer() {
     const password = String(req.body?.password ?? '');
 
     if (!name || !email || password.length < 8) {
-      res.status(400).json({ error: 'Name, email, and a password of at least 8 characters are required.' });
+      jsonError(
+        res,
+        400,
+        'Name, email, and a password of at least 8 characters are required.',
+        'INVALID_AUTH_PAYLOAD',
+      );
       return;
     }
 
     const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: string } | undefined;
     if (existingUser) {
-      res.status(409).json({ error: 'An account with that email already exists.' });
+      jsonError(res, 409, 'An account with that email already exists.', 'EMAIL_IN_USE');
       return;
     }
 
@@ -397,7 +598,7 @@ async function startServer() {
       .get(email) as (UserRow & { password_hash: string }) | undefined;
 
     if (!user || !verifyPassword(password, user.password_hash)) {
-      res.status(401).json({ error: 'Incorrect email or password.' });
+      jsonError(res, 401, 'Incorrect email or password.', 'INVALID_CREDENTIALS');
       return;
     }
 
@@ -437,8 +638,14 @@ async function startServer() {
     const reviews = db
       .prepare('SELECT * FROM reviews WHERE user_id = ? ORDER BY due_date ASC, id ASC')
       .all(user.id);
+    const resources = db
+      .prepare('SELECT * FROM resources WHERE user_id = ? ORDER BY created_at ASC, id ASC')
+      .all(user.id);
+    const task_resources = db
+      .prepare('SELECT * FROM task_resources WHERE user_id = ? ORDER BY id ASC')
+      .all(user.id);
 
-    res.json({ user, goals, tasks, events, notes, sessions, reviews });
+    res.json({ user, goals, tasks, events, notes, sessions, reviews, resources, task_resources });
   });
 
   app.post('/api/agent/workflow', async (req, res) => {
@@ -453,9 +660,21 @@ async function startServer() {
       const hours = Math.max(1, Number(req.body?.hours ?? 1));
       const targetDate = req.body?.targetDate ? String(req.body.targetDate) : null;
       const preferredStyle = req.body?.preferredStyle ? String(req.body.preferredStyle) : null;
+      const resourceMode = normalizeResourceMode(req.body?.resourceMode);
+      const resources = sanitizeResourceInput(req.body?.resources);
 
       if (!goal) {
-        res.status(400).json({ error: 'A learning goal is required.' });
+        jsonError(res, 400, 'A learning goal is required.', 'GOAL_REQUIRED');
+        return;
+      }
+
+      if (resourceMode === 'has_materials' && resources.length === 0) {
+        jsonError(
+          res,
+          400,
+          'Add at least one resource or switch to the starting-plan mode.',
+          'RESOURCES_REQUIRED',
+        );
         return;
       }
 
@@ -463,14 +682,20 @@ async function startServer() {
       const goalInsert = db
         .prepare(
           `
-            INSERT INTO goals (user_id, title, level, hours, target_date, preferred_style, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
+            INSERT INTO goals (user_id, title, level, hours, target_date, preferred_style, status, created_at, resource_mode)
+            VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)
           `,
         )
-        .run(user.id, goal, level, hours, targetDate, preferredStyle, createdAt);
+        .run(user.id, goal, level, hours, targetDate, preferredStyle, createdAt, resourceMode);
 
       const goalId = Number(goalInsert.lastInsertRowid);
-      const syllabus = await generateSyllabus(goal, level, preferredStyle ?? undefined);
+      const syllabus = await generateSyllabus(
+        goal,
+        level,
+        preferredStyle ?? undefined,
+        resources,
+        resourceMode,
+      );
       const scheduledEvents = buildEventSchedule(syllabus.length, hours);
       const insertTask = db.prepare(
         `
@@ -481,15 +706,46 @@ async function startServer() {
       const insertEvent = db.prepare(
         'INSERT INTO calendar_events (user_id, task_id, date, duration) VALUES (?, ?, ?, ?)',
       );
+      const insertResource = db.prepare(
+        `
+          INSERT INTO resources (user_id, goal_id, title, type, reference, notes, source_kind, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'user_supplied', ?)
+        `,
+      );
+      const insertTaskResource = db.prepare(
+        `
+          INSERT INTO task_resources (user_id, task_id, resource_id, relevance_note)
+          VALUES (?, ?, ?, ?)
+        `,
+      );
+
+      const storedResourceIds = resources.map((resource) => {
+        const result = insertResource.run(
+          user.id,
+          goalId,
+          resource.title,
+          resource.type,
+          resource.reference,
+          resource.notes,
+          createdAt,
+        );
+        return Number(result.lastInsertRowid);
+      });
 
       syllabus.forEach((item, index) => {
         const taskInsert = insertTask.run(user.id, goalId, item.title, item.description, createdAt);
+        const taskId = Number(taskInsert.lastInsertRowid);
         insertEvent.run(
           user.id,
-          Number(taskInsert.lastInsertRowid),
+          taskId,
           scheduledEvents[index].date,
           scheduledEvents[index].duration,
         );
+
+        if (storedResourceIds.length > 0) {
+          const resourceId = storedResourceIds[index % storedResourceIds.length];
+          insertTaskResource.run(user.id, taskId, resourceId, 'Primary study anchor for this task');
+        }
       });
 
       db.prepare(
@@ -497,12 +753,18 @@ async function startServer() {
           INSERT INTO notes (user_id, topic, content, kind, created_at)
           VALUES (?, ?, ?, 'plan', ?)
         `,
-      ).run(user.id, goal, buildPlanSummary(goal, level, hours, syllabus), createdAt);
+      ).run(user.id, goal, buildPlanSummary(goal, level, hours, syllabus, resourceMode, resources), createdAt);
+      db.prepare(
+        `
+          INSERT INTO notes (user_id, topic, content, kind, created_at)
+          VALUES (?, ?, ?, 'note', ?)
+        `,
+      ).run(user.id, `${goal} resources`, buildResourceNote(goal, resourceMode, resources), createdAt);
 
       res.status(201).json({ success: true, goalId });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: 'Failed to generate a learning roadmap.' });
+      jsonError(res, 500, 'Failed to generate a learning roadmap.', 'WORKFLOW_GENERATION_FAILED');
     }
   });
 
@@ -518,7 +780,7 @@ async function startServer() {
       .get(taskId, user.id) as TaskRow | undefined;
 
     if (!task) {
-      res.status(404).json({ error: 'Task not found.' });
+      jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
       return;
     }
 
@@ -568,7 +830,7 @@ async function startServer() {
       .get(taskId, user.id) as TaskRow | undefined;
 
     if (!task) {
-      res.status(404).json({ error: 'Task not found.' });
+      jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
       return;
     }
 
@@ -641,7 +903,7 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -654,8 +916,9 @@ async function startServer() {
     });
   }
 
-  app.listen(3000, '0.0.0.0', () => {
-    console.log('Server running on port 3000');
+  const port = Number(process.env.PORT ?? 3000);
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
   });
 }
 

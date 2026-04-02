@@ -18,6 +18,7 @@ export interface GoalRecord {
   hours: number;
   target_date: string | null;
   preferred_style: string | null;
+  resource_mode: 'has_materials' | 'needs_plan';
   status: 'active' | 'paused' | 'completed';
   created_at: string;
 }
@@ -71,6 +72,41 @@ export interface ReviewRecord {
   status: 'pending' | 'completed';
 }
 
+export type ResourceType =
+  | 'link'
+  | 'course'
+  | 'book'
+  | 'article'
+  | 'documentation'
+  | 'notes'
+  | 'video'
+  | 'other';
+
+export type ResourceMode = 'has_materials' | 'needs_plan';
+
+export interface LearningResourceInput {
+  title: string;
+  type: ResourceType;
+  reference: string | null;
+  notes: string | null;
+}
+
+export interface ResourceRecord extends LearningResourceInput {
+  id: number;
+  user_id: string;
+  goal_id: number;
+  source_kind: 'user_supplied' | 'system_suggested';
+  created_at: string;
+}
+
+export interface TaskResourceRecord {
+  id: number;
+  user_id: string;
+  task_id: number;
+  resource_id: number;
+  relevance_note: string | null;
+}
+
 export interface AppDataPayload {
   user: UserAccount;
   goals: GoalRecord[];
@@ -79,4 +115,6 @@ export interface AppDataPayload {
   notes: NoteRecord[];
   sessions: StudySessionRecord[];
   reviews: ReviewRecord[];
+  resources: ResourceRecord[];
+  task_resources: TaskResourceRecord[];
 }

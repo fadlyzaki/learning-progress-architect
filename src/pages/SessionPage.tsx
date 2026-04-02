@@ -4,9 +4,9 @@ import { Play, Pause, CheckCircle2, HelpCircle, Lightbulb, MessageSquare, AlertT
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { getAuthHeaders } from '../lib/auth';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
+import { ApiError, apiFetch } from '../lib/api';
 
 export function SessionPage() {
   const { id } = useParams();
@@ -16,6 +16,10 @@ export function SessionPage() {
   const taskId = Number(id);
   const task = data?.tasks.find((item) => item.id === taskId) ?? null;
   const goal = task ? data?.goals.find((item) => item.id === task.goal_id) ?? null : null;
+  const taskResourceLinks = task ? data?.task_resources.filter((item) => item.task_id === task.id) ?? [] : [];
+  const taskResources = taskResourceLinks
+    .map((link) => data?.resources.find((resource) => resource.id === link.resource_id) ?? null)
+    .filter((resource): resource is NonNullable<typeof resource> => Boolean(resource));
   const existingSession = task
     ? data?.sessions.find((session) => session.task_id === task.id && session.completed_at === null) ??
       data?.sessions.find((session) => session.task_id === task.id) ??
@@ -24,6 +28,7 @@ export function SessionPage() {
   const [isActive, setIsActive] = useState(false);
   const [time, setTime] = useState(existingSession?.duration_seconds ?? 0);
   const [starting, setStarting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setTime(existingSession?.duration_seconds ?? 0);
@@ -59,22 +64,17 @@ export function SessionPage() {
     }
 
     setStarting(true);
+    setErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/tasks/${task.id}/start`, {
+      await apiFetch(`/api/tasks/${task.id}/start`, {
         method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-        },
       });
-
-      if (!response.ok) {
-        throw new Error(t('session.startFailed'));
-      }
 
       setIsActive(true);
     } catch (startError) {
       console.error(startError);
+      setErrorMessage(startError instanceof ApiError ? startError.message : t('session.startFailed'));
     } finally {
       setStarting(false);
     }
@@ -155,6 +155,39 @@ export function SessionPage() {
 
           <Card className="bg-[var(--bg-soft)]">
             <CardHeader>
+              <CardTitle className="text-xl">{t('session.materials')}</CardTitle>
+              <CardDescription>{t('session.materialsBody')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {taskResources.length > 0 ? (
+                <div className="space-y-3">
+                  {taskResources.map((resource) => (
+                    <div key={resource.id} className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-medium text-[var(--text-primary)]">{resource.title}</div>
+                          <div className="mt-1 text-xs font-mono uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                            {t(`resourceType.${resource.type}`)}
+                          </div>
+                        </div>
+                      </div>
+                      {resource.reference && (
+                        <div className="mt-3 text-sm text-[var(--text-secondary)] break-all">{resource.reference}</div>
+                      )}
+                      {resource.notes && (
+                        <div className="mt-2 text-sm text-[var(--text-secondary)]">{resource.notes}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--text-muted)]">{t('session.materialsEmpty')}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[var(--bg-soft)]">
+            <CardHeader>
               <CardTitle className="text-xl">{t('session.notes')}</CardTitle>
               <CardDescription>{t('session.notesBody')}</CardDescription>
             </CardHeader>
@@ -168,6 +201,19 @@ export function SessionPage() {
         </div>
 
         <div className="space-y-6">
+          {errorMessage && (
+            <div className="rounded-xl border border-red-900/40 bg-red-950/40 p-4 text-sm text-red-200">
+              <div>{errorMessage}</div>
+              <button
+                type="button"
+                className="mt-2 text-red-100 underline underline-offset-4"
+                onClick={() => void handleToggle()}
+                disabled={starting}
+              >
+                {t('session.retryStart')}
+              </button>
+            </div>
+          )}
           <Card className="bg-[var(--bg-soft)]">
             <CardHeader>
               <CardTitle className="text-lg">{t('session.quickActions')}</CardTitle>

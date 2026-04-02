@@ -90,10 +90,21 @@ export function RoadmapPage() {
                         )}
                       </div>
                       <div className="flex-1">
+                        {(() => {
+                          const resourceCount =
+                            data?.task_resources.filter((item) => item.task_id === task.id).length ?? 0;
+
+                          return (
+                            <>
                         <h4 className={`text-sm font-medium ${task.status === 'completed' ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'}`}>
                           {task.title}
                         </h4>
                         <p className="mt-1 text-xs text-[var(--text-muted)]">{task.description}</p>
+                              {resourceCount > 0 && (
+                                <p className="mt-2 text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-secondary)]">
+                                  {t('roadmap.materials', { count: resourceCount })}
+                                </p>
+                              )}
 
                         {task.status !== 'completed' && (
                           <div className="mt-3 flex items-center gap-2">
@@ -107,6 +118,9 @@ export function RoadmapPage() {
                             </Link>
                           </div>
                         )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}

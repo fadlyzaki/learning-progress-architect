@@ -45,6 +45,7 @@ export function GoalsPage() {
       <div className="grid md:grid-cols-2 gap-6">
         {data.goals.map((goal) => {
           const tasks = data.tasks.filter((task) => task.goal_id === goal.id);
+          const resources = data.resources.filter((resource) => resource.goal_id === goal.id);
           const completedTasks = tasks.filter((task) => task.status === 'completed').length;
           const progressPercentage = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
@@ -89,6 +90,9 @@ export function GoalsPage() {
                         style: t(`option.style.${goal.preferred_style ?? 'Mixed'}`),
                       })}
                     </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                    <span>{t('goals.resources', { count: resources.length })}</span>
                   </div>
                 </div>
 

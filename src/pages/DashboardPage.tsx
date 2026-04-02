@@ -30,6 +30,7 @@ export function DashboardPage() {
 
   const activeGoal = data.goals[0];
   const tasks = activeGoal ? data.tasks.filter((task) => task.goal_id === activeGoal.id) : [];
+  const goalResources = activeGoal ? data.resources.filter((resource) => resource.goal_id === activeGoal.id) : [];
   const nextTask = tasks.find((task) => task.status !== 'completed') ?? null;
   const nextEvent = nextTask ? data.events.find((event) => event.task_id === nextTask.id) ?? null : null;
   const completedTasks = tasks.filter((task) => task.status === 'completed').length;
@@ -217,10 +218,16 @@ export function DashboardPage() {
               <CardDescription>{t('dashboard.signalPanelBody')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-[var(--text-secondary)]">{t('dashboard.studyTime')}</span>
-                  <span className="font-mono text-[var(--text-primary)]">{t('common.minutes', { count: studyMinutes })}</span>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-[var(--text-secondary)]">{t('dashboard.resourceSignal')}</span>
+            <span className="font-mono text-[var(--text-primary)]">
+              {t('dashboard.resourceSignalValue', { count: goalResources.length })}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-[var(--text-secondary)]">{t('dashboard.studyTime')}</span>
+            <span className="font-mono text-[var(--text-primary)]">{t('common.minutes', { count: studyMinutes })}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-[var(--text-secondary)]">{t('dashboard.tasksCompleted')}</span>
