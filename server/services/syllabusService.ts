@@ -1,18 +1,18 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { addDays } from '../utils/date.ts';
-import type { SyllabusItem, ResourceMode, LearningResourceInput } from '../types.ts';
+import type { PlannedTask, ResourceMode, LearningResourceInput } from '../types.ts';
 
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-export function buildFallbackSyllabus(
+export function buildFallbackPlan(
   goal: string,
   level: string,
   preferredStyle?: string,
   resources: LearningResourceInput[] = [],
   resourceMode: ResourceMode = 'needs_plan',
-): SyllabusItem[] {
+): PlannedTask[] {
   const styleLabel = preferredStyle ? ` using a ${preferredStyle.toLowerCase()} approach` : '';
   const resourceHint =
     resourceMode === 'has_materials' && resources.length > 0
@@ -22,7 +22,7 @@ export function buildFallbackSyllabus(
           .join(' and ')}.`
       : ' Start with a lightweight plan and gather one strong reference per task.';
 
-  return [
+  const tasks = [
     {
       title: `Foundations of ${goal}`,
       description: `Build the mental model, vocabulary, and first principles for ${goal} at a ${level.toLowerCase()} level${styleLabel}.${resourceHint}`,
@@ -39,17 +39,22 @@ export function buildFallbackSyllabus(
       description: `Ship one practical outcome that proves you can apply ${goal} beyond tutorials and passive study.`,
     },
   ];
+
+  return tasks.map((task) => ({
+    ...task,
+    searchQuery: `${goal} ${task.title} tutorial documentation`,
+  }));
 }
 
-export async function generateSyllabus(
+export async function planSyllabusTasks(
   goal: string,
   level: string,
   preferredStyle?: string,
   resources: LearningResourceInput[] = [],
   resourceMode: ResourceMode = 'needs_plan',
-): Promise<SyllabusItem[]> {
+): Promise<PlannedTask[]> {
   if (!ai) {
-    return buildFallbackSyllabus(goal, level, preferredStyle, resources, resourceMode);
+    return buildFallbackPlan(goal, level, preferredStyle, resources, resourceMode);
   }
 
   try {
@@ -72,14 +77,14 @@ export async function generateSyllabus(
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `
-        You are a curriculum planner.
-        Break down this learning goal into exactly 3 actionable study tasks.
+        You are a curriculum planner. Your job is to break a learning goal into exactly 3 actionable study tasks and provide one targeted search query per task optimised for finding authoritative learning sources (official documentation, reputable tutorials, or books).
         Goal: "${goal}"
         Level: "${level}"
         Preferred style: "${preferredStyle ?? 'mixed'}"
         Resource mode: "${resourceMode}"
         ${resourceContext}
         Each task description should either reference the learner materials or explain how to begin without them.
+        For each task, also produce a concise searchQuery string a learner would type into a search engine to find the best documentation or tutorial for that task.
         Return only JSON.
       `,
       config: {
@@ -91,14 +96,15 @@ export async function generateSyllabus(
             properties: {
               title: { type: Type.STRING },
               description: { type: Type.STRING },
+              searchQuery: { type: Type.STRING },
             },
-            required: ['title', 'description'],
+            required: ['title', 'description', 'searchQuery'],
           },
         },
       },
     });
 
-    const parsed = JSON.parse(response.text || '[]') as SyllabusItem[];
+    const parsed = JSON.parse(response.text || '[]') as PlannedTask[];
     if (parsed.length >= 3) {
       return parsed.slice(0, 3);
     }
@@ -106,7 +112,7 @@ export async function generateSyllabus(
     console.error('Falling back to local syllabus generation.', error);
   }
 
-  return buildFallbackSyllabus(goal, level, preferredStyle, resources, resourceMode);
+  return buildFallbackPlan(goal, level, preferredStyle, resources, resourceMode);
 }
 
 export function buildEventSchedule(taskCount: number, weeklyHours: number) {
@@ -126,7 +132,7 @@ export function buildPlanSummary(
   goal: string,
   level: string,
   hours: number,
-  syllabus: SyllabusItem[],
+  syllabus: PlannedTask[],
   resourceMode: ResourceMode,
   resources: LearningResourceInput[],
 ) {

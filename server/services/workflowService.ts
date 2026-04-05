@@ -1,7 +1,7 @@
 import { db } from '../db.ts';
 import { nowIso } from '../utils/date.ts';
 import {
-  generateSyllabus,
+  planSyllabusTasks,
   buildEventSchedule,
   buildPlanSummary,
   buildResourceNote,
@@ -37,7 +37,7 @@ export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<
 
   const goalId = Number(goalInsert.lastInsertRowid);
 
-  const syllabus = await generateSyllabus(
+  const syllabus = await planSyllabusTasks(
     goal,
     level,
     preferredStyle ?? undefined,
