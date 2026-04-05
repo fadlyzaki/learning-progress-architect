@@ -74,6 +74,7 @@ body {
     radial-gradient(circle at 80% 12%, var(--glow-blue), transparent 24%);
   background-size: 56px 56px, 56px 56px, 100% 100%, 100% 100%;
   background-attachment: fixed;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 #root {
@@ -129,6 +130,25 @@ textarea {
   box-shadow: var(--shadow-panel);
 }
 
+.app-card-primary {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 92%, transparent), color-mix(in srgb, var(--bg-void) 88%, transparent));
+  border: 1px solid color-mix(in srgb, var(--border-color) 65%, var(--accent-amber) 35%);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.22);
+}
+
+.app-card-supporting {
+  background: color-mix(in srgb, var(--bg-card) 90%, transparent);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.14);
+}
+
+.app-card-muted {
+  background: color-mix(in srgb, var(--bg-soft) 92%, transparent);
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+}
+
 .app-panel-soft {
   background: var(--bg-soft);
   border: 1px solid var(--border-color);
@@ -172,4 +192,8 @@ textarea {
   outline: none;
   box-shadow: 0 0 0 2px var(--glow-blue);
   border-color: var(--accent-blue);
+}
+
+.app-bottom-safe {
+  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
 }

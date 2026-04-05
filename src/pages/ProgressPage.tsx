@@ -1,7 +1,9 @@
-import { Activity, Clock, Target, CheckCircle2, TrendingUp, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import type { ReactNode } from 'react';
+import { Activity, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
+import { PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
 
@@ -39,19 +41,23 @@ function calculateStreak(sessionDates: string[]) {
 }
 
 export function ProgressPage() {
-  const { data, loading, error } = useAppData();
+  const { data, loading, error, refetch } = useAppData();
   const { formatDate, t } = usePreferences();
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-      </div>
-    );
+    return <PageLoadingState stats={4} rows={2} />;
   }
 
   if (!data) {
-    return <p className="text-[var(--text-muted)]">{error ?? 'Unable to load progress.'}</p>;
+    return (
+      <PageMessageState
+        title={t('progress.title')}
+        body={error ?? t('progress.subtitle')}
+        actionLabel={t('common.retry')}
+        onAction={() => void refetch()}
+        tone="warning"
+      />
+    );
   }
 
   const activeGoal = data.goals[0] ?? null;
@@ -73,162 +79,155 @@ export function ProgressPage() {
       )
     : 0;
   const recentSessions = completedSessions.slice(0, 5);
+  const activeGoalTasks = activeGoal ? data.tasks.filter((task) => task.goal_id === activeGoal.id) : [];
+  const activeGoalCompletion = activeGoalTasks.length
+    ? (activeGoalTasks.filter((task) => task.status === 'completed').length / activeGoalTasks.length) * 100
+    : 0;
 
   return (
     <div className="space-y-8 font-sans">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-mono font-bold uppercase tracking-tight text-[var(--text-primary)]">
-            {t('progress.title')}
-          </h1>
-          <p className="mt-2 font-serif italic text-[var(--text-secondary)]">
-            {t('progress.subtitle')}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">{t('progress.title')}</h1>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
+          {t('progress.subtitle')}
+        </p>
       </div>
 
-      <div className="grid md:grid-cols-4 gap-6">
-        <Card className="bg-[var(--bg-soft)]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.totalStudyTime')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-mono font-bold text-[var(--text-primary)]">{totalStudyMinutes}m</div>
-            <div className="text-sm text-green-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> {t('progress.totalStudyTimeBody')}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[var(--bg-soft)]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.tasksCompleted')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-mono font-bold text-[var(--text-primary)]">{completedTasks.length}</div>
-            <div className="mt-1 text-sm text-[var(--text-secondary)]">{t('progress.tasksCompletedBody', { count: data.goals.length })}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[var(--bg-soft)]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.currentStreak')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-mono font-bold text-amber-500">{t('progress.days', { count: streak })}</div>
-            <div className="mt-1 text-sm text-[var(--text-secondary)]">{t('progress.currentStreakBody')}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[var(--bg-soft)]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.averageConfidence')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-mono font-bold text-blue-400">{averageConfidence}%</div>
-            <div className="mt-1 text-sm text-[var(--text-secondary)]">{t('progress.averageConfidenceBody')}</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard title={t('progress.totalStudyTime')} value={`${totalStudyMinutes}m`} body={t('progress.totalStudyTimeBody')} accent="text-green-500" icon={<TrendingUp className="h-4 w-4" />} />
+        <MetricCard title={t('progress.tasksCompleted')} value={String(completedTasks.length)} body={t('progress.tasksCompletedBody', { count: data.goals.length })} />
+        <MetricCard title={t('progress.currentStreak')} value={t('progress.days', { count: streak })} body={t('progress.currentStreakBody')} accent="text-[var(--accent-amber)]" />
+        <MetricCard title={t('progress.averageConfidence')} value={`${averageConfidence}%`} body={t('progress.averageConfidenceBody')} accent="text-[var(--accent-blue)]" />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="bg-[var(--bg-soft)]">
-          <CardHeader>
-            <CardTitle className="text-xl">{t('progress.activeGoal')}</CardTitle>
-            <CardDescription>{activeGoal?.title ?? t('progress.noActiveGoal')}</CardDescription>
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.98fr]">
+        <Card className="app-card-supporting">
+          <CardHeader className="pb-5">
+            <CardTitle className="text-2xl text-[var(--text-primary)]">{t('progress.activeGoal')}</CardTitle>
+            <CardDescription className="text-base leading-relaxed">
+              {activeGoal?.title ?? t('progress.noActiveGoal')}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-0">
             {activeGoal ? (
               <>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-[var(--text-secondary)]">{t('progress.overallCompletion')}</span>
-                    <span className="font-mono text-[var(--text-primary)]">
-                      {Math.round(
-                        ((data.tasks.filter((task) => task.goal_id === activeGoal.id && task.status === 'completed').length /
-                          Math.max(data.tasks.filter((task) => task.goal_id === activeGoal.id).length, 1)) *
-                          100),
-                      )}
-                      %
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-[var(--text-secondary)]">{t('progress.overallCompletion')}</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">
+                      {Math.round(activeGoalCompletion)}%
                     </span>
                   </div>
-                  <Progress
-                    value={
-                      (data.tasks.filter((task) => task.goal_id === activeGoal.id && task.status === 'completed').length /
-                        Math.max(data.tasks.filter((task) => task.goal_id === activeGoal.id).length, 1)) *
-                      100
-                    }
-                    indicatorClassName="bg-amber-500"
-                  />
+                  <Progress value={activeGoalCompletion} indicatorClassName="bg-[var(--accent-amber)]" />
                 </div>
 
-                <div className="space-y-4 border-t border-[var(--border-color)] pt-4">
-                  <h4 className="text-xs font-mono uppercase tracking-widest text-[var(--text-muted)]">{t('progress.taskStatus')}</h4>
-                  <div className="space-y-3">
-                    {data.tasks
-                      .filter((task) => task.goal_id === activeGoal.id)
-                      .map((task) => (
-                        <div key={task.id} className="flex items-center gap-3">
-                          {task.status === 'completed' ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <Activity className="w-4 h-4 text-amber-500" />
-                          )}
-                          <span className="flex-1 text-sm text-[var(--text-primary)]">{task.title}</span>
-                          <Badge
-                            variant={task.status === 'completed' ? 'success' : task.status === 'in_progress' ? 'warning' : 'secondary'}
-                            className="text-[10px]"
-                          >
-                            {t(`status.${task.status}`)}
-                          </Badge>
-                        </div>
-                      ))}
+                <div className="space-y-3">
+                  <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                    {t('progress.taskStatus')}
                   </div>
+                  {activeGoalTasks.map((task) => (
+                    <div key={task.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {task.status === 'completed' ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Activity className="h-4 w-4 text-[var(--accent-amber)]" />
+                        )}
+                        <span className="text-sm text-[var(--text-primary)]">{task.title}</span>
+                      </div>
+                      <Badge
+                        variant={
+                          task.status === 'completed'
+                            ? 'success'
+                            : task.status === 'in_progress'
+                              ? 'warning'
+                              : 'outline'
+                        }
+                      >
+                        {t(`status.${task.status}`)}
+                      </Badge>
+                    </div>
+                  ))}
                 </div>
               </>
             ) : (
-              <p className="text-[var(--text-muted)]">{t('progress.unlock')}</p>
+              <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-4 text-sm text-[var(--text-muted)]">
+                {t('progress.unlock')}
+              </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-[var(--bg-soft)]">
-          <CardHeader>
-            <CardTitle className="text-xl">{t('progress.recentActivity')}</CardTitle>
-            <CardDescription>{t('progress.recentActivityBody')}</CardDescription>
+        <Card className="app-card-muted">
+          <CardHeader className="pb-5">
+            <CardTitle className="text-2xl text-[var(--text-primary)]">{t('progress.recentActivity')}</CardTitle>
+            <CardDescription className="text-base leading-relaxed">
+              {t('progress.recentActivityBody')}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="relative space-y-4 before:absolute before:inset-0 before:ml-2 before:h-full before:w-0.5 before:-translate-x-px before:bg-gradient-to-b before:from-transparent before:via-[var(--border-color)] before:to-transparent">
-              {recentSessions.length > 0 ? (
-                recentSessions.map((session) => {
-                  const task = data.tasks.find((item) => item.id === session.task_id);
-                  return (
-                    <div key={session.id} className="relative flex items-center justify-between group">
-                      <div className="z-10 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-[var(--bg-void)] bg-amber-500 shadow" />
-                      <div className="w-[calc(100%-2rem)] rounded-lg border border-[var(--border-color)] bg-[var(--bg-void)] p-4">
-                        <div className="flex items-center justify-between mb-1">
-                          <Badge variant="outline" className="border-[var(--border-strong)] text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)]">
-                            {t('common.session')}
-                          </Badge>
-                          <span className="text-xs font-mono text-[var(--text-muted)]">
-                            {session.completed_at ? formatDate(session.completed_at) : t('common.today')}
-                          </span>
-                        </div>
-                        <h4 className="text-sm font-medium text-[var(--text-primary)]">{task?.title ?? 'Task'}</h4>
-                        <div className="mt-2 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                          <Clock className="w-3 h-3" /> {t('common.minutes', { count: Math.round(session.duration_seconds / 60) })}
-                        </div>
+          <CardContent className="space-y-3 pt-0">
+            {recentSessions.length > 0 ? (
+              recentSessions.map((session) => {
+                const task = data.tasks.find((item) => item.id === session.task_id);
+                return (
+                  <div key={session.id} className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-[var(--text-primary)]">
+                          {task?.title ?? t('common.session')}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                          {session.completed_at ? formatDate(session.completed_at) : t('common.today')}
+                        </p>
                       </div>
+                      <Badge variant="outline">{t('common.session')}</Badge>
                     </div>
-                  );
-                })
-              ) : (
-                <p className="text-[var(--text-muted)]">{t('progress.noActivity')}</p>
-              )}
-            </div>
+                    <div className="mt-3 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                      <Clock className="h-4 w-4" />
+                      {t('common.minutes', { count: Math.round(session.duration_seconds / 60) })}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-4 text-sm text-[var(--text-muted)]">
+                {t('progress.noActivity')}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  body,
+  accent = 'text-[var(--text-primary)]',
+  icon,
+}: {
+  title: string;
+  value: string;
+  body: string;
+  accent?: string;
+  icon?: ReactNode;
+}) {
+  return (
+    <Card className="app-card-muted">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className={`text-3xl font-semibold tracking-tight ${accent}`}>{value}</div>
+        <div className="mt-2 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+          {icon}
+          <span>{body}</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

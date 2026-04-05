@@ -1,5 +1,8 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+
+if (process.env.NODE_ENV !== 'test') {
+  dotenv.config({ path: '.env.local' });
+}
 
 const { startServer } = await import('./server/index.ts');
 

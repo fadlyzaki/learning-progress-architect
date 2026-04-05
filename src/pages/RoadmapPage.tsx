@@ -1,135 +1,203 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Circle, Play, ChevronDown, ChevronRight, Activity, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { ArrowRight, CheckCircle2, Circle, Play, Sparkles } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
+import { PageLoadingState, PageMessageState } from '../components/PageStates';
+import { PrimaryActionPanel } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
 
 export function RoadmapPage() {
-  const { data, loading, error } = useAppData();
+  const { data, loading, error, refetch } = useAppData();
   const { t } = usePreferences();
-  const [isExpanded, setIsExpanded] = useState(true);
-
-  const activeGoal = data?.goals[0] ?? null;
-  const tasks = activeGoal ? data?.tasks.filter((task) => task.goal_id === activeGoal.id) ?? [] : [];
-  const completedTasks = tasks.filter((task) => task.status === 'completed').length;
-  const progressPercentage = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
   if (loading) {
+    return <PageLoadingState rows={3} />;
+  }
+
+  const activeGoal = data?.goals[0] ?? null;
+
+  if (!data || !activeGoal) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
+            {t('roadmap.title')}
+          </h1>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
+            {error ?? t('roadmap.empty')}
+          </p>
+        </div>
+        <PageMessageState
+          title={t('roadmap.title')}
+          body={error ?? t('roadmap.empty')}
+          actionLabel={error ? t('common.retry') : t('dashboard.emptyAction')}
+          onAction={error ? () => void refetch() : undefined}
+          actionTo={error ? undefined : '/onboarding'}
+        />
       </div>
     );
   }
 
-  if (!data || !activeGoal) {
-    return <p className="text-[var(--text-muted)]">{error ?? t('roadmap.empty')}</p>;
-  }
+  const tasks = data.tasks.filter((task) => task.goal_id === activeGoal.id);
+  const nextTask = tasks.find((task) => task.status !== 'completed') ?? null;
+  const completedTasks = tasks.filter((task) => task.status === 'completed').length;
+  const progressPercentage = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
 
   return (
     <div className="space-y-8 font-sans">
-      <div className="flex justify-between items-end gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-mono font-bold uppercase tracking-tight text-[var(--text-primary)]">
+          <div className="mb-3 text-[11px] font-mono font-semibold uppercase tracking-[0.24em] text-[var(--accent-amber)]">
+            {t('roadmap.activeGoal')}
+          </div>
+          <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
             {t('roadmap.title')}
           </h1>
-          <p className="mt-2 font-serif italic text-[var(--text-secondary)]">
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
             {t('roadmap.subtitle', { goal: activeGoal.title })}
           </p>
         </div>
-        <div className="text-right">
-          <div className="mb-1 text-sm font-mono uppercase tracking-widest text-[var(--text-secondary)]">{t('roadmap.progress')}</div>
-          <div className="flex items-center gap-3">
-            <Progress value={progressPercentage} className="w-32" indicatorClassName="bg-amber-500" />
-            <span className="font-mono font-bold text-[var(--text-primary)]">{progressPercentage}%</span>
-          </div>
-        </div>
+
+        <Card className="app-card-muted max-w-sm">
+          <CardHeader className="pb-4">
+            <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+              {t('roadmap.progress')}
+            </div>
+            <CardTitle className="text-xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
+            <CardDescription className="text-sm leading-relaxed">
+              {t('dashboard.tasksCount', { completed: completedTasks, total: tasks.length })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            <Progress value={progressPercentage} indicatorClassName="bg-[var(--accent-amber)]" />
+            <div className="text-sm text-[var(--text-muted)]">{progressPercentage}%</div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="relative space-y-6 before:absolute before:inset-0 before:ml-6 before:h-full before:w-0.5 before:-translate-x-px before:bg-gradient-to-b before:from-transparent before:via-[var(--border-color)] before:to-transparent">
-        <div className="relative flex items-center justify-between">
-          <div className="z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-[var(--bg-void)] bg-[var(--bg-card)] text-[var(--text-muted)] shadow">
-            <Activity className="w-5 h-5 text-amber-500" />
-          </div>
+      <PrimaryActionPanel
+        eyebrow={t('roadmap.nextStep')}
+        title={nextTask?.title ?? t('roadmap.caughtUpTitle')}
+        description={nextTask?.description ?? t('roadmap.caughtUpBody')}
+        meta={<Badge variant={nextTask ? 'warning' : 'success'}>{nextTask ? t('roadmap.recommended') : t('status.completed')}</Badge>}
+        insight={<span>{t('roadmap.nextStepBody')}</span>}
+        actions={
+          nextTask ? (
+            <>
+              <Link to={`/app/session/${nextTask.id}`} className="w-full sm:w-auto">
+                <Button variant="accent" size="lg" className="w-full gap-2 sm:w-auto">
+                  <Play className="h-4 w-4 fill-current" />
+                  {t('dashboard.startSession')}
+                </Button>
+              </Link>
+              <Link to="/app" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                  {t('nav.today')}
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <Link to="/app/reviews" className="w-full sm:w-auto">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                {t('nav.reviews')}
+              </Button>
+            </Link>
+          )
+        }
+      />
 
-          <Card className="w-[calc(100%-4rem)] border-amber-500/30 bg-[var(--bg-soft)] transition-all shadow-[0_0_15px_var(--glow-amber)]">
-            <CardHeader className="cursor-pointer pb-4" onClick={() => setIsExpanded((current) => !current)}>
-              <div className="flex justify-between items-start gap-4">
-                <div>
-                  <Badge variant="warning" className="mb-2 font-mono tracking-widest uppercase text-[10px]">
-                    {t('roadmap.activeGoal')}
-                  </Badge>
-                  <CardTitle className="text-lg text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-mono text-[var(--text-muted)]">
-                    {completedTasks}/{tasks.length}
-                  </span>
-                  {isExpanded ? <ChevronDown className="w-4 h-4 text-[var(--text-muted)]" /> : <ChevronRight className="w-4 h-4 text-[var(--text-muted)]" />}
+      <Card className="app-card-supporting">
+        <CardHeader className="pb-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                <Sparkles className="h-4 w-4" />
+                {t('roadmap.timelineTitle')}
+              </div>
+              <CardTitle className="mt-3 text-2xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
+              <CardDescription className="mt-2 max-w-2xl text-base leading-relaxed">
+                {t('roadmap.timelineBody')}
+              </CardDescription>
+            </div>
+            <div className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)]">
+              <span>{t('roadmap.progress')}</span>
+              <Badge variant="outline">{progressPercentage}%</Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-0">
+          {tasks.map((task, index) => {
+            const resourceCount = data.task_resources.filter((item) => item.task_id === task.id).length;
+            const isRecommended = nextTask?.id === task.id;
+            const isDone = task.status === 'completed';
+
+            return (
+              <div
+                key={task.id}
+                className={`rounded-[1.35rem] border p-4 transition-colors ${
+                  isRecommended
+                    ? 'border-amber-500/35 bg-[var(--bg-card)] shadow-[0_0_22px_var(--glow-amber)]'
+                    : 'border-[var(--border-color)] bg-[var(--bg-soft)]'
+                }`}
+              >
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center pt-1">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-color)] bg-[var(--bg-card)]">
+                      {isDone ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <span className="text-sm font-medium text-[var(--text-secondary)]">{index + 1}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-medium text-[var(--text-primary)]">{task.title}</h3>
+                          {isRecommended && <Badge variant="warning">{t('roadmap.recommended')}</Badge>}
+                          {task.status === 'in_progress' && <Badge variant="info">{t('roadmap.inProgress')}</Badge>}
+                          {isDone && <Badge variant="success">{t('status.completed')}</Badge>}
+                        </div>
+                        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
+                          {task.description}
+                        </p>
+                        {resourceCount > 0 && (
+                          <p className="mt-3 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                            {t('roadmap.materials', { count: resourceCount })}
+                          </p>
+                        )}
+                      </div>
+
+                      {!isDone && (
+                        <Link to={`/app/session/${task.id}`} className="w-full sm:w-auto">
+                          <Button
+                            size="sm"
+                            variant={isRecommended ? 'accent' : 'outline'}
+                            className="w-full gap-2 sm:w-auto"
+                          >
+                            <Play className="h-3.5 w-3.5 fill-current" />
+                            {t('common.start')}
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <Progress value={progressPercentage} className="mt-4 h-1" indicatorClassName="bg-blue-500" />
-            </CardHeader>
+            );
+          })}
 
-            {isExpanded && (
-              <CardContent className="pt-0 pb-4">
-                <div className="mt-2 space-y-3 border-t border-[var(--border-color)] pt-4">
-                  {tasks.map((task) => (
-                    <div key={task.id} className={`flex items-start gap-3 rounded-md border p-3 ${task.status === 'in_progress' ? 'border-blue-500/30 bg-[var(--bg-card)]' : 'border-[var(--border-color)] bg-[var(--bg-void)]/60'}`}>
-                      <div className="mt-0.5">
-                        {task.status === 'completed' ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        ) : task.status === 'in_progress' ? (
-                          <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-[var(--text-muted)]" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        {(() => {
-                          const resourceCount =
-                            data?.task_resources.filter((item) => item.task_id === task.id).length ?? 0;
-
-                          return (
-                            <>
-                        <h4 className={`text-sm font-medium ${task.status === 'completed' ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'}`}>
-                          {task.title}
-                        </h4>
-                        <p className="mt-1 text-xs text-[var(--text-muted)]">{task.description}</p>
-                              {resourceCount > 0 && (
-                                <p className="mt-2 text-[11px] font-mono uppercase tracking-[0.18em] text-[var(--text-secondary)]">
-                                  {t('roadmap.materials', { count: resourceCount })}
-                                </p>
-                              )}
-
-                        {task.status !== 'completed' && (
-                          <div className="mt-3 flex items-center gap-2">
-                            <Badge variant="info" className="text-[10px] uppercase font-mono tracking-wider">
-                              {task.status === 'in_progress' ? t('roadmap.inProgress') : t('roadmap.recommended')}
-                            </Badge>
-                            <Link to={`/app/session/${task.id}`}>
-                              <Button size="sm" variant="accent" className="h-7 text-xs font-mono uppercase tracking-wider gap-1">
-                                <Play className="w-3 h-3 fill-current" /> {t('common.start')}
-                              </Button>
-                            </Link>
-                          </div>
-                        )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        </div>
-      </div>
+          <Link to="/app" className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
+            {t('dashboard.openRoadmapLink')}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }

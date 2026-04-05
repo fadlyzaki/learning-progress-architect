@@ -5,6 +5,18 @@ import { clearStoredSession, getStoredSession } from '../lib/auth';
 import { usePreferences } from '../lib/preferences';
 import { PreferenceControls } from './PreferenceControls';
 
+function isNavItemActive(pathname: string, path: string) {
+  if (path === '/app') {
+    return (
+      pathname === '/app' ||
+      pathname.startsWith('/app/session/') ||
+      pathname.startsWith('/app/comprehension/')
+    );
+  }
+
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -52,7 +64,7 @@ export function Layout() {
 
         <nav className="flex-1 space-y-1.5 px-4 py-6">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const isActive = isNavItemActive(location.pathname, item.path);
 
             return (
               <Link
@@ -106,11 +118,39 @@ export function Layout() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12">
+        <div className="flex-1 overflow-y-auto p-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:p-8 md:pb-8 lg:p-12">
           <div className="max-w-5xl mx-auto">
             <Outlet />
           </div>
         </div>
+
+        <nav
+          aria-label="Workspace sections"
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--border-color)] bg-[var(--bg-panel)]/96 px-2 pb-[calc(0.6rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
+        >
+          <div className="mx-auto grid max-w-3xl grid-cols-6 gap-1">
+            {navItems.map((item) => {
+              const isActive = isNavItemActive(location.pathname, item.path);
+
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={cn(
+                    'flex min-h-[4.25rem] flex-col items-center justify-center gap-1 rounded-2xl px-1 text-center transition-colors',
+                    isActive
+                      ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-[0_0_24px_var(--glow-amber)]'
+                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]',
+                  )}
+                >
+                  <item.icon className={cn('h-4 w-4', isActive && 'text-[var(--accent-amber)]')} />
+                  <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
       </main>
     </div>
   );

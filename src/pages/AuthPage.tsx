@@ -8,6 +8,7 @@ import { setStoredSession } from '../lib/auth';
 import { ApiError, apiFetch } from '../lib/api';
 import type { AuthSession } from '../types';
 import { PreferenceControls } from '../components/PreferenceControls';
+import { InlineStateMessage } from '../components/PageStates';
 import { usePreferences } from '../lib/preferences';
 
 export function AuthPage({ type }: { type: 'login' | 'signup' }) {
@@ -92,9 +93,7 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {fieldError && (
-              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-                {fieldError}
-              </div>
+              <InlineStateMessage title={fieldError} tone="warning" />
             )}
             {type === 'signup' && (
               <div className="space-y-2">
@@ -132,9 +131,7 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
             </div>
 
             {error && (
-              <div className="rounded-md border border-red-900/40 bg-red-950/40 px-3 py-2 text-sm text-red-200">
-                {error}
-              </div>
+              <InlineStateMessage title={error} tone="danger" />
             )}
 
             <Button

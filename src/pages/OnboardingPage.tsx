@@ -7,6 +7,7 @@ import { Label } from '../components/ui/Label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { ApiError, apiFetch } from '../lib/api';
 import { cn } from '../lib/utils';
+import { InlineStateMessage } from '../components/PageStates';
 import { usePreferences } from '../lib/preferences';
 import type { LearningResourceInput, ResourceMode, ResourceType } from '../types';
 
@@ -404,8 +405,12 @@ export function OnboardingPage() {
                 )}
 
                 {error && (
-                  <div className="mt-6 rounded-md border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-200">
-                    {error}
+                  <div className="mt-6">
+                    <InlineStateMessage
+                      title={error}
+                      body={isGenerating ? t('onboarding.generating') : undefined}
+                      tone="danger"
+                    />
                   </div>
                 )}
 
