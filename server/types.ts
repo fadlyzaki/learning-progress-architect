@@ -71,3 +71,23 @@ export type LearningResourceInput = {
   reference: string | null;
   notes: string | null;
 };
+
+export type PlannedTask = {
+  title: string;
+  description: string;
+  searchQuery: string;
+};
+
+export type SearchLink = {
+  title: string;
+  url: string;
+  snippet?: string;
+  source?: string;
+};
+
+export type HydratedTask = {
+  title: string;
+  description: string;
+  searchQuery: string;
+  references: SearchLink[];
+};
