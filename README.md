@@ -105,6 +105,63 @@ npm run build
 - `npm run lint`: runs `tsc --noEmit`
 - `npm run build`: builds the frontend bundle with Vite
 
+## Deploy to Google Cloud Run
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed and running
+- [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) (`gcloud`) installed and authenticated
+- A GCP project with Cloud Run and Container Registry APIs enabled
+
+### Configuration
+
+Set your GCP project ID before running any `make` commands:
+
+```bash
+export PROJECT_ID=your-gcp-project-id
+export REGION=us-central1      # optional, defaults to us-central1
+```
+
+### Steps
+
+1. Authenticate Docker with Google Container Registry:
+
+   ```bash
+   gcloud auth configure-docker
+   ```
+
+2. Build the Docker image and push it to GCR:
+
+   ```bash
+   make build-push PROJECT_ID=your-gcp-project-id
+   ```
+
+3. Deploy to Cloud Run:
+
+   ```bash
+   make deploy PROJECT_ID=your-gcp-project-id
+   ```
+
+4. Set required environment variables on the deployed service:
+
+   ```bash
+   gcloud run services update learning-progress-architect \
+     --region us-central1 \
+     --set-env-vars GEMINI_API_KEY=your-key,APP_URL=https://your-cloudrun-url
+   ```
+
+   The Cloud Run service URL is printed at the end of the `make deploy` output.
+
+### Available Make Commands
+
+| Command | Description |
+|---|---|
+| `make run` | Start the app locally (`npm run dev`) |
+| `make build` | Build the Docker image |
+| `make push` | Push the image to GCR |
+| `make build-push` | Build and push in one step |
+| `make deploy` | Deploy the image to Cloud Run |
+
 ## Environment Variables
 
 ### Required for AI generation
