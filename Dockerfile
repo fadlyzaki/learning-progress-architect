@@ -19,6 +19,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
+COPY server ./server
 COPY server.ts ./
 COPY tsconfig.json ./
 

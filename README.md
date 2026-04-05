@@ -109,9 +109,9 @@ npm run build
 
 ### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) installed and running
 - [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) (`gcloud`) installed and authenticated
-- A GCP project with Cloud Run and Container Registry APIs enabled
+- A GCP project with Cloud Build, Artifact Registry, and Cloud Run APIs enabled
+- An existing Artifact Registry Docker repository named `learning-progress-architect` in `us-central1`
 
 ### Configuration
 
@@ -120,32 +120,33 @@ Set your GCP project ID before running any `make` commands:
 ```bash
 export PROJECT_ID=your-gcp-project-id
 export REGION=us-central1      # optional, defaults to us-central1
+export TAG=v2                  # optional, defaults to latest
 ```
 
 ### Steps
 
-1. Authenticate Docker with Google Container Registry:
+1. Build the Docker image in Cloud Build and push it to Artifact Registry:
 
    ```bash
-   gcloud auth configure-docker
+   make build-push PROJECT_ID=your-gcp-project-id TAG=v2
    ```
 
-2. Build the Docker image and push it to GCR:
+   This expands to a command shaped like:
 
    ```bash
-   make build-push PROJECT_ID=your-gcp-project-id
+   gcloud builds submit --tag us-central1-docker.pkg.dev/your-gcp-project-id/learning-progress-architect/app-image:v2 .
    ```
 
-3. Deploy to Cloud Run:
+2. Deploy to Cloud Run:
 
    ```bash
-   make deploy PROJECT_ID=your-gcp-project-id
+   make deploy PROJECT_ID=your-gcp-project-id TAG=v2
    ```
 
-4. Set required environment variables on the deployed service:
+3. Set required environment variables on the deployed service:
 
    ```bash
-   gcloud run services update learning-progress-architect \
+   gcloud run services update learning-architect-service \
      --region us-central1 \
      --set-env-vars GEMINI_API_KEY=your-key,APP_URL=https://your-cloudrun-url
    ```
@@ -157,10 +158,14 @@ export REGION=us-central1      # optional, defaults to us-central1
 | Command | Description |
 |---|---|
 | `make run` | Start the app locally (`npm run dev`) |
-| `make build` | Build the Docker image |
-| `make push` | Push the image to GCR |
-| `make build-push` | Build and push in one step |
-| `make deploy` | Deploy the image to Cloud Run |
+| `make build` | Build the image in Cloud Build and push it to Artifact Registry |
+| `make push` | Alias for `make build` |
+| `make build-push` | Alias for `make build` |
+| `make deploy` | Deploy the Artifact Registry image to Cloud Run |
+| `make docker-build-local` | Build the production Docker image locally |
+| `make docker-run-local` | Build and run the production Docker image locally on port 3000 |
+
+If `.env.local` exists, `make docker-run-local` passes it to the container automatically. Override the published port with `LOCAL_PORT=8080` if needed.
 
 ## Environment Variables
 
