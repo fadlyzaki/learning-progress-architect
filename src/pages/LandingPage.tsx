@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Layers, RefreshCw, Target } from 'lucide-react';
+import { AppFooter } from '../components/AppFooter';
 import { Button } from '../components/ui/Button';
 import { PreferenceControls } from '../components/PreferenceControls';
 import { usePreferences } from '../lib/preferences';
@@ -192,6 +193,7 @@ export function LandingPage() {
           </div>
         </section>
       </main>
+      <AppFooter className="border-x border-[var(--border-color)]" />
     </div>
   );
 }

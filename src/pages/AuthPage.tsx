@@ -3,12 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
+import { AppFooter } from '../components/AppFooter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { setStoredSession } from '../lib/auth';
 import { ApiError, apiFetch } from '../lib/api';
 import type { AuthSession } from '../types';
-import { PreferenceControls } from '../components/PreferenceControls';
 import { InlineStateMessage } from '../components/PageStates';
+import { PreferenceControls } from '../components/PreferenceControls';
 import { usePreferences } from '../lib/preferences';
 
 export function AuthPage({ type }: { type: 'login' | 'signup' }) {
@@ -69,103 +70,106 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
   };
 
   return (
-    <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-6 p-4 font-sans">
-      <PreferenceControls />
-      <Card className="w-full max-w-md bg-[var(--bg-panel)] shadow-[var(--shadow-panel)]">
-        <CardHeader className="space-y-4 text-center pb-8">
-          <div className="mx-auto flex flex-col">
-            <span className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
-              {t('brand.name')}
-            </span>
-            <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
-              {t('brand.product')}
-            </span>
-          </div>
-          <CardTitle className="text-2xl font-mono uppercase tracking-tight">
-            {type === 'login' ? t('auth.login.title') : t('auth.signup.title')}
-          </CardTitle>
-          <CardDescription className="font-serif italic text-[var(--text-secondary)]">
-            {type === 'login'
-              ? t('auth.login.subtitle')
-              : t('auth.signup.subtitle')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {fieldError && (
-              <InlineStateMessage title={fieldError} tone="warning" />
-            )}
-            {type === 'signup' && (
+    <div className="app-shell flex min-h-screen flex-col justify-between gap-8 p-4 font-sans">
+      <div className="flex flex-1 flex-col items-center justify-center gap-6">
+        <PreferenceControls />
+        <Card className="w-full max-w-md bg-[var(--bg-panel)] shadow-[var(--shadow-panel)]">
+          <CardHeader className="space-y-4 pb-8 text-center">
+            <div className="mx-auto flex flex-col">
+              <span className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
+                {t('brand.name')}
+              </span>
+              <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
+                {t('brand.product')}
+              </span>
+            </div>
+            <CardTitle className="text-2xl font-mono uppercase tracking-tight">
+              {type === 'login' ? t('auth.login.title') : t('auth.signup.title')}
+            </CardTitle>
+            <CardDescription className="font-serif italic text-[var(--text-secondary)]">
+              {type === 'login'
+                ? t('auth.login.subtitle')
+                : t('auth.signup.subtitle')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {fieldError && (
+                <InlineStateMessage title={fieldError} tone="warning" />
+              )}
+              {type === 'signup' && (
+                <div className="space-y-2">
+                  <Label htmlFor="name">{t('auth.name')}</Label>
+                  <Input
+                    id="name"
+                    placeholder={t('auth.namePlaceholder')}
+                    required
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
-                <Label htmlFor="name">{t('auth.name')}</Label>
+                <Label htmlFor="email">{t('auth.email')}</Label>
                 <Input
-                  id="name"
-                  placeholder={t('auth.namePlaceholder')}
+                  id="email"
+                  type="email"
+                  placeholder={t('auth.emailPlaceholder')}
                   required
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                 />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">{t('auth.email')}</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder={t('auth.emailPlaceholder')}
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">{t('auth.password')}</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">{t('auth.password')}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              </div>
 
-            {error && (
-              <InlineStateMessage title={error} tone="danger" />
-            )}
+              {error && (
+                <InlineStateMessage title={error} tone="danger" />
+              )}
 
-            <Button
-              type="submit"
-              variant="accent"
-              className="w-full font-mono uppercase tracking-wider"
-              disabled={submitting}
-            >
-              {submitting
-                ? t('auth.working')
-                : type === 'login'
-                  ? t('auth.loginSubmit')
-                  : t('auth.signupSubmit')}
-            </Button>
-          </form>
-          <div className="mt-6 text-center text-sm text-[var(--text-muted)]">
-            {type === 'login' ? (
-              <p>
-                {t('auth.loginAlt')}{' '}
-                <Link to="/signup" className="text-amber-500 hover:underline">
-                  {t('auth.signUp')}
-                </Link>
-              </p>
-            ) : (
-              <p>
-                {t('auth.signupAlt')}{' '}
-                <Link to="/login" className="text-amber-500 hover:underline">
-                  {t('auth.signIn')}
-                </Link>
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              <Button
+                type="submit"
+                variant="accent"
+                className="w-full font-mono uppercase tracking-wider"
+                disabled={submitting}
+              >
+                {submitting
+                  ? t('auth.working')
+                  : type === 'login'
+                    ? t('auth.loginSubmit')
+                    : t('auth.signupSubmit')}
+              </Button>
+            </form>
+            <div className="mt-6 text-center text-sm text-[var(--text-muted)]">
+              {type === 'login' ? (
+                <p>
+                  {t('auth.loginAlt')}{' '}
+                  <Link to="/signup" className="text-amber-500 hover:underline">
+                    {t('auth.signUp')}
+                  </Link>
+                </p>
+              ) : (
+                <p>
+                  {t('auth.signupAlt')}{' '}
+                  <Link to="/login" className="text-amber-500 hover:underline">
+                    {t('auth.signIn')}
+                  </Link>
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      <AppFooter />
     </div>
   );
 }

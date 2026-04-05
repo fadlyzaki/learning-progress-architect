@@ -3,6 +3,7 @@ import { Activity, BookOpen, Clock, LayoutDashboard, LogOut, Map, Target } from 
 import { cn } from '../lib/utils';
 import { clearStoredSession, getStoredSession } from '../lib/auth';
 import { usePreferences } from '../lib/preferences';
+import { AppFooter } from './AppFooter';
 import { PreferenceControls } from './PreferenceControls';
 
 function isNavItemActive(pathname: string, path: string) {
@@ -119,8 +120,9 @@ export function Layout() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:p-8 md:pb-8 lg:p-12">
-          <div className="max-w-5xl mx-auto">
+          <div className="mx-auto max-w-5xl space-y-10">
             <Outlet />
+            <AppFooter />
           </div>
         </div>
 
