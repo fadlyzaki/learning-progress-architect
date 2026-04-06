@@ -85,6 +85,8 @@ Persisted entities currently include:
 
 3. Update `GEMINI_API_KEY` in `.env.local`
 
+   Set `CALENDAR_MCP_ENDPOINT` as well if your MCP server is not running at `http://localhost:3000/mcp`.
+
 4. Start the app:
 
    ```bash
@@ -148,7 +150,7 @@ export TAG=v2                  # optional, defaults to latest
    ```bash
    gcloud run services update learning-architect-service \
      --region us-central1 \
-     --set-env-vars GEMINI_API_KEY=your-key,APP_URL=https://your-cloudrun-url
+       --set-env-vars GEMINI_API_KEY=your-key,APP_URL=https://your-cloudrun-url,CALENDAR_MCP_ENDPOINT=https://your-mcp-host/mcp
    ```
 
    The Cloud Run service URL is printed at the end of the `make deploy` output.
@@ -176,6 +178,10 @@ If `.env.local` exists, `make docker-run-local` passes it to the container autom
 ### Current behavior if missing
 
 If `GEMINI_API_KEY` is not set, the server still works and falls back to a local syllabus generator so onboarding can continue without the external AI dependency.
+
+### Optional runtime configuration
+
+- `CALENDAR_MCP_ENDPOINT`: overrides the default Google Calendar MCP endpoint. Defaults to `http://localhost:3000/mcp`.
 
 ## Repo Structure
 

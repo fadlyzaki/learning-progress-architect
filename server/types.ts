@@ -134,3 +134,49 @@ export type ScheduledCalendarEvent = {
   summary: string;
   description: string;
 };
+
+export type CalendarSyncAttendee = {
+  email: string;
+  displayName: string;
+};
+
+export type CalendarSyncEventInput = {
+  localEventId: number;
+  summary: string;
+  description: string;
+  startAt: string;
+  endAt: string;
+  attendees: CalendarSyncAttendee[];
+};
+
+export type CalendarMcpEventPayload = {
+  calendarId: 'primary';
+  account: 'app';
+  timeZone: string;
+  sendUpdates: 'all';
+  location: 'Online';
+  summary: string;
+  description: string;
+  start: string;
+  end: string;
+  attendees: CalendarSyncAttendee[];
+};
+
+export type CalendarMcpBulkCreatePayload = {
+  events: CalendarMcpEventPayload[];
+};
+
+export type CalendarEventSyncResult = {
+  localEventId: number;
+  status: Extract<CalendarEventSyncStatus, 'synced' | 'failed'>;
+  externalEventId: string | null;
+  externalCalendarId: string | null;
+  externalUrl: string | null;
+  error: string | null;
+};
+
+export type CalendarEventSyncBatchResult = {
+  status: Extract<CalendarEventSyncStatus, 'synced' | 'failed' | 'partial'>;
+  results: CalendarEventSyncResult[];
+  error: string | null;
+};
