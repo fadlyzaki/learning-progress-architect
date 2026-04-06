@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.ts';
 import { requireUser } from '../middleware/auth.ts';
+import type { CalendarEventRow } from '../types.ts';
 
 export const dataRouter = Router();
 
@@ -18,7 +19,7 @@ dataRouter.get('/', (req, res) => {
     .all(user.id);
   const events = db
     .prepare('SELECT * FROM calendar_events WHERE user_id = ? ORDER BY date ASC, id ASC')
-    .all(user.id);
+    .all(user.id) as CalendarEventRow[];
   const notes = db
     .prepare('SELECT * FROM notes WHERE user_id = ? ORDER BY created_at DESC, id DESC')
     .all(user.id);

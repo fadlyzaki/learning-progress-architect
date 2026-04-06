@@ -9,7 +9,12 @@ import { ApiError, apiFetch } from '../lib/api';
 import { cn } from '../lib/utils';
 import { InlineStateMessage } from '../components/PageStates';
 import { usePreferences } from '../lib/preferences';
-import type { LearningResourceInput, ResourceMode, ResourceType } from '../types';
+import type {
+  LearningResourceInput,
+  ResourceMode,
+  ResourceType,
+  WorkflowCreateResponse,
+} from '../types';
 
 const levels = ['Beginner', 'Intermediate', 'Advanced'] as const;
 const styles = ['Practice-Heavy', 'Reading-Heavy', 'Visual', 'Mixed'] as const;
@@ -75,7 +80,7 @@ export function OnboardingPage() {
     setIsGenerating(true);
 
     try {
-      await apiFetch<{ success: boolean; goalId: number }>('/api/agent/workflow', {
+      await apiFetch<WorkflowCreateResponse>('/api/agent/workflow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -116,6 +116,20 @@ export interface TaskResourceRecord {
   relevance_note: string | null;
 }
 
+export interface WorkflowCalendarSyncSummary {
+  status: Extract<CalendarEventSyncStatus, 'synced' | 'failed' | 'partial'>;
+  total: number;
+  succeeded: number;
+  failed: number;
+  message: string | null;
+}
+
+export interface WorkflowCreateResponse {
+  success: true;
+  goalId: number;
+  calendarSync: WorkflowCalendarSyncSummary;
+}
+
 export interface AppDataPayload {
   user: UserAccount;
   goals: GoalRecord[];

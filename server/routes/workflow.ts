@@ -36,7 +36,7 @@ workflowRouter.post('/', async (req, res) => {
       return;
     }
 
-    const { goalId } = await runWorkflow(user, {
+    const { goalId, calendarSync } = await runWorkflow(user, {
       goal,
       level,
       hours,
@@ -46,7 +46,7 @@ workflowRouter.post('/', async (req, res) => {
       resources,
     });
 
-    res.status(201).json({ success: true, goalId });
+    res.status(201).json({ success: true, goalId, calendarSync });
   } catch (error) {
     console.error(error);
     jsonError(res, 500, 'Failed to generate a learning roadmap.', 'WORKFLOW_GENERATION_FAILED');
