@@ -2,8 +2,15 @@ import { db } from '../db.ts';
 import { nowIso } from '../utils/date.ts';
 import { buildPlanSummary, buildResourceNote } from './syllabusService.ts';
 import { scheduleCalendarEvents } from './calendarSchedulerService.ts';
+import { createCalendarEvents } from './calendarMcpService.ts';
 import { generateWorkflowPlan } from './workflowAgentService.ts';
-import type { UserRow, ResourceMode, LearningResourceInput } from '../types.ts';
+import type {
+  CalendarEventSyncBatchResult,
+  CalendarEventSyncResult,
+  LearningResourceInput,
+  ResourceMode,
+  UserRow,
+} from '../types.ts';
 
 type WorkflowInput = {
   goal: string;
@@ -18,6 +25,7 @@ type WorkflowInput = {
 type WorkflowResult = {
   goalId: number;
   insertedEvents: InsertedWorkflowEvent[];
+  calendarSync: WorkflowCalendarSyncSummary;
 };
 
 type InsertedWorkflowEvent = {
@@ -27,11 +35,104 @@ type InsertedWorkflowEvent = {
   startAt: string;
   endAt: string;
   durationMinutes: number;
+  summary: string;
+  description: string;
 };
 
-export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<WorkflowResult> {
+type WorkflowCalendarSyncSummary = {
+  status: CalendarEventSyncBatchResult['status'];
+  total: number;
+  succeeded: number;
+  failed: number;
+  message: string | null;
+};
+
+type WorkflowOptions = {
+  syncCalendarEvents?: typeof createCalendarEvents;
+};
+
+function buildCalendarSyncSummary(result: CalendarEventSyncBatchResult): WorkflowCalendarSyncSummary {
+  const succeeded = result.results.filter((item) => item.status === 'synced').length;
+  const failed = result.results.length - succeeded;
+
+  let message: string | null = null;
+  if (result.status === 'failed') {
+    message = result.error ?? 'Calendar sync failed, but the local roadmap was created successfully.';
+  } else if (result.status === 'partial') {
+    message = `${failed} of ${result.results.length} calendar events failed to sync.`;
+  }
+
+  return {
+    status: result.status,
+    total: result.results.length,
+    succeeded,
+    failed,
+    message,
+  };
+}
+
+function persistCalendarSyncResults(userId: string, results: CalendarEventSyncResult[]) {
+  const syncedAt = nowIso();
+  const markEventSynced = db.prepare(
+    `
+      UPDATE calendar_events
+      SET
+        external_event_id = ?,
+        external_calendar_id = ?,
+        external_url = ?,
+        status = 'synced',
+        synced_at = ?,
+        sync_error = NULL
+      WHERE id = ? AND user_id = ?
+    `,
+  );
+  const markEventFailed = db.prepare(
+    `
+      UPDATE calendar_events
+      SET
+        external_event_id = NULL,
+        external_calendar_id = NULL,
+        external_url = NULL,
+        status = 'failed',
+        synced_at = NULL,
+        sync_error = ?
+      WHERE id = ? AND user_id = ?
+    `,
+  );
+
+  const tx = db.transaction(() => {
+    for (const result of results) {
+      if (result.status === 'synced') {
+        markEventSynced.run(
+          result.externalEventId,
+          result.externalCalendarId,
+          result.externalUrl,
+          syncedAt,
+          result.localEventId,
+          userId,
+        );
+        continue;
+      }
+
+      markEventFailed.run(
+        result.error ?? 'Calendar sync failed for this event.',
+        result.localEventId,
+        userId,
+      );
+    }
+  });
+
+  tx();
+}
+
+export async function runWorkflow(
+  user: UserRow,
+  input: WorkflowInput,
+  options?: WorkflowOptions,
+): Promise<WorkflowResult> {
   const { goal, level, hours, targetDate, preferredStyle, resourceMode, resources } = input;
   const createdAt = nowIso();
+  const syncCalendarEvents = options?.syncCalendarEvents ?? createCalendarEvents;
 
   // Generate the hydrated plan (planner + search) before any DB writes.
   const hydratedTasks = await generateWorkflowPlan({
@@ -180,6 +281,8 @@ export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<
         startAt: event.startAt,
         endAt: event.endAt,
         durationMinutes: event.durationMinutes,
+        summary: event.summary,
+        description: event.description,
       });
     }
 
@@ -205,5 +308,48 @@ export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<
     };
   });
 
-  return tx();
+  const workflowResult = tx();
+  let syncResult: CalendarEventSyncBatchResult;
+
+  try {
+    syncResult = await syncCalendarEvents(
+      workflowResult.insertedEvents.map((event) => ({
+        localEventId: event.calendarEventId,
+        summary: event.summary,
+        description: event.description,
+        startAt: event.startAt,
+        endAt: event.endAt,
+        attendees: [
+          {
+            email: user.email,
+            displayName: user.name,
+          },
+        ],
+      })),
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Calendar sync failed, but the local roadmap was created successfully.';
+    syncResult = {
+      status: 'failed',
+      error: message,
+      results: workflowResult.insertedEvents.map((event) => ({
+        localEventId: event.calendarEventId,
+        status: 'failed',
+        externalEventId: null,
+        externalCalendarId: null,
+        externalUrl: null,
+        error: message,
+      })),
+    };
+  }
+
+  persistCalendarSyncResults(user.id, syncResult.results);
+
+  return {
+    ...workflowResult,
+    calendarSync: buildCalendarSyncSummary(syncResult),
+  };
 }
