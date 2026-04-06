@@ -13,6 +13,7 @@ import type {
   LearningResourceInput,
   ResourceMode,
   ResourceType,
+  WorkflowCalendarSyncSummary,
   WorkflowCreateResponse,
 } from '../types';
 
@@ -36,6 +37,43 @@ const emptyResource = (): LearningResourceInput => ({
   notes: null,
 });
 
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getTomorrowDateInputValue() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return formatDateInputValue(tomorrow);
+}
+
+function buildWorkflowWarningMessage(
+  calendarSync: WorkflowCalendarSyncSummary,
+  t: (key: string, values?: Record<string, string | number>) => string,
+) {
+  if (calendarSync.status === 'partial') {
+    return {
+      title: t('onboarding.syncWarningTitle'),
+      body: t('onboarding.syncWarningPartial', {
+        failed: calendarSync.failed,
+        total: calendarSync.total,
+      }),
+    };
+  }
+
+  if (calendarSync.status === 'failed') {
+    return {
+      title: t('onboarding.syncWarningTitle'),
+      body: t('onboarding.syncWarningFailed'),
+    };
+  }
+
+  return null;
+}
+
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { t } = usePreferences();
@@ -45,7 +83,7 @@ export function OnboardingPage() {
   const [goal, setGoal] = useState('');
   const [level, setLevel] = useState<(typeof levels)[number]>('Intermediate');
   const [hours, setHours] = useState('10');
-  const [targetDate, setTargetDate] = useState('');
+  const [targetDate, setTargetDate] = useState(() => getTomorrowDateInputValue());
   const [preferredStyle, setPreferredStyle] = useState<(typeof styles)[number]>('Practice-Heavy');
   const [resourceMode, setResourceMode] = useState<ResourceMode>('needs_plan');
   const [resources, setResources] = useState<LearningResourceInput[]>([emptyResource()]);
@@ -80,7 +118,7 @@ export function OnboardingPage() {
     setIsGenerating(true);
 
     try {
-      await apiFetch<WorkflowCreateResponse>('/api/agent/workflow', {
+      const response = await apiFetch<WorkflowCreateResponse>('/api/agent/workflow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +134,12 @@ export function OnboardingPage() {
         }),
       });
 
-      navigate('/app', { replace: true });
+      const workflowNotice = buildWorkflowWarningMessage(response.calendarSync, t);
+
+      navigate('/app', {
+        replace: true,
+        state: workflowNotice ? { workflowNotice } : null,
+      });
     } catch (submitError) {
       console.error(submitError);
       setError(submitError instanceof ApiError ? submitError.message : t('onboarding.errorPrefix'));

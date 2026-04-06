@@ -1,14 +1,15 @@
-import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Clock, Layers3, Play, Sparkles, Target } from 'lucide-react';
+import { useEffect, type ReactNode } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock, Layers3, Play, Sparkles, Target } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
-import { PageLoadingState, PageMessageState } from '../components/PageStates';
+import { InlineStateMessage, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { PrimaryActionPanel, SecondaryActionHint } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
+import type { CalendarEventSyncStatus } from '../types';
 
 function truncate(text: string, maxLength: number) {
   if (text.length <= maxLength) {
@@ -18,9 +19,59 @@ function truncate(text: string, maxLength: number) {
   return `${text.slice(0, maxLength).trimEnd()}...`;
 }
 
+function getSyncBadgeVariant(status: CalendarEventSyncStatus) {
+  if (status === 'synced') {
+    return 'success';
+  }
+
+  if (status === 'failed') {
+    return 'destructive';
+  }
+
+  if (status === 'partial') {
+    return 'warning';
+  }
+
+  return 'info';
+}
+
+function summarizeTaskEventStatus(statuses: CalendarEventSyncStatus[]) {
+  if (statuses.length === 0) {
+    return null;
+  }
+
+  const uniqueStatuses = new Set(statuses);
+  if (uniqueStatuses.size === 1) {
+    return statuses[0];
+  }
+
+  return 'partial';
+}
+
+type WorkflowNoticeState = {
+  workflowNotice?: {
+    title: string;
+    body: string;
+  };
+};
+
 export function DashboardPage() {
   const { data, loading, error, refetch } = useAppData();
   const { t } = usePreferences();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const workflowNotice =
+    location.state && typeof location.state === 'object'
+      ? (location.state as WorkflowNoticeState).workflowNotice ?? null
+      : null;
+
+  useEffect(() => {
+    if (!workflowNotice) {
+      return;
+    }
+
+    navigate('/app', { replace: true, state: null });
+  }, [navigate, workflowNotice]);
 
   if (loading) {
     return <PageLoadingState stats={3} rows={2} />;
@@ -76,8 +127,19 @@ export function DashboardPage() {
 
   const tasks = data.tasks.filter((task) => task.goal_id === activeGoal.id);
   const goalResources = data.resources.filter((resource) => resource.goal_id === activeGoal.id);
+  const taskEventStatuses = new Map<number, CalendarEventSyncStatus[]>();
+
+  for (const event of data.events) {
+    const statuses = taskEventStatuses.get(event.task_id) ?? [];
+    statuses.push(event.status);
+    taskEventStatuses.set(event.task_id, statuses);
+  }
+
   const nextTask = tasks.find((task) => task.status !== 'completed') ?? null;
   const nextEvent = nextTask ? data.events.find((event) => event.task_id === nextTask.id) ?? null : null;
+  const nextTaskSyncStatus = nextTask
+    ? summarizeTaskEventStatus(taskEventStatuses.get(nextTask.id) ?? [])
+    : null;
   const completedTasks = tasks.filter((task) => task.status === 'completed').length;
   const progress = tasks.length ? (completedTasks / tasks.length) * 100 : 0;
   const completedSessions = data.sessions.filter((session) => session.completed_at);
@@ -95,6 +157,10 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8 font-sans">
+      {workflowNotice ? (
+        <InlineStateMessage title={workflowNotice.title} body={workflowNotice.body} tone="warning" />
+      ) : null}
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="mb-3 text-[11px] font-mono font-semibold uppercase tracking-[0.24em] text-[var(--accent-amber)]">
@@ -136,9 +202,22 @@ export function DashboardPage() {
         description={nextTask?.description ?? t('dashboard.caughtUpBody')}
         meta={
           nextEvent ? (
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-secondary)]">
-              <Clock className="h-4 w-4 text-[var(--accent-amber)]" />
-              <span>{t('common.minutes', { count: nextEvent.duration })}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-secondary)]">
+                <Clock className="h-4 w-4 text-[var(--accent-amber)]" />
+                <span>{t('common.minutes', { count: nextEvent.duration })}</span>
+              </div>
+              {nextTaskSyncStatus ? (
+                <Badge variant={getSyncBadgeVariant(nextTaskSyncStatus)}>
+                  {t('dashboard.calendarSyncBadge', { status: t(`status.${nextTaskSyncStatus}`) })}
+                </Badge>
+              ) : null}
+              {nextTaskSyncStatus === 'failed' ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-[var(--text-secondary)]">
+                  <AlertTriangle className="h-4 w-4 text-[var(--accent-amber)]" />
+                  <span>{t('dashboard.calendarSyncActionNeeded')}</span>
+                </div>
+              ) : null}
             </div>
           ) : (
             <Badge variant="outline">{t(`status.${activeGoal.status}`)}</Badge>
@@ -203,9 +282,20 @@ export function DashboardPage() {
                 key={task.id}
                 className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/78 p-4"
               >
+                {(() => {
+                  const taskSyncStatus = summarizeTaskEventStatus(taskEventStatuses.get(task.id) ?? []);
+
+                  return (
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-base font-medium text-[var(--text-primary)]">{task.title}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-medium text-[var(--text-primary)]">{task.title}</p>
+                      {taskSyncStatus ? (
+                        <Badge variant={getSyncBadgeVariant(taskSyncStatus)}>
+                          {t(`status.${taskSyncStatus}`)}
+                        </Badge>
+                      ) : null}
+                    </div>
                     <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
                       {task.description}
                     </p>
@@ -218,6 +308,8 @@ export function DashboardPage() {
                     </Badge>
                   )}
                 </div>
+                  );
+                })()}
               </div>
             ))}
           </CardContent>
