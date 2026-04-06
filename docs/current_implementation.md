@@ -13,7 +13,9 @@ Learning Progress Architect is a single-user learning workspace that supports:
 - local email/password authentication
 - onboarding into a learning goal
 - roadmap generation with exactly three tasks
+- AI-assisted workflow planning with task-level search queries
 - optional learner-supplied study materials
+- system-suggested learning references attached to tasks when AI search enrichment is available
 - timed study sessions
 - post-session comprehension capture
 - review scheduling based on confidence
@@ -77,7 +79,11 @@ There is no separate BFF layer, no background worker, and no message queue. All 
 
 - Gemini via `@google/genai`
 - model: `gemini-2.5-flash`
-- if `GEMINI_API_KEY` is not present or generation fails, the app falls back to a deterministic local syllabus generator
+- workflow generation is a two-stage process:
+	- task planning through Gemini JSON generation
+	- optional search grounding through Gemini `googleSearch` to collect external learning links
+- if `GEMINI_API_KEY` is not present, task planning falls back to a deterministic local planner and search hydration returns no suggested links
+- if Gemini calls fail, the planner falls back locally and search hydration degrades to empty results without aborting workflow creation
 
 ## Codebase Structure
 
@@ -87,7 +93,7 @@ There is no separate BFF layer, no background worker, and no message queue. All 
 - `server/db.ts`: schema creation and lightweight additive migrations
 - `server/middleware/auth.ts`: bearer token parsing and session lookup
 - `server/routes/*.ts`: HTTP surface
-- `server/services/*.ts`: auth, review scheduling, syllabus generation, workflow orchestration
+- `server/services/*.ts`: auth, review scheduling, workflow planning, search hydration, syllabus utilities, workflow orchestration
 - `server/utils/*.ts`: date helpers, validation, JSON error utility
 
 ### Client-side
@@ -226,7 +232,9 @@ Important current behavior:
 Current linking behavior:
 
 - user-provided resources are stored during workflow creation
-- generated tasks are linked to resources round-robin if at least one resource exists
+- generated tasks are linked to learner-provided resources round-robin if at least one resource exists
+- workflow generation may also persist system-suggested link resources with `source_kind = system_suggested`
+- system-suggested resources are created per task from grounded search results and linked directly to that task
 
 ## Authentication Model
 
@@ -305,6 +313,13 @@ Response:
 
 - `201 { success: true, goalId }`
 
+Implementation notes:
+
+- the response is still minimal; the client reloads the resulting state through `GET /api/data`
+- the workflow is fully planned before writes begin
+- all persistence runs inside a single SQLite transaction
+- if search grounding is available, task-specific system-suggested references are persisted alongside learner resources
+
 ### `POST /api/tasks/:taskId/start`
 
 Behavior:
@@ -340,25 +355,44 @@ Response:
 
 ## Workflow Generation Logic
 
-The onboarding flow terminates in `runWorkflow()`.
+The onboarding flow terminates in `runWorkflow()`, which now orchestrates planning, search hydration, and transactional persistence.
 
 ### Input Path
 
 1. User completes four-step onboarding
 2. Client posts workflow payload to `/api/agent/workflow`
 3. Server sanitizes resource mode and resource list
-4. `runWorkflow()` persists a new goal and generates tasks
+4. `runWorkflow()` calls `generateWorkflowPlan()` to produce hydrated tasks
+5. the server persists the goal, tasks, events, resources, links, and notes inside one transaction
 
-### Syllabus Generation
+### Planning Stage
 
-`generateSyllabus()` always returns exactly three study items.
+`planSyllabusTasks()` always returns exactly three planned study items.
 
 Two modes exist:
 
-- Gemini-backed generation when `GEMINI_API_KEY` is available and the API succeeds
-- deterministic fallback generation otherwise
+- Gemini-backed planning when `GEMINI_API_KEY` is available and the API succeeds
+- deterministic fallback planning otherwise through `buildFallbackPlan()`
 
-The fallback is important because it means the app is operable without AI access.
+Each planned task includes:
+
+- `title`
+- `description`
+- `searchQuery`
+
+The fallback is important because it means the app is operable without AI access and still produces predictable search queries for downstream hydration.
+
+### Search Hydration
+
+`generateWorkflowPlan()` enriches each planned task by calling `searchLearningResources()` in parallel.
+
+Search behavior:
+
+- uses Gemini `googleSearch` grounding when `GEMINI_API_KEY` is present
+- normalizes grounded web results into `SearchLink` objects with title, URL, and hostname source
+- filters duplicate URLs and homepage-root links
+- limits each task to at most three suggested references
+- treats search as best-effort; failures return an empty reference list for that task
 
 ### Event Generation
 
@@ -376,11 +410,13 @@ For each new goal, the server creates:
 - 1 goal row
 - 3 task rows
 - 3 calendar event rows
-- 0..n resource rows
-- 0..3 task-resource rows
+- 0..n learner resource rows
+- 0..3 learner task-resource links
+- 0..9 system-suggested resource rows
+- 0..9 task-resource links for system suggestions
 - 2 notes
 
-There is no transaction wrapper around this process. Partial writes are possible if a later step throws after earlier inserts have succeeded.
+All of these writes are wrapped in a single SQLite transaction. If any insert fails, the entire workflow setup rolls back.
 
 ## Frontend Application Model
 
@@ -555,9 +591,9 @@ Most screens depend on `/api/data` and then filter arrays locally. This keeps th
 
 The database supports multiple goals per user. The dashboard, roadmap, progress, and other flows generally treat `goals[0]` as the active goal. Any enhancement that introduces explicit goal switching must touch both backend semantics and client assumptions.
 
-### 3. Workflow creation is not transactional
+### 3. Workflow creation is transactional, but AI enrichment is best-effort
 
-Goal creation, task insertion, event insertion, resource insertion, and note insertion happen sequentially without a transaction. A mid-flow failure can leave partially-created data.
+The planner and search stages run before persistence begins. If planning falls back or search returns no results, the workflow still succeeds, but some or all system-suggested references may be absent.
 
 ### 4. Session notes in the study screen are not saved
 
@@ -592,8 +628,8 @@ What is not covered:
 
 - client rendering behavior
 - multi-goal edge cases
+- Gemini-backed search hydration and system-suggested resource persistence
 - repeated review lifecycle
-- partial failure handling in workflow generation
 - preferences and localization behavior
 
 ## Enhancement Guidance
@@ -618,9 +654,9 @@ If performance or complexity becomes an issue, start by deciding whether to:
 
 Doing neither will keep derivation logic duplicated.
 
-#### C. Wrap workflow creation in a database transaction
+#### C. Decide how system-suggested references should appear in the UI
 
-This is the safest structural change on the backend and reduces the risk of corrupt partial setup.
+The backend now persists AI-suggested task references into the existing resources model, but the frontend still treats resources mostly as supporting metadata. A useful next step is to make suggested references visible and clearly labeled by provenance.
 
 #### D. Separate study sessions from review sessions
 
@@ -684,4 +720,4 @@ Most product enhancements fall into one of those loops. Problems usually appear 
 
 ## Summary
 
-The current app is a compact full-stack TypeScript MVP with a clean enough architecture for enhancement work, but several semantics are still implicit rather than formalized. The most important issues to keep in mind are the single-payload frontend data model, the partial multi-goal story, the non-transactional workflow creation path, and the incomplete review lifecycle.
+The current app is a compact full-stack TypeScript MVP with a clean enough architecture for enhancement work, but several semantics are still implicit rather than formalized. The most important issues to keep in mind are the single-payload frontend data model, the partial multi-goal story, the best-effort AI enrichment path around workflow creation, and the incomplete review lifecycle.
