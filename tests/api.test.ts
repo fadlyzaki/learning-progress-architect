@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import http from 'node:http';
 import net from 'node:net';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 
@@ -65,6 +66,7 @@ test('workflow supports no-resource planning mode and returns starter guidance n
       goal: 'Learn advanced React patterns',
       level: 'Intermediate',
       hours: 6,
+      targetDate: '2026-04-10',
       preferredStyle: 'Mixed',
       resourceMode: 'needs_plan',
       resources: [],
@@ -73,10 +75,27 @@ test('workflow supports no-resource planning mode and returns starter guidance n
   );
 
   assert.equal(workflow.status, 201);
+  const workflowPayload = await workflow.json() as {
+    calendarSync: { status: string; failed: number; total: number };
+  };
+  assert.equal(workflowPayload.calendarSync.status, 'failed');
+  assert.equal(workflowPayload.calendarSync.failed, workflowPayload.calendarSync.total);
 
   const data = await getData(server.baseUrl, token);
   assert.equal(data.goals.length, 1);
   assert.equal(data.tasks.length, 3);
+  assert.equal(data.events.length, 3);
+  assert.equal(data.events[0].date, '2026-04-10T12:00:00.000Z');
+  assert.deepEqual(
+    data.events.map((event: { duration: number }) => event.duration),
+    [120, 120, 120],
+  );
+  assert.ok(
+    data.events.every(
+      (event: { status: string; sync_error: string | null }) =>
+        event.status === 'failed' && typeof event.sync_error === 'string' && event.sync_error.length > 0,
+    ),
+  );
   assert.equal(data.resources.length, 0);
   assert.equal(data.task_resources.length, 0);
   assert.ok(
@@ -164,6 +183,115 @@ test('workflow persists learner materials, links them to tasks, and completes th
   assert.equal(data.reviews[0].priority, 'high');
 });
 
+test('workflow returns 201 and only updates affected event rows on partial calendar sync', async () => {
+  const mcpServer = await startMockMcpServer((requestBody) => {
+    if (requestBody.method === 'initialize') {
+      return {
+        status: 200,
+        headers: {
+          'content-type': 'application/json',
+          'mcp-session-id': 'session-1',
+        },
+        body: {
+          jsonrpc: '2.0',
+          id: requestBody.id,
+          result: { protocolVersion: '2024-11-05' },
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: {
+        jsonrpc: '2.0',
+        id: requestBody.id,
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                results: [
+                  {
+                    success: true,
+                    eventId: 'evt-1',
+                    calendarId: 'primary',
+                    htmlLink: 'https://calendar.google.com/event?eid=1',
+                  },
+                  {
+                    success: false,
+                    error: 'quota exceeded',
+                  },
+                  {
+                    success: false,
+                    error: 'quota exceeded',
+                  },
+                ],
+              }),
+            },
+          ],
+        },
+      },
+    };
+  });
+  cleanupTasks.push(mcpServer.stop);
+
+  const server = await startServer({
+    env: {
+      CALENDAR_MCP_ENDPOINT: mcpServer.endpoint,
+    },
+  });
+  cleanupTasks.push(server.stop);
+  const token = await signupAndGetToken(server.baseUrl, 'partial-sync@example.com');
+
+  const workflow = await request(
+    server.baseUrl,
+    '/api/agent/workflow',
+    {
+      goal: 'Master TypeScript',
+      level: 'Intermediate',
+      hours: 5,
+      targetDate: '2026-04-10',
+      preferredStyle: 'Mixed',
+      resourceMode: 'needs_plan',
+      resources: [],
+    },
+    token,
+  );
+
+  assert.equal(workflow.status, 201);
+  const workflowPayload = await workflow.json() as {
+    calendarSync: {
+      status: string;
+      total: number;
+      succeeded: number;
+      failed: number;
+      message: string | null;
+    };
+  };
+  assert.deepEqual(workflowPayload.calendarSync, {
+    status: 'partial',
+    total: 3,
+    succeeded: 1,
+    failed: 2,
+    message: '2 of 3 calendar events failed to sync.',
+  });
+
+  const data = await getData(server.baseUrl, token);
+  assert.equal(data.events[0].status, 'synced');
+  assert.equal(data.events[0].external_event_id, 'evt-1');
+  assert.equal(data.events[0].external_calendar_id, 'primary');
+  assert.equal(data.events[0].external_url, 'https://calendar.google.com/event?eid=1');
+  assert.ok(typeof data.events[0].synced_at === 'string');
+  assert.equal(data.events[1].status, 'failed');
+  assert.equal(data.events[1].sync_error, 'quota exceeded');
+  assert.equal(data.events[1].external_event_id, null);
+  assert.equal(data.events[2].status, 'failed');
+  assert.equal(data.events[2].sync_error, 'quota exceeded');
+});
+
 async function signupAndGetToken(baseUrl: string, email: string) {
   const signup = await request(baseUrl, '/api/auth/signup', {
     name: 'Test User',
@@ -196,7 +324,7 @@ async function request(baseUrl: string, route: string, body: unknown, token?: st
   });
 }
 
-async function startServer(): Promise<TestServer> {
+async function startServer(options?: { env?: Record<string, string | undefined> }): Promise<TestServer> {
   const port = await getFreePort();
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'lpa-test-'));
   const databaseFile = path.join(tempDir, 'app.db');
@@ -207,6 +335,8 @@ async function startServer(): Promise<TestServer> {
       NODE_ENV: 'test',
       PORT: String(port),
       DATABASE_FILE: databaseFile,
+      CALENDAR_MCP_ENDPOINT: 'http://127.0.0.1:1/mcp',
+      ...options?.env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -222,6 +352,51 @@ async function startServer(): Promise<TestServer> {
 
       await onceExit(child);
       await rm(tempDir, { recursive: true, force: true });
+    },
+  };
+}
+
+async function startMockMcpServer(
+  respond: (requestBody: Record<string, any>) => {
+    status?: number;
+    headers?: Record<string, string>;
+    body?: unknown;
+  },
+) {
+  const server = http.createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    const bodyText = Buffer.concat(chunks).toString('utf8');
+    const requestBody = bodyText ? JSON.parse(bodyText) : {};
+    const response = respond(requestBody);
+
+    res.writeHead(response.status ?? 200, {
+      'content-type': 'application/json',
+      ...(response.headers ?? {}),
+    });
+    res.end(JSON.stringify(response.body ?? {}));
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    server.listen(0, '127.0.0.1', () => resolve());
+    server.once('error', reject);
+  });
+
+  const address = server.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('Failed to start mock MCP server.');
+  }
+
+  return {
+    endpoint: `http://127.0.0.1:${address.port}/mcp`,
+    stop: async () => {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
     },
   };
 }
