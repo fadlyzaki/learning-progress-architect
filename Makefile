@@ -1,4 +1,4 @@
-PROJECT_ID ?= your-gcp-project-id
+PROJECT_ID ?= engineering-trend-scout
 REGION     ?= us-central1
 SERVICE    ?= learning-architect-service
 REPOSITORY ?= learning-progress-architect
