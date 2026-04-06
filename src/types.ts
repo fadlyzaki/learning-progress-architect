@@ -34,12 +34,21 @@ export interface TaskRecord {
   completed_at: string | null;
 }
 
+export type CalendarEventSyncStatus = 'pending' | 'synced' | 'failed' | 'partial';
+
 export interface EventRecord {
   id: number;
   user_id: string;
   task_id: number;
   date: string;
   duration: number;
+  provider: string;
+  external_event_id: string | null;
+  external_calendar_id: string | null;
+  status: CalendarEventSyncStatus;
+  sync_error: string | null;
+  synced_at: string | null;
+  external_url: string | null;
 }
 
 export interface NoteRecord {

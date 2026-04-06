@@ -59,7 +59,14 @@ export function migrateDatabase() {
       user_id TEXT,
       task_id INTEGER,
       date TEXT,
-      duration INTEGER
+      duration INTEGER,
+      provider TEXT DEFAULT 'google_calendar',
+      external_event_id TEXT,
+      external_calendar_id TEXT,
+      status TEXT DEFAULT 'pending',
+      sync_error TEXT,
+      synced_at TEXT,
+      external_url TEXT
     );
 
     CREATE TABLE IF NOT EXISTS notes (
@@ -130,6 +137,13 @@ export function migrateDatabase() {
   ensureColumn('tasks', 'completed_at TEXT');
 
   ensureColumn('calendar_events', 'user_id TEXT');
+  ensureColumn('calendar_events', "provider TEXT DEFAULT 'google_calendar'");
+  ensureColumn('calendar_events', 'external_event_id TEXT');
+  ensureColumn('calendar_events', 'external_calendar_id TEXT');
+  ensureColumn('calendar_events', "status TEXT DEFAULT 'pending'");
+  ensureColumn('calendar_events', 'sync_error TEXT');
+  ensureColumn('calendar_events', 'synced_at TEXT');
+  ensureColumn('calendar_events', 'external_url TEXT');
 
   ensureColumn('notes', 'user_id TEXT');
   ensureColumn('notes', "kind TEXT DEFAULT 'plan'");
@@ -140,6 +154,8 @@ export function migrateDatabase() {
     UPDATE goals SET status = COALESCE(status, 'active') WHERE status IS NULL;
     UPDATE goals SET resource_mode = COALESCE(resource_mode, 'needs_plan') WHERE resource_mode IS NULL;
     UPDATE tasks SET created_at = COALESCE(created_at, datetime('now')) WHERE created_at IS NULL;
+    UPDATE calendar_events SET provider = COALESCE(provider, 'google_calendar') WHERE provider IS NULL;
+    UPDATE calendar_events SET status = COALESCE(status, 'pending') WHERE status IS NULL;
     UPDATE notes SET created_at = COALESCE(created_at, datetime('now')) WHERE created_at IS NULL;
     UPDATE notes SET kind = COALESCE(kind, 'plan') WHERE kind IS NULL;
   `);
