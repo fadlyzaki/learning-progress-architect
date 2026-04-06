@@ -1,10 +1,7 @@
 import { db } from '../db.ts';
 import { nowIso } from '../utils/date.ts';
-import {
-  buildEventSchedule,
-  buildPlanSummary,
-  buildResourceNote,
-} from './syllabusService.ts';
+import { buildPlanSummary, buildResourceNote } from './syllabusService.ts';
+import { scheduleCalendarEvents } from './calendarSchedulerService.ts';
 import { generateWorkflowPlan } from './workflowAgentService.ts';
 import type { UserRow, ResourceMode, LearningResourceInput } from '../types.ts';
 
@@ -20,6 +17,16 @@ type WorkflowInput = {
 
 type WorkflowResult = {
   goalId: number;
+  insertedEvents: InsertedWorkflowEvent[];
+};
+
+type InsertedWorkflowEvent = {
+  calendarEventId: number;
+  taskId: number;
+  taskIndex: number;
+  startAt: string;
+  endAt: string;
+  durationMinutes: number;
 };
 
 export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<WorkflowResult> {
@@ -35,7 +42,18 @@ export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<
     resources,
   });
 
-  const scheduledEvents = buildEventSchedule(hydratedTasks.length, hours);
+  const scheduledEvents = scheduleCalendarEvents({
+    weeklyHours: hours,
+    startDate: targetDate,
+    tasks: hydratedTasks.map((task) => ({
+      title: task.title,
+      description: task.description,
+      estimatedMinutes: task.estimatedMinutes,
+    })),
+    timeZone: 'Asia/Jakarta',
+    defaultStartHour: 19,
+    maxEventMinutes: 120,
+  });
 
   // Prepare statements outside the transaction so they are compiled once.
   const insertGoal = db.prepare(
@@ -51,7 +69,22 @@ export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<
     `,
   );
   const insertEvent = db.prepare(
-    'INSERT INTO calendar_events (user_id, task_id, date, duration) VALUES (?, ?, ?, ?)',
+    `
+      INSERT INTO calendar_events (
+        user_id,
+        task_id,
+        date,
+        duration,
+        provider,
+        external_event_id,
+        external_calendar_id,
+        status,
+        sync_error,
+        synced_at,
+        external_url
+      )
+      VALUES (?, ?, ?, ?, 'google_calendar', NULL, NULL, 'pending', NULL, NULL, NULL)
+    `,
   );
   const insertResource = db.prepare(
     `
@@ -106,17 +139,14 @@ export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<
       return Number(result.lastInsertRowid);
     });
 
-    // Insert tasks, calendar events, learner resource links, and system-suggested resources.
+    const taskIdsByIndex: number[] = [];
+    const insertedEvents: InsertedWorkflowEvent[] = [];
+
+    // Insert tasks, learner resource links, and system-suggested resources.
     hydratedTasks.forEach((task, index) => {
       const taskInsert = insertTask.run(user.id, goalId, task.title, task.description, createdAt);
       const taskId = Number(taskInsert.lastInsertRowid);
-
-      insertEvent.run(
-        user.id,
-        taskId,
-        scheduledEvents[index].date,
-        scheduledEvents[index].duration,
-      );
+      taskIdsByIndex[index] = taskId;
 
       // Link learner-supplied resources (round-robin).
       if (storedResourceIds.length > 0) {
@@ -138,6 +168,21 @@ export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<
       }
     });
 
+    // Insert one calendar row per scheduled session after all task ids are known.
+    for (const event of scheduledEvents) {
+      const taskId = taskIdsByIndex[event.taskIndex];
+      const eventInsert = insertEvent.run(user.id, taskId, event.startAt, event.durationMinutes);
+
+      insertedEvents.push({
+        calendarEventId: Number(eventInsert.lastInsertRowid),
+        taskId,
+        taskIndex: event.taskIndex,
+        startAt: event.startAt,
+        endAt: event.endAt,
+        durationMinutes: event.durationMinutes,
+      });
+    }
+
     // Insert plan and resource notes.
     insertNote.run(
       user.id,
@@ -154,9 +199,11 @@ export async function runWorkflow(user: UserRow, input: WorkflowInput): Promise<
       createdAt,
     );
 
-    return goalId;
+    return {
+      goalId,
+      insertedEvents,
+    };
   });
 
-  const goalId = tx();
-  return { goalId };
+  return tx();
 }
