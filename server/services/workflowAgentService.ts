@@ -36,6 +36,7 @@ export async function generateWorkflowPlan(input: WorkflowPlanInput): Promise<Hy
     title: task.title,
     description: task.description,
     searchQuery: task.searchQuery,
+    estimatedMinutes: task.estimatedMinutes,
     references: searchResults[index],
   }));
 }

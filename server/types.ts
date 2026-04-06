@@ -93,6 +93,7 @@ export type PlannedTask = {
   title: string;
   description: string;
   searchQuery: string;
+  estimatedMinutes: number;
 };
 
 export type SearchLink = {
@@ -106,5 +107,6 @@ export type HydratedTask = {
   title: string;
   description: string;
   searchQuery: string;
+  estimatedMinutes: number;
   references: SearchLink[];
 };

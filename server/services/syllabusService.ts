@@ -6,6 +6,15 @@ const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
+function normalizeEstimatedMinutes(value: unknown) {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 30;
+  }
+
+  return Math.round(parsed);
+}
+
 export function buildFallbackPlan(
   goal: string,
   level: string,
@@ -43,6 +52,7 @@ export function buildFallbackPlan(
   return tasks.map((task) => ({
     ...task,
     searchQuery: `${goal} ${task.title} tutorial documentation`,
+    estimatedMinutes: 120,
   }));
 }
 
@@ -85,6 +95,7 @@ export async function planSyllabusTasks(
         ${resourceContext}
         Each task description should either reference the learner materials or explain how to begin without them.
         For each task, also produce a concise searchQuery string a learner would type into a search engine to find the best documentation or tutorial for that task.
+        For each task, estimate the total study time in whole minutes needed to complete that task's session plan and return it as estimatedMinutes.
         Return only JSON.
       `,
       config: {
@@ -97,16 +108,24 @@ export async function planSyllabusTasks(
               title: { type: Type.STRING },
               description: { type: Type.STRING },
               searchQuery: { type: Type.STRING },
+              estimatedMinutes: { type: Type.NUMBER },
             },
-            required: ['title', 'description', 'searchQuery'],
+            required: ['title', 'description', 'searchQuery', 'estimatedMinutes'],
           },
         },
       },
     });
 
-    const parsed = JSON.parse(response.text || '[]') as PlannedTask[];
+    const parsed = JSON.parse(response.text || '[]') as Array<
+      Omit<PlannedTask, 'estimatedMinutes'> & { estimatedMinutes: unknown }
+    >;
     if (parsed.length >= 3) {
-      return parsed.slice(0, 3);
+      return parsed.slice(0, 3).map((task) => ({
+        title: task.title,
+        description: task.description,
+        searchQuery: task.searchQuery,
+        estimatedMinutes: normalizeEstimatedMinutes(task.estimatedMinutes),
+      }));
     }
   } catch (error) {
     console.error('Falling back to local syllabus generation.', error);
