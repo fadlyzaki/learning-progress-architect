@@ -163,7 +163,7 @@ export TAG=v2                  # optional, defaults to latest
 | `make build-push` | Alias for `make build` |
 | `make deploy` | Deploy the Artifact Registry image to Cloud Run |
 | `make docker-build-local` | Build the production Docker image locally |
-| `make docker-run-local` | Build and run the production Docker image locally on port 3000 |
+| `make docker-run-local` | Build and run the production Docker image locally on port 4000 |
 
 If `.env.local` exists, `make docker-run-local` passes it to the container automatically. Override the published port with `LOCAL_PORT=8080` if needed.
 

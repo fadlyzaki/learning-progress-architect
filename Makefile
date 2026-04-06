@@ -6,7 +6,7 @@ IMAGE_NAME ?= app-image
 TAG        ?= latest
 IMAGE      = $(REGION)-docker.pkg.dev/$(PROJECT_ID)/$(REPOSITORY)/$(IMAGE_NAME):$(TAG)
 LOCAL_IMAGE ?= learning-progress-architect:local
-LOCAL_PORT  ?= 3000
+LOCAL_PORT  ?= 4000
 
 .PHONY: run build push build-push deploy docker-build-local docker-run-local
 
@@ -32,4 +32,4 @@ docker-build-local:
 	docker build -t $(LOCAL_IMAGE) .
 
 docker-run-local: docker-build-local
-	docker run --rm -p $(LOCAL_PORT):3000 $(if $(wildcard .env.local),--env-file .env.local,) $(LOCAL_IMAGE)
+	docker run --rm -p $(LOCAL_PORT):4000 $(if $(wildcard .env.local),--env-file .env.local,) $(LOCAL_IMAGE)
