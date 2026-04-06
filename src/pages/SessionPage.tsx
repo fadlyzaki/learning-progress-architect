@@ -33,14 +33,6 @@ export function SessionPage() {
   const [scratchNotes, setScratchNotes] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const sessionObjectives = [
-    t('session.objectiveGoal', { goal: goal?.title ?? task.title }),
-    t('session.objectiveTask', { task: task.title }),
-    taskResources[0]
-      ? t('session.objectiveMaterials', { resource: taskResources[0].title })
-      : t('session.objectiveNoMaterials'),
-  ];
-
   useEffect(() => {
     setTime(openSession?.duration_seconds ?? 0);
     setHasStarted(Boolean(openSession));
@@ -134,6 +126,14 @@ export function SessionPage() {
       />
     );
   }
+
+  const sessionObjectives = [
+    t('session.objectiveGoal', { goal: goal?.title ?? task.title }),
+    t('session.objectiveTask', { task: task.title }),
+    taskResources[0]
+      ? t('session.objectiveMaterials', { resource: taskResources[0].title })
+      : t('session.objectiveNoMaterials'),
+  ];
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 font-sans">
