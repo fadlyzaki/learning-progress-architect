@@ -110,3 +110,27 @@ export type HydratedTask = {
   estimatedMinutes: number;
   references: SearchLink[];
 };
+
+export type CalendarSchedulingTask = {
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+};
+
+export type CalendarSchedulerInput = {
+  weeklyHours: number;
+  startDate: string | null;
+  tasks: CalendarSchedulingTask[];
+  timeZone: string;
+  defaultStartHour: number;
+  maxEventMinutes: number;
+};
+
+export type ScheduledCalendarEvent = {
+  taskIndex: number;
+  startAt: string;
+  endAt: string;
+  durationMinutes: number;
+  summary: string;
+  description: string;
+};

@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { addDays } from '../utils/date.ts';
 import type { PlannedTask, ResourceMode, LearningResourceInput } from '../types.ts';
+import { scheduleCalendarEvents } from './calendarSchedulerService.ts';
 
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
@@ -135,15 +135,23 @@ export async function planSyllabusTasks(
 }
 
 export function buildEventSchedule(taskCount: number, weeklyHours: number) {
-  const start = addDays(new Date(), 1);
-  start.setHours(19, 0, 0, 0);
-
-  const gap = Math.max(1, Math.floor(7 / Math.max(taskCount, 1)));
   const duration = Math.max(30, Math.min(120, Math.round((weeklyHours * 60) / Math.max(taskCount, 1))));
+  const scheduledEvents = scheduleCalendarEvents({
+    weeklyHours,
+    startDate: null,
+    tasks: Array.from({ length: taskCount }, (_, index) => ({
+      title: `Study session ${index + 1}`,
+      description: `Study session ${index + 1}`,
+      estimatedMinutes: duration,
+    })),
+    timeZone: 'Asia/Jakarta',
+    defaultStartHour: 19,
+    maxEventMinutes: 120,
+  });
 
-  return Array.from({ length: taskCount }, (_, index) => ({
-    date: addDays(start, index * gap).toISOString(),
-    duration,
+  return scheduledEvents.map((event) => ({
+    date: event.startAt,
+    duration: event.durationMinutes,
   }));
 }
 
