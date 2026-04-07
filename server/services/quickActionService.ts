@@ -1,4 +1,22 @@
-import type { QuickActionContext, QuickActionKind } from '../types.ts';
+import { GoogleGenAI } from '@google/genai';
+import type { QuickActionContext, QuickActionKind, QuickActionResource } from '../types.ts';
+
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+  : null;
+
+const QUICK_ACTION_SYSTEM_INSTRUCTION = [
+  'You are a study assistant helping a learner understand one specific task in their active study session.',
+  'Stay tightly scoped to the provided task and goal context.',
+  'Return plain study-ready text only.',
+  'Do not add preambles, disclaimers, or mention missing hidden context.',
+].join(' ');
+
+const QUICK_ACTION_OUTPUT_INSTRUCTION = [
+  'Write a concise but useful response for direct study use.',
+  'Use short paragraphs or simple lists when helpful.',
+  'Do not output JSON, XML, markdown code fences, or role labels.',
+].join(' ');
 
 export const QUICK_ACTION_KINDS = ['explain', 'example', 'analogy', 'confused'] as const;
 
@@ -13,28 +31,102 @@ export const QUICK_ACTION_PROMPTS: Record<QuickActionKind, string> = {
     "I am lost on [Concept]. Please reset and explain this to me like I am an elementary school student. Break it down into tiny, simple steps. Use 'first, then, finally' logic, and tell me a story where I am the main character interacting with this concept. No big words allowed.",
 };
 
+export class QuickActionGenerationError extends Error {
+  constructor(message = 'Quick action generation is unavailable.') {
+    super(message);
+    this.name = 'QuickActionGenerationError';
+  }
+}
+
 export function isQuickActionKind(value: string): value is QuickActionKind {
   return QUICK_ACTION_KINDS.includes(value as QuickActionKind);
 }
 
-export function buildQuickActionConcept(context: QuickActionContext): string {
-  const goalLabel = context.goalTitle ? `Goal: ${context.goalTitle}` : 'Goal: not provided';
-  const descriptionLabel = context.taskDescription ? `Task description: ${context.taskDescription}` : 'Task description: not provided';
-  const resourceLabel =
-    context.resources.length > 0
-      ? `Resources: ${context.resources
-          .map((resource) => resource.title)
-          .join(', ')}`
-      : 'Resources: none attached';
+function formatResource(resource: QuickActionResource, index: number): string {
+  const details = [
+    `[${resource.source_kind}] ${resource.title}`,
+    `type: ${resource.type}`,
+    resource.reference ? `reference: ${resource.reference}` : null,
+    resource.notes ? `notes: ${resource.notes}` : null,
+  ].filter(Boolean);
 
-  return [
+  return `${index + 1}. ${details.join(' | ')}`;
+}
+
+export function buildQuickActionContextBlock(context: QuickActionContext): string {
+  const lines = [
+    `Goal: ${context.goalTitle ?? 'Not provided'}`,
     `Task title: ${context.taskTitle}`,
-    descriptionLabel,
-    goalLabel,
-    resourceLabel,
-  ].join('\n');
+    `Task description: ${context.taskDescription || 'Not provided'}`,
+    'Resources:',
+  ];
+
+  if (context.resources.length === 0) {
+    lines.push('None attached');
+    return lines.join('\n');
+  }
+
+  lines.push(...context.resources.map(formatResource));
+  return lines.join('\n');
+}
+
+export function buildQuickActionConcept(context: QuickActionContext): string {
+  return buildQuickActionContextBlock(context);
 }
 
 export function getQuickActionPromptTemplate(action: QuickActionKind): string {
   return QUICK_ACTION_PROMPTS[action];
+}
+
+export function buildQuickActionPrompt(action: QuickActionKind, context: QuickActionContext): string {
+  const concept = buildQuickActionConcept(context);
+  const promptTemplate = getQuickActionPromptTemplate(action).replace('[Concept]', concept);
+
+  return [
+    QUICK_ACTION_SYSTEM_INSTRUCTION,
+    '',
+    `Action request:\n${promptTemplate}`,
+    '',
+    `Session context:\n${buildQuickActionContextBlock(context)}`,
+    '',
+    QUICK_ACTION_OUTPUT_INSTRUCTION,
+  ].join('\n');
+}
+
+export function normalizeQuickActionContent(content: string): string {
+  return content
+    .replace(/\r\n/g, '\n')
+    .replace(/^```[\w-]*\n?/g, '')
+    .replace(/\n?```$/g, '')
+    .trim();
+}
+
+export async function generateQuickActionContent(input: {
+  action: QuickActionKind;
+  context: QuickActionContext;
+}): Promise<string> {
+  if (!ai) {
+    throw new QuickActionGenerationError('Gemini is not configured for quick action generation.');
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: buildQuickActionPrompt(input.action, input.context),
+    });
+
+    const content = normalizeQuickActionContent(response.text || '');
+
+    if (!content) {
+      throw new QuickActionGenerationError('Gemini returned an empty quick action response.');
+    }
+
+    return content;
+  } catch (error) {
+    if (error instanceof QuickActionGenerationError) {
+      throw error;
+    }
+
+    throw new QuickActionGenerationError('Quick action generation failed.');
+  }
 }
