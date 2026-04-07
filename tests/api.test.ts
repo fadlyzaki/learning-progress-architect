@@ -79,6 +79,7 @@ test('workflow supports no-resource planning mode and returns starter guidance n
   assert.equal(data.tasks.length, 3);
   assert.equal(data.resources.length, 0);
   assert.equal(data.task_resources.length, 0);
+  assert.deepEqual(data.quick_actions, []);
   assert.ok(
     data.notes.some((note: { content: string }) =>
       note.content.includes('Planning mode: generated starting plan'),
@@ -128,6 +129,7 @@ test('workflow persists learner materials, links them to tasks, and completes th
   let data = await getData(server.baseUrl, token);
   assert.equal(data.resources.length, 2);
   assert.equal(data.task_resources.length, 3);
+  assert.deepEqual(data.quick_actions, []);
   assert.ok(
     data.notes.some((note: { content: string }) =>
       note.content.includes('Planning mode: learner-provided materials'),
@@ -186,6 +188,7 @@ test('quick action endpoint validates action type and returns a service-unavaila
 
   const data = await getData(server.baseUrl, token);
   const firstTask = data.tasks[0];
+  assert.deepEqual(data.quick_actions, []);
 
   const invalidAction = await request(
     server.baseUrl,
