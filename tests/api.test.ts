@@ -79,6 +79,7 @@ test('workflow supports no-resource planning mode and returns starter guidance n
   assert.equal(data.tasks.length, 3);
   assert.equal(data.resources.length, 0);
   assert.equal(data.task_resources.length, 0);
+  assert.deepEqual(data.quick_actions, []);
   assert.ok(
     data.notes.some((note: { content: string }) =>
       note.content.includes('Planning mode: generated starting plan'),
@@ -128,6 +129,7 @@ test('workflow persists learner materials, links them to tasks, and completes th
   let data = await getData(server.baseUrl, token);
   assert.equal(data.resources.length, 2);
   assert.equal(data.task_resources.length, 3);
+  assert.deepEqual(data.quick_actions, []);
   assert.ok(
     data.notes.some((note: { content: string }) =>
       note.content.includes('Planning mode: learner-provided materials'),
@@ -162,6 +164,55 @@ test('workflow persists learner materials, links them to tasks, and completes th
   assert.equal(data.sessions[0].reflection, 'I can now explain the core system layers.');
   assert.equal(data.reviews.length, 1);
   assert.equal(data.reviews[0].priority, 'high');
+});
+
+test('quick action endpoint validates action type and returns a service-unavailable error without Gemini', async () => {
+  const server = await startServer();
+  cleanupTasks.push(server.stop);
+  const token = await signupAndGetToken(server.baseUrl, 'quick-actions@example.com');
+
+  const workflow = await request(
+    server.baseUrl,
+    '/api/agent/workflow',
+    {
+      goal: 'Learn React state management',
+      level: 'Beginner',
+      hours: 4,
+      preferredStyle: 'Mixed',
+      resourceMode: 'needs_plan',
+      resources: [],
+    },
+    token,
+  );
+  assert.equal(workflow.status, 201);
+
+  const data = await getData(server.baseUrl, token);
+  const firstTask = data.tasks[0];
+  assert.deepEqual(data.quick_actions, []);
+
+  const invalidAction = await request(
+    server.baseUrl,
+    `/api/tasks/${firstTask.id}/quick-action`,
+    { action: 'unknown' },
+    token,
+  );
+  assert.equal(invalidAction.status, 400);
+  assert.deepEqual(await invalidAction.json(), {
+    error: 'Quick action type is invalid.',
+    code: 'INVALID_QUICK_ACTION',
+  });
+
+  const unavailable = await request(
+    server.baseUrl,
+    `/api/tasks/${firstTask.id}/quick-action`,
+    { action: 'explain' },
+    token,
+  );
+  assert.equal(unavailable.status, 503);
+  assert.deepEqual(await unavailable.json(), {
+    error: 'Gemini is not configured for quick action generation.',
+    code: 'QUICK_ACTION_UNAVAILABLE',
+  });
 });
 
 async function signupAndGetToken(baseUrl: string, email: string) {

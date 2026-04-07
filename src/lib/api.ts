@@ -1,4 +1,5 @@
 import { clearStoredSession, getAuthHeaders } from './auth';
+import type { QuickActionKind } from '../types';
 
 export class ApiError extends Error {
   status: number;
@@ -51,4 +52,21 @@ export async function apiFetch<T>(input: RequestInfo | URL, init: RequestInit = 
   }
 
   return (await response.json()) as T;
+}
+
+export interface QuickActionResponse {
+  action: QuickActionKind;
+  content: string;
+  source: 'cache' | 'generated';
+  updatedAt: string;
+}
+
+export function requestQuickAction(taskId: number, action: QuickActionKind) {
+  return apiFetch<QuickActionResponse>(`/api/tasks/${taskId}/quick-action`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ action }),
+  });
 }

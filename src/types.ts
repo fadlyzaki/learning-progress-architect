@@ -107,6 +107,18 @@ export interface TaskResourceRecord {
   relevance_note: string | null;
 }
 
+export type QuickActionKind = 'explain' | 'example' | 'analogy' | 'confused';
+
+export interface QuickActionRecord {
+  id: number;
+  user_id: string;
+  task_id: number;
+  action: QuickActionKind;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AppDataPayload {
   user: UserAccount;
   goals: GoalRecord[];
@@ -117,4 +129,5 @@ export interface AppDataPayload {
   reviews: ReviewRecord[];
   resources: ResourceRecord[];
   task_resources: TaskResourceRecord[];
+  quick_actions: QuickActionRecord[];
 }

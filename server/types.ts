@@ -65,6 +65,33 @@ export type TaskResourceRow = {
   relevance_note: string | null;
 };
 
+export type QuickActionKind = 'explain' | 'example' | 'analogy' | 'confused';
+
+export type QuickActionResource = {
+  title: string;
+  type: ResourceType;
+  reference: string | null;
+  notes: string | null;
+  source_kind: 'user_supplied' | 'system_suggested';
+};
+
+export type QuickActionContext = {
+  taskTitle: string;
+  taskDescription: string;
+  goalTitle: string | null;
+  resources: QuickActionResource[];
+};
+
+export type QuickActionRow = {
+  id: number;
+  user_id: string;
+  task_id: number;
+  action: QuickActionKind;
+  content: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type LearningResourceInput = {
   title: string;
   type: ResourceType;

@@ -116,6 +116,18 @@ export function migrateDatabase() {
       FOREIGN KEY(task_id) REFERENCES tasks(id),
       FOREIGN KEY(resource_id) REFERENCES resources(id)
     );
+
+    CREATE TABLE IF NOT EXISTS quick_actions (
+      id INTEGER PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      task_id INTEGER NOT NULL,
+      action TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(user_id, task_id, action),
+      FOREIGN KEY(task_id) REFERENCES tasks(id)
+    );
   `);
 
   ensureColumn('goals', 'user_id TEXT');

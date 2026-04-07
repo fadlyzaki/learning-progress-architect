@@ -4,9 +4,39 @@ import { requireUser } from '../middleware/auth.ts';
 import { jsonError } from '../utils/http.ts';
 import { nowIso, addDays } from '../utils/date.ts';
 import { getReviewSchedule } from '../services/reviewService.ts';
-import type { TaskRow, StudySessionRow } from '../types.ts';
+import {
+  QuickActionGenerationError,
+  generateQuickActionContent,
+  isQuickActionKind,
+} from '../services/quickActionService.ts';
+import type {
+  QuickActionRow,
+  QuickActionResource,
+  StudySessionRow,
+  TaskRow,
+} from '../types.ts';
 
 export const tasksRouter = Router();
+
+function loadTaskForUser(taskId: number, userId: string) {
+  return db
+    .prepare('SELECT * FROM tasks WHERE id = ? AND user_id = ?')
+    .get(taskId, userId) as TaskRow | undefined;
+}
+
+function loadTaskResources(taskId: number, userId: string): QuickActionResource[] {
+  return db
+    .prepare(
+      `
+        SELECT resources.title, resources.type, resources.reference, resources.notes, resources.source_kind
+        FROM task_resources
+        INNER JOIN resources ON resources.id = task_resources.resource_id
+        WHERE task_resources.task_id = ? AND task_resources.user_id = ?
+        ORDER BY task_resources.id ASC
+      `,
+    )
+    .all(taskId, userId) as QuickActionResource[];
+}
 
 tasksRouter.post('/:taskId/start', (req, res) => {
   const user = requireUser(req, res);
@@ -15,9 +45,7 @@ tasksRouter.post('/:taskId/start', (req, res) => {
   }
 
   const taskId = Number(req.params.taskId);
-  const task = db
-    .prepare('SELECT * FROM tasks WHERE id = ? AND user_id = ?')
-    .get(taskId, user.id) as TaskRow | undefined;
+  const task = loadTaskForUser(taskId, user.id);
 
   if (!task) {
     jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
@@ -65,9 +93,7 @@ tasksRouter.post('/:taskId/complete', (req, res) => {
   }
 
   const taskId = Number(req.params.taskId);
-  const task = db
-    .prepare('SELECT * FROM tasks WHERE id = ? AND user_id = ?')
-    .get(taskId, user.id) as TaskRow | undefined;
+  const task = loadTaskForUser(taskId, user.id);
 
   if (!task) {
     jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
@@ -142,4 +168,114 @@ tasksRouter.post('/:taskId/complete', (req, res) => {
   }
 
   res.json({ success: true });
+});
+
+tasksRouter.post('/:taskId/quick-action', (req, res) => {
+  const user = requireUser(req, res);
+  if (!user) {
+    return;
+  }
+
+  const taskId = Number(req.params.taskId);
+  if (!Number.isInteger(taskId) || taskId <= 0) {
+    jsonError(res, 400, 'Task id must be a positive integer.', 'INVALID_TASK_ID');
+    return;
+  }
+
+  const action = String(req.body?.action ?? '').trim();
+  if (!isQuickActionKind(action)) {
+    jsonError(res, 400, 'Quick action type is invalid.', 'INVALID_QUICK_ACTION');
+    return;
+  }
+
+  void (async () => {
+    const task = loadTaskForUser(taskId, user.id);
+    if (!task) {
+      jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
+      return;
+    }
+
+    const cachedRow = db
+      .prepare(
+        `
+          SELECT * FROM quick_actions
+          WHERE task_id = ? AND user_id = ? AND action = ?
+          ORDER BY updated_at DESC, id DESC
+          LIMIT 1
+        `,
+      )
+      .get(taskId, user.id, action) as QuickActionRow | undefined;
+
+    if (cachedRow) {
+      res.json({
+        action: cachedRow.action,
+        content: cachedRow.content,
+        source: 'cache',
+        updatedAt: cachedRow.updated_at,
+      });
+      return;
+    }
+
+    const goal = db
+      .prepare('SELECT title FROM goals WHERE id = ? AND user_id = ?')
+      .get(task.goal_id, user.id) as { title: string | null } | undefined;
+    const resources = loadTaskResources(taskId, user.id);
+    const content = await generateQuickActionContent({
+      action,
+      context: {
+        taskTitle: task.title,
+        taskDescription: task.description,
+        goalTitle: goal?.title ?? null,
+        resources,
+      },
+    });
+
+    const timestamp = nowIso();
+    const insertResult = db
+      .prepare(
+        `
+          INSERT OR IGNORE INTO quick_actions (user_id, task_id, action, content, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `,
+      )
+      .run(user.id, taskId, action, content, timestamp, timestamp);
+
+    if (insertResult.changes === 0) {
+      const existingRow = db
+        .prepare(
+          `
+            SELECT * FROM quick_actions
+            WHERE task_id = ? AND user_id = ? AND action = ?
+            ORDER BY updated_at DESC, id DESC
+            LIMIT 1
+          `,
+        )
+        .get(taskId, user.id, action) as QuickActionRow | undefined;
+
+      if (existingRow) {
+        res.json({
+          action: existingRow.action,
+          content: existingRow.content,
+          source: 'cache',
+          updatedAt: existingRow.updated_at,
+        });
+        return;
+      }
+    }
+
+    res.json({
+      action,
+      content,
+      source: 'generated',
+      updatedAt: timestamp,
+    });
+  })().catch((error) => {
+    if (error instanceof QuickActionGenerationError) {
+      jsonError(res, 503, error.message, 'QUICK_ACTION_UNAVAILABLE');
+      return;
+    }
+
+    console.error('Quick action request failed.', error);
+    jsonError(res, 500, 'Something went wrong while preparing your quick action.', 'QUICK_ACTION_FAILED');
+  });
 });

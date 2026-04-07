@@ -34,6 +34,9 @@ dataRouter.get('/', (req, res) => {
   const task_resources = db
     .prepare('SELECT * FROM task_resources WHERE user_id = ? ORDER BY id ASC')
     .all(user.id);
+  const quick_actions = db
+    .prepare('SELECT * FROM quick_actions WHERE user_id = ? ORDER BY updated_at DESC, id DESC')
+    .all(user.id);
 
-  res.json({ user, goals, tasks, events, notes, sessions, reviews, resources, task_resources });
+  res.json({ user, goals, tasks, events, notes, sessions, reviews, resources, task_resources, quick_actions });
 });

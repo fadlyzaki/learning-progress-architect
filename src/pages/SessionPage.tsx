@@ -1,15 +1,53 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play, X } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { MarkdownContent } from '../components/ui/MarkdownContent';
 import { InlineStateMessage, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
-import { ApiError, apiFetch } from '../lib/api';
+import { ApiError, apiFetch, requestQuickAction, type QuickActionResponse } from '../lib/api';
+import type { QuickActionKind, QuickActionRecord } from '../types';
+
+type SessionQuickAction = {
+  kind: QuickActionKind;
+  label: string;
+  icon: ReactNode;
+};
+
+const EMPTY_QUICK_ACTION_STATE: Record<QuickActionKind, QuickActionRecord | null> = {
+  explain: null,
+  example: null,
+  analogy: null,
+  confused: null,
+};
+
+const SESSION_QUICK_ACTIONS: SessionQuickAction[] = [
+  {
+    kind: 'explain',
+    label: 'session.actionExplain',
+    icon: <Lightbulb className="h-4 w-4 text-amber-400" />,
+  },
+  {
+    kind: 'example',
+    label: 'session.actionExample',
+    icon: <HelpCircle className="h-4 w-4 text-[var(--accent-blue)]" />,
+  },
+  {
+    kind: 'analogy',
+    label: 'session.actionAnalogy',
+    icon: <MessageSquare className="h-4 w-4 text-green-500" />,
+  },
+  {
+    kind: 'confused',
+    label: 'session.actionConfused',
+    icon: <AlertTriangle className="h-4 w-4 text-red-400" />,
+  },
+];
 
 export function SessionPage() {
   const { id } = useParams();
@@ -30,6 +68,9 @@ export function SessionPage() {
   const openSession = task
     ? data?.sessions.find((session) => session.task_id === task.id && session.completed_at === null) ?? null
     : null;
+  const persistedQuickActions = task
+    ? data?.quick_actions.filter((item) => item.task_id === task.id) ?? []
+    : [];
 
   const [isActive, setIsActive] = useState(Boolean(openSession));
   const [hasStarted, setHasStarted] = useState(Boolean(openSession));
@@ -37,12 +78,25 @@ export function SessionPage() {
   const [starting, setStarting] = useState(false);
   const [scratchNotes, setScratchNotes] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [quickActionState, setQuickActionState] = useState<Record<QuickActionKind, QuickActionRecord | null>>(EMPTY_QUICK_ACTION_STATE);
+  const [quickActionLoading, setQuickActionLoading] = useState<Record<QuickActionKind, boolean>>({
+    explain: false,
+    example: false,
+    analogy: false,
+    confused: false,
+  });
+  const [quickActionError, setQuickActionError] = useState<string | null>(null);
+  const [selectedQuickAction, setSelectedQuickAction] = useState<QuickActionRecord | null>(null);
 
   useEffect(() => {
     setTime(openSession?.duration_seconds ?? 0);
     setHasStarted(Boolean(openSession));
     setIsActive(Boolean(openSession));
   }, [openSession?.duration_seconds, openSession?.id]);
+
+  useEffect(() => {
+    setQuickActionState(buildQuickActionState(persistedQuickActions));
+  }, [task?.id, data?.quick_actions]);
 
   useEffect(() => {
     if (!isActive) {
@@ -57,6 +111,21 @@ export function SessionPage() {
       window.clearInterval(interval);
     };
   }, [isActive]);
+
+  useEffect(() => {
+    if (!selectedQuickAction) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedQuickAction(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedQuickAction]);
 
   const formatTime = (seconds: number) => {
     const wholeSeconds = Math.max(0, seconds);
@@ -114,6 +183,47 @@ export function SessionPage() {
         durationSeconds: time,
       },
     });
+  };
+
+  const handleQuickAction = async (action: QuickActionKind) => {
+    if (!task || quickActionLoading[action]) {
+      return;
+    }
+
+    const existingQuickAction = quickActionState[action];
+    if (existingQuickAction) {
+      setSelectedQuickAction(existingQuickAction);
+      setQuickActionError(null);
+      return;
+    }
+
+    setQuickActionError(null);
+    setQuickActionLoading((current) => ({
+      ...current,
+      [action]: true,
+    }));
+
+    try {
+      const response = await requestQuickAction(task.id, action);
+      const nextQuickAction = toQuickActionRecord(task.id, response);
+      setQuickActionState((current) => ({
+        ...current,
+        [action]: nextQuickAction,
+      }));
+      setSelectedQuickAction(nextQuickAction);
+    } catch (requestError) {
+      console.error(requestError);
+      setQuickActionError(
+        requestError instanceof ApiError
+          ? requestError.message
+          : t('session.quickActionsFailed'),
+      );
+    } finally {
+      setQuickActionLoading((current) => ({
+        ...current,
+        [action]: false,
+      }));
+    }
   };
 
   if (loading) {
@@ -366,12 +476,36 @@ export function SessionPage() {
               <CardDescription className="text-base leading-relaxed">
                 {t('session.quickActionsBody')}
               </CardDescription>
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                {t('session.quickActionsHelper')}
+              </p>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
-              <UnavailablePrompt icon={<Lightbulb className="h-4 w-4 text-amber-400" />} label={t('session.actionExplain')} unavailable={t('session.actionUnavailable')} />
-              <UnavailablePrompt icon={<HelpCircle className="h-4 w-4 text-[var(--accent-blue)]" />} label={t('session.actionExample')} unavailable={t('session.actionUnavailable')} />
-              <UnavailablePrompt icon={<MessageSquare className="h-4 w-4 text-green-500" />} label={t('session.actionAnalogy')} unavailable={t('session.actionUnavailable')} />
-              <UnavailablePrompt icon={<AlertTriangle className="h-4 w-4 text-red-400" />} label={t('session.actionConfused')} unavailable={t('session.actionUnavailable')} />
+              {SESSION_QUICK_ACTIONS.map((action) => (
+                <div key={action.kind}>
+                  <QuickActionRow
+                    icon={action.icon}
+                    label={t(action.label)}
+                    stateLabel={
+                      quickActionLoading[action.kind]
+                        ? t('session.actionLoading')
+                        : quickActionState[action.kind]
+                          ? t('session.actionGenerated')
+                          : t('session.actionNotGenerated')
+                    }
+                    ctaLabel={quickActionState[action.kind] ? t('session.actionView') : t('session.actionGenerate')}
+                    isLoading={quickActionLoading[action.kind]}
+                    onClick={() => void handleQuickAction(action.kind)}
+                  />
+                </div>
+              ))}
+              {quickActionError && (
+                <InlineStateMessage
+                  title={t('session.quickActionsErrorTitle')}
+                  body={quickActionError}
+                  tone="danger"
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -382,6 +516,16 @@ export function SessionPage() {
           </Link>
         </div>
       </div>
+
+      {selectedQuickAction ? (
+        <QuickActionModal
+          title={t(getQuickActionLabelKey(selectedQuickAction.action))}
+          content={selectedQuickAction.content}
+          onClose={() => setSelectedQuickAction(null)}
+          closeLabel={t('session.quickActionModalClose')}
+          kicker={t('session.quickActionModalKicker')}
+        />
+      ) : null}
     </div>
   );
 }
@@ -510,25 +654,43 @@ function StudyMaterialCard({
   );
 }
 
-function UnavailablePrompt({
+function QuickActionRow({
   icon,
   label,
-  unavailable,
+  stateLabel,
+  ctaLabel,
+  isLoading,
+  onClick,
 }: {
   icon: ReactNode;
   label: string;
-  unavailable: string;
+  stateLabel: string;
+  ctaLabel: string;
+  isLoading: boolean;
+  onClick: () => void;
 }) {
   return (
     <div
       aria-disabled="true"
       className="app-list-row-quiet flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left opacity-76"
     >
-      <div className="flex items-center gap-3 text-sm text-[var(--text-primary)]">
-        {icon}
-        <span>{label}</span>
+      <div className="flex min-w-0 items-center gap-3 text-sm text-[var(--text-primary)]">
+        <div className="shrink-0">{icon}</div>
+        <div className="min-w-0">
+          <div className="font-medium text-[var(--text-primary)]">{label}</div>
+          <div className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{stateLabel}</div>
+        </div>
       </div>
-      <Badge variant="outline">{unavailable}</Badge>
+      <Button variant="outline" size="sm" className="min-w-24" onClick={onClick} disabled={isLoading}>
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {stateLabel}
+          </>
+        ) : (
+          ctaLabel
+        )}
+      </Button>
     </div>
   );
 }
@@ -572,4 +734,96 @@ function countWords(text: string) {
   }
 
   return trimmed.split(/\s+/).length;
+}
+
+function toQuickActionRecord(taskId: number, response: QuickActionResponse): QuickActionRecord {
+  return {
+    id: 0,
+    user_id: '',
+    task_id: taskId,
+    action: response.action,
+    content: response.content,
+    created_at: response.updatedAt,
+    updated_at: response.updatedAt,
+  };
+}
+
+function buildQuickActionState(records: QuickActionRecord[]) {
+  return {
+    explain: records.find((item) => item.action === 'explain') ?? null,
+    example: records.find((item) => item.action === 'example') ?? null,
+    analogy: records.find((item) => item.action === 'analogy') ?? null,
+    confused: records.find((item) => item.action === 'confused') ?? null,
+  };
+}
+
+function QuickActionModal({
+  title,
+  content,
+  onClose,
+  closeLabel,
+  kicker,
+}: {
+  title: string;
+  content: string;
+  onClose: () => void;
+  closeLabel: string;
+  kicker: string;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-8 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quick-action-title"
+      onClick={onClose}
+    >
+      <div
+        className="app-card-primary max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-[1.75rem] p-6 md:p-8"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--border-color)] pb-5">
+          <div>
+            <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--accent-amber)]">
+              {kicker}
+            </div>
+            <h2 id="quick-action-title" className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
+              {title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            aria-label={closeLabel}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-6 max-h-[calc(88vh-9rem)] overflow-y-auto pr-1">
+          <MarkdownContent content={content} className="text-sm md:text-base" />
+        </div>
+
+        <div className="mt-6 flex justify-end border-t border-[var(--border-color)] pt-5">
+          <Button variant="outline" onClick={onClose}>
+            {closeLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getQuickActionLabelKey(action: QuickActionKind) {
+  switch (action) {
+    case 'explain':
+      return 'session.actionExplain';
+    case 'example':
+      return 'session.actionExample';
+    case 'analogy':
+      return 'session.actionAnalogy';
+    case 'confused':
+      return 'session.actionConfused';
+  }
 }
