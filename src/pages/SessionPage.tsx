@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play, X } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
