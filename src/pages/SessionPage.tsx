@@ -522,8 +522,8 @@ export function SessionPage() {
           title={t(getQuickActionLabelKey(selectedQuickAction.action))}
           content={selectedQuickAction.content}
           onClose={() => setSelectedQuickAction(null)}
-          closeLabel={t('common.close')}
-          kicker={t('session.quickActions')}
+          closeLabel={t('session.quickActionModalClose')}
+          kicker={t('session.quickActionModalKicker')}
         />
       ) : null}
     </div>
