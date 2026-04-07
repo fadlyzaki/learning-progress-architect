@@ -1,8 +1,8 @@
 # Gen AI Academy Prototype Deck Content
 
-This version reflects the current codebase after the latest production changes, including the new Gemini-powered quick actions inside study sessions.
+This version reflects the current system state on commit `2b3f79b`, including the live Cloud Run demo deployment path with `web -> ADK -> MCP`, shared-token service authentication, and MCP-backed quick-action persistence.
 
-Important positioning note: the deck template mentions `ADK`, `MCP`, and `AlloyDB AI`, but this prototype currently ships with `Gemini 2.5 Flash`, Google Search grounding, `Express`, and `SQLite`. The copy below is written to stay accurate to the implemented product while still framing a credible future roadmap.
+Important positioning note: the deck template mentions `ADK`, `MCP`, and `AlloyDB AI`. This prototype now implements `ADK` and `MCP` in the deployed demo architecture, but persistence is still `SQLite` and AlloyDB/AlloyDB AI remain the next infrastructure step.
 
 ## Slide 1. Participant Details
 
@@ -11,18 +11,18 @@ Important positioning note: the deck template mentions `ADK`, `MCP`, and `AlloyD
 **Project Name:** `The Autodidact Project | Learning Progress Architect`
 
 **Problem Statement:**  
-Self-directed learners often know what they want to achieve, but struggle to convert broad goals into a realistic study plan, consistent day-to-day action, and durable retention. Most tools only help with planning, note-taking, or task tracking in isolation. This creates cognitive overload, fragmented workflows, and weak feedback loops.
+Self-directed learners often know what they want to achieve, but struggle to convert broad goals into a realistic study plan, consistent day-to-day execution, and durable retention. Most tools help with planning, note-taking, or task tracking in isolation, which creates fragmented workflows and weak feedback loops.
 
 ## Slide 2. Brief About The Idea
 
-Learning Progress Architect is an AI-guided learning workspace that transforms a vague learning goal into a structured roadmap, focused study sessions, contextual AI assistance, and adaptive review loops.
+Learning Progress Architect is an AI-guided learning workspace that transforms a vague learning goal into a structured roadmap, focused study sessions, contextual AI support, and adaptive review loops.
 
 The system is designed for learners who need more than a to-do list. It supports the full study workflow:
 
 - define a learning goal
 - set a realistic weekly pace
 - generate a roadmap
-- attach or discover study materials
+- attach or discover learning materials
 - run a focused study session
 - ask for in-session AI help when blocked
 - capture reflection and confidence
@@ -34,11 +34,11 @@ The main idea is to reduce cognitive drag. Instead of forcing learners to build 
 
 ### Paste-ready version
 
-We approached the problem by designing around the actual learning loop rather than around isolated productivity features.
+We approached the problem by designing around the real learning loop rather than around isolated productivity features.
 
-The learner starts by describing a goal, current level, weekly time budget, preferred study style, and whether they already have learning materials. The system then generates a three-step roadmap using Gemini-backed planning with a deterministic fallback path when AI is unavailable. Each task is paired with suggested resources so the learner can begin immediately.
+The learner starts by describing a goal, current level, weekly time budget, preferred study style, and whether they already have learning materials. The system then generates a three-step roadmap and pairs each task with suggested resources so the learner can begin immediately.
 
-During study sessions, the learner is not left alone with a timer. The product now includes in-session quick actions powered by Gemini, such as "Explain Simply", "Give an Example", "Use an Analogy", and "I'm Confused". These actions use the current task, goal, and attached resources as context, and the responses are stored so they can be reused later without repeating the same AI call.
+During study sessions, the learner can trigger contextual AI quick actions such as "Explain Simply", "Give an Example", "Use an Analogy", and "I'm Confused". In the current architecture, the public web app routes those requests through an ADK service, which uses MCP tools to retrieve task context, reuse cached outputs, and persist new quick-action responses back into the learner workspace.
 
 After the session, the learner records what they understood, where they got stuck, and how confident they feel. That confidence signal drives review scheduling, so difficult topics return sooner and stronger topics are spaced further out.
 
@@ -49,9 +49,9 @@ This creates practical value for self-directed learners, university students, an
 Learning Progress Architect turns a vague goal into a complete learning workflow:
 
 - AI-assisted roadmap generation
-- grounded study resource suggestions
+- resource-guided study setup
 - guided study sessions
-- on-demand contextual AI support
+- ADK + MCP powered contextual AI support
 - reflection and confidence capture
 - adaptive review scheduling
 
@@ -70,13 +70,14 @@ Our solution is different because it connects planning, studying, clarification,
 
 ### USP of the proposed solution
 
-- Calm, workflow-native AI instead of noisy standalone chat
+- Calm, workflow-native AI instead of a separate chat-first experience
 - Personalized roadmap based on goal, level, pace, and study style
 - Supports both learner-provided resources and system-suggested resources
-- In-session Gemini quick actions for explanation, example, analogy, and confusion recovery
+- ADK + MCP architecture for contextual quick actions during live study sessions
 - Cached AI outputs reduce repeated calls and improve continuity
 - Confidence-based review timing turns reflection into retention
 - One product flow from onboarding to progress tracking
+- Cloud Run demo deployment already proves the architecture beyond localhost
 
 ## Slide 5. List Of Features Offered By The Solution
 
@@ -84,12 +85,13 @@ Our solution is different because it connects planning, studying, clarification,
 - Guided onboarding for goal, level, weekly hours, target date, and learning style
 - AI-assisted roadmap generation with deterministic fallback
 - Support for learner-supplied resources such as docs, books, videos, and notes
-- Grounded learning resource suggestions for each task
+- Suggested learning resources for each task
 - Dashboard with next recommended task and active goal progress
 - Roadmap page with task-by-task sequencing
 - Session page with timer, objectives, and linked materials
-- Gemini-powered quick actions inside the session
-- Persisted quick action responses for later reuse
+- ADK-routed quick actions inside the session
+- MCP-backed context retrieval and quick-action persistence
+- Cached quick action responses for later reuse
 - Comprehension capture after every study session
 - Reflection and blocker logging
 - Confidence-based review scheduling
@@ -107,10 +109,12 @@ flowchart LR
     A["Learner defines goal and study pace"] --> B["System generates roadmap"]
     B --> C["Tasks are enriched with resources"]
     C --> D["Learner starts a focused session"]
-    D --> E["Learner can trigger Gemini quick actions for help"]
-    E --> F["Learner records reflection, blockers, confidence"]
-    F --> G["System schedules next review"]
-    G --> H["Learner returns to weak areas at the right time"]
+    D --> E["Learner triggers AI quick action"]
+    E --> F["Web app calls ADK service"]
+    F --> G["ADK uses MCP tools for context and persistence"]
+    G --> H["Learner receives contextual help"]
+    H --> I["Learner records reflection, blockers, confidence"]
+    I --> J["System schedules next review"]
 ```
 
 ### Use-case explanation
@@ -120,6 +124,7 @@ flowchart LR
 - The system generates a structured roadmap
 - The learner studies one task at a time
 - If the learner gets stuck, the system provides contextual AI help
+- ADK orchestrates the reasoning step and MCP retrieves or stores trusted workspace data
 - The learner records understanding and blockers
 - The system adapts review timing using confidence
 - The learner tracks long-term progress and reflection history
@@ -138,7 +143,7 @@ Use screenshots from the current prototype in this order:
   Current goal, next focus, plan summary, and progress signal
 - `Session Page`
   Timer, study objective, resources, and quick action panel
-- `Quick Action Modal`
+- `Quick Action State`
   Generated explanation or analogy for the current task
 - `Comprehension + Reviews`
   Reflection, blockers, confidence score, and review queue
@@ -154,27 +159,26 @@ The UI is designed to keep the learner focused on the next meaningful step. Inst
 ```mermaid
 flowchart TB
     U["User"] --> F["React Frontend"]
-    F --> A["Express API"]
-    A --> DB["SQLite"]
-    A --> WF["Workflow Service"]
-    A --> QA["Quick Action Service"]
-    WF --> G["Gemini 2.5 Flash"]
-    WF --> GS["Google Search Grounding"]
-    QA --> G
-    A --> RM["Review Scheduling Logic"]
-    A --> DATA["Unified Workspace Payload"]
-    DATA --> F
+    F --> W["Express Web App on Cloud Run"]
+    W --> DB["SQLite"]
+    W --> ADK["Python ADK Service"]
+    ADK --> MCP["Internal MCP Service"]
+    MCP --> W
+    MCP --> GS["Resource Search Layer"]
+    W --> REV["Review Scheduling Logic"]
+    W --> SNAP["Unified Workspace Payload"]
+    SNAP --> F
 ```
 
 ### Architecture explanation
 
 - Frontend: React SPA for onboarding, dashboard, roadmap, sessions, reviews, progress, and reflections
-- Backend: Express service for auth, workflow generation, task progression, quick actions, and data APIs
-- Persistence: SQLite stores users, tasks, study sessions, resources, reviews, and quick action outputs
-- AI planning layer: Gemini creates roadmap tasks and enriches them with grounded learning resources
-- AI support layer: Gemini quick actions generate contextual explanations during live study sessions
-- Review engine: confidence scores determine how soon a learner should revisit material
-- Read model: the frontend consumes a unified workspace payload, including persisted quick actions
+- Public backend: Express app remains the only user-facing API and SPA host
+- Agent layer: a Python ADK service handles workflow and study-coach orchestration
+- Tool layer: MCP exposes trusted workspace operations such as task context lookup, cache lookup, and quick-action persistence
+- Persistence: SQLite still stores users, tasks, sessions, resources, reviews, and quick-action outputs
+- Runtime safety: the web app still keeps fallback behavior if the ADK path fails
+- Deployment model: the demo stack is live on Cloud Run as `web -> ADK -> MCP`
 
 ## Slide 9. Technologies / Google Services Used In The Solution
 
@@ -192,22 +196,24 @@ flowchart TB
 
 **Google and AI services**
 
-- Gemini 2.5 Flash via `@google/genai`
-- Google Search grounding for resource discovery
-- Cloud Run deployment path through Docker and Makefile setup
+- Cloud Run for the three-service demo deployment
+- Google Cloud Build for image builds
+- Python ADK service for agent orchestration
+- MCP server for trusted tool execution
+- Gemini-backed resource search path when configured
 
 **Why this stack was chosen**
 
 - React and Vite enable rapid iteration across a multi-step product experience
-- Express keeps the backend orchestration simple and easy to evolve
-- SQLite reduces operational overhead for an MVP while still supporting a full end-to-end workflow
-- Gemini 2.5 Flash is fast enough for roadmap generation and in-session study assistance
-- Google Search grounding helps connect generated tasks with real learning resources
-- The deployment setup creates a path from local MVP to a hosted cloud demo
+- Express keeps the public API simple and stable
+- ADK creates a clean orchestration layer for agent behavior without changing the frontend contract
+- MCP separates reasoning from trusted workspace reads and writes
+- SQLite keeps the prototype easy to run end to end while the architecture evolves
+- Cloud Run provides a realistic path from local prototype to cloud-hosted demo
 
 ### Honest Q&A positioning
 
-This version does not yet implement ADK, MCP, or AlloyDB AI in the shipped code. A natural next step would be to evolve the current workflow and quick-action services into a richer agent architecture and move persistence from SQLite to a cloud-native database for multi-user scale.
+This version already implements ADK and MCP in the deployed demo architecture. What is still not final is the data layer: persistence is still SQLite, and AlloyDB / AlloyDB AI are the next step for durable multi-user scale and richer retrieval.
 
 ## Slide 10. Snapshots Of The Prototype
 
@@ -217,7 +223,7 @@ This version does not yet implement ADK, MCP, or AlloyDB AI in the shipped code.
 - Onboarding flow
 - Dashboard
 - Study session screen
-- Quick action modal output
+- Quick action response state
 - Comprehension page
 - Reviews page
 - Progress page
@@ -229,11 +235,12 @@ The prototype already demonstrates a complete learning loop:
 - roadmap creation
 - resource-guided study
 - live contextual AI support
+- ADK + MCP based quick-action orchestration
 - reflection and confidence capture
 - adaptive review scheduling
 - progress visibility over time
 
-This makes the solution more than a concept. It is already a functional end-to-end prototype.
+This makes the solution more than a concept. It is already a functional end-to-end cloud demo.
 
 ## Slide 11. Closing / Future Roadmap
 
@@ -241,12 +248,12 @@ The current prototype proves that generative AI can be embedded into a learning 
 
 ### Next steps
 
-- expand from single-user MVP to multi-user cloud deployment
+- replace demo SQLite persistence with AlloyDB
+- add retrieval and memory enrichment with AlloyDB AI
 - support richer roadmap generation beyond a fixed three-task plan
 - improve review intelligence with stronger spaced-repetition behavior
-- add longitudinal mastery analytics and weak-signal detection
-- extend the current AI service layer into a broader agent architecture
-- integrate cloud-native persistence and more scalable infrastructure
+- strengthen service-to-service security from shared-token auth toward IAM-based identity
+- expand from demo deployment to durable multi-user production architecture
 
 ### Closing line
 
@@ -270,4 +277,4 @@ If you want to complete the deck quickly, capture screenshots from these routes:
 
 If the judges ask what is new in the latest version of the prototype, the strongest answer is:
 
-The product now supports contextual in-session AI assistance, not just upfront roadmap generation. That means AI is helping both at planning time and at the exact moment a learner gets stuck, which makes the workflow much more useful in real study conditions.
+The product now uses a real multi-service AI path, not just in-process generation. The public web app routes learning assistance through an ADK service and MCP tool layer, which makes the prototype closer to a cloud-native agent system while keeping the user experience simple.
