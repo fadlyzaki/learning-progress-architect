@@ -9,7 +9,44 @@ import { Badge } from '../components/ui/Badge';
 import { InlineStateMessage, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
-import { ApiError, apiFetch } from '../lib/api';
+import { ApiError, apiFetch, requestQuickAction, type QuickActionResponse } from '../lib/api';
+import type { QuickActionKind, QuickActionRecord } from '../types';
+
+type SessionQuickAction = {
+  kind: QuickActionKind;
+  label: string;
+  icon: ReactNode;
+};
+
+const EMPTY_QUICK_ACTION_STATE: Record<QuickActionKind, QuickActionRecord | null> = {
+  explain: null,
+  example: null,
+  analogy: null,
+  confused: null,
+};
+
+const SESSION_QUICK_ACTIONS: SessionQuickAction[] = [
+  {
+    kind: 'explain',
+    label: 'session.actionExplain',
+    icon: <Lightbulb className="h-4 w-4 text-amber-400" />,
+  },
+  {
+    kind: 'example',
+    label: 'session.actionExample',
+    icon: <HelpCircle className="h-4 w-4 text-[var(--accent-blue)]" />,
+  },
+  {
+    kind: 'analogy',
+    label: 'session.actionAnalogy',
+    icon: <MessageSquare className="h-4 w-4 text-green-500" />,
+  },
+  {
+    kind: 'confused',
+    label: 'session.actionConfused',
+    icon: <AlertTriangle className="h-4 w-4 text-red-400" />,
+  },
+];
 
 export function SessionPage() {
   const { id } = useParams();
@@ -30,6 +67,9 @@ export function SessionPage() {
   const openSession = task
     ? data?.sessions.find((session) => session.task_id === task.id && session.completed_at === null) ?? null
     : null;
+  const persistedQuickActions = task
+    ? data?.quick_actions.filter((item) => item.task_id === task.id) ?? []
+    : [];
 
   const [isActive, setIsActive] = useState(Boolean(openSession));
   const [hasStarted, setHasStarted] = useState(Boolean(openSession));
@@ -37,12 +77,25 @@ export function SessionPage() {
   const [starting, setStarting] = useState(false);
   const [scratchNotes, setScratchNotes] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [quickActionState, setQuickActionState] = useState<Record<QuickActionKind, QuickActionRecord | null>>(EMPTY_QUICK_ACTION_STATE);
+  const [quickActionLoading, setQuickActionLoading] = useState<Record<QuickActionKind, boolean>>({
+    explain: false,
+    example: false,
+    analogy: false,
+    confused: false,
+  });
+  const [quickActionError, setQuickActionError] = useState<string | null>(null);
+  const [selectedQuickAction, setSelectedQuickAction] = useState<QuickActionRecord | null>(null);
 
   useEffect(() => {
     setTime(openSession?.duration_seconds ?? 0);
     setHasStarted(Boolean(openSession));
     setIsActive(Boolean(openSession));
   }, [openSession?.duration_seconds, openSession?.id]);
+
+  useEffect(() => {
+    setQuickActionState(buildQuickActionState(persistedQuickActions));
+  }, [task?.id, data?.quick_actions]);
 
   useEffect(() => {
     if (!isActive) {
@@ -114,6 +167,47 @@ export function SessionPage() {
         durationSeconds: time,
       },
     });
+  };
+
+  const handleQuickAction = async (action: QuickActionKind) => {
+    if (!task || quickActionLoading[action]) {
+      return;
+    }
+
+    const existingQuickAction = quickActionState[action];
+    if (existingQuickAction) {
+      setSelectedQuickAction(existingQuickAction);
+      setQuickActionError(null);
+      return;
+    }
+
+    setQuickActionError(null);
+    setQuickActionLoading((current) => ({
+      ...current,
+      [action]: true,
+    }));
+
+    try {
+      const response = await requestQuickAction(task.id, action);
+      const nextQuickAction = toQuickActionRecord(task.id, response);
+      setQuickActionState((current) => ({
+        ...current,
+        [action]: nextQuickAction,
+      }));
+      setSelectedQuickAction(nextQuickAction);
+    } catch (requestError) {
+      console.error(requestError);
+      setQuickActionError(
+        requestError instanceof ApiError
+          ? requestError.message
+          : t('session.quickActionsFailed'),
+      );
+    } finally {
+      setQuickActionLoading((current) => ({
+        ...current,
+        [action]: false,
+      }));
+    }
   };
 
   if (loading) {
@@ -368,10 +462,35 @@ export function SessionPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
-              <UnavailablePrompt icon={<Lightbulb className="h-4 w-4 text-amber-400" />} label={t('session.actionExplain')} unavailable={t('session.actionUnavailable')} />
-              <UnavailablePrompt icon={<HelpCircle className="h-4 w-4 text-[var(--accent-blue)]" />} label={t('session.actionExample')} unavailable={t('session.actionUnavailable')} />
-              <UnavailablePrompt icon={<MessageSquare className="h-4 w-4 text-green-500" />} label={t('session.actionAnalogy')} unavailable={t('session.actionUnavailable')} />
-              <UnavailablePrompt icon={<AlertTriangle className="h-4 w-4 text-red-400" />} label={t('session.actionConfused')} unavailable={t('session.actionUnavailable')} />
+              {SESSION_QUICK_ACTIONS.map((action) => (
+                <div key={action.kind}>
+                  <QuickActionRow
+                    icon={action.icon}
+                    label={t(action.label)}
+                    ctaLabel={quickActionState[action.kind] ? t('session.actionView') : t('session.actionGenerate')}
+                    isLoading={quickActionLoading[action.kind]}
+                    onClick={() => void handleQuickAction(action.kind)}
+                  />
+                </div>
+              ))}
+              {quickActionError && (
+                <InlineStateMessage
+                  title={t('session.quickActionsErrorTitle')}
+                  body={quickActionError}
+                  tone="danger"
+                />
+              )}
+              {selectedQuickAction && (
+                <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/78 px-4 py-4 text-sm leading-relaxed text-[var(--text-secondary)]">
+                  <div className="mb-2 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    {t('session.quickActionsPreview')}
+                  </div>
+                  <div className="font-medium text-[var(--text-primary)]">
+                    {t(getQuickActionLabelKey(selectedQuickAction.action))}
+                  </div>
+                  <p className="mt-2 whitespace-pre-wrap">{selectedQuickAction.content}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -510,14 +629,18 @@ function StudyMaterialCard({
   );
 }
 
-function UnavailablePrompt({
+function QuickActionRow({
   icon,
   label,
-  unavailable,
+  ctaLabel,
+  isLoading,
+  onClick,
 }: {
   icon: ReactNode;
   label: string;
-  unavailable: string;
+  ctaLabel: string;
+  isLoading: boolean;
+  onClick: () => void;
 }) {
   return (
     <div
@@ -528,7 +651,16 @@ function UnavailablePrompt({
         {icon}
         <span>{label}</span>
       </div>
-      <Badge variant="outline">{unavailable}</Badge>
+      <Button variant="outline" size="sm" className="min-w-24" onClick={onClick} disabled={isLoading}>
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Working
+          </>
+        ) : (
+          ctaLabel
+        )}
+      </Button>
     </div>
   );
 }
@@ -572,4 +704,38 @@ function countWords(text: string) {
   }
 
   return trimmed.split(/\s+/).length;
+}
+
+function toQuickActionRecord(taskId: number, response: QuickActionResponse): QuickActionRecord {
+  return {
+    id: 0,
+    user_id: '',
+    task_id: taskId,
+    action: response.action,
+    content: response.content,
+    created_at: response.updatedAt,
+    updated_at: response.updatedAt,
+  };
+}
+
+function buildQuickActionState(records: QuickActionRecord[]) {
+  return {
+    explain: records.find((item) => item.action === 'explain') ?? null,
+    example: records.find((item) => item.action === 'example') ?? null,
+    analogy: records.find((item) => item.action === 'analogy') ?? null,
+    confused: records.find((item) => item.action === 'confused') ?? null,
+  };
+}
+
+function getQuickActionLabelKey(action: QuickActionKind) {
+  switch (action) {
+    case 'explain':
+      return 'session.actionExplain';
+    case 'example':
+      return 'session.actionExample';
+    case 'analogy':
+      return 'session.actionAnalogy';
+    case 'confused':
+      return 'session.actionConfused';
+  }
 }
