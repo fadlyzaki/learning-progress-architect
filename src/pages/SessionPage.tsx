@@ -6,6 +6,7 @@ import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { MarkdownContent } from '../components/ui/MarkdownContent';
 import { InlineStateMessage, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
@@ -110,6 +111,21 @@ export function SessionPage() {
       window.clearInterval(interval);
     };
   }, [isActive]);
+
+  useEffect(() => {
+    if (!selectedQuickAction) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedQuickAction(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedQuickAction]);
 
   const formatTime = (seconds: number) => {
     const wholeSeconds = Math.max(0, seconds);
@@ -480,17 +496,6 @@ export function SessionPage() {
                   tone="danger"
                 />
               )}
-              {selectedQuickAction && (
-                <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/78 px-4 py-4 text-sm leading-relaxed text-[var(--text-secondary)]">
-                  <div className="mb-2 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                    {t('session.quickActionsPreview')}
-                  </div>
-                  <div className="font-medium text-[var(--text-primary)]">
-                    {t(getQuickActionLabelKey(selectedQuickAction.action))}
-                  </div>
-                  <p className="mt-2 whitespace-pre-wrap">{selectedQuickAction.content}</p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -501,6 +506,16 @@ export function SessionPage() {
           </Link>
         </div>
       </div>
+
+      {selectedQuickAction ? (
+        <QuickActionModal
+          title={t(getQuickActionLabelKey(selectedQuickAction.action))}
+          content={selectedQuickAction.content}
+          onClose={() => setSelectedQuickAction(null)}
+          closeLabel={t('common.close')}
+          kicker={t('session.quickActions')}
+        />
+      ) : null}
     </div>
   );
 }
@@ -725,6 +740,64 @@ function buildQuickActionState(records: QuickActionRecord[]) {
     analogy: records.find((item) => item.action === 'analogy') ?? null,
     confused: records.find((item) => item.action === 'confused') ?? null,
   };
+}
+
+function QuickActionModal({
+  title,
+  content,
+  onClose,
+  closeLabel,
+  kicker,
+}: {
+  title: string;
+  content: string;
+  onClose: () => void;
+  closeLabel: string;
+  kicker: string;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-8 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quick-action-title"
+      onClick={onClose}
+    >
+      <div
+        className="app-card-primary max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-[1.75rem] p-6 md:p-8"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--border-color)] pb-5">
+          <div>
+            <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--accent-amber)]">
+              {kicker}
+            </div>
+            <h2 id="quick-action-title" className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
+              {title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            aria-label={closeLabel}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-6 max-h-[calc(88vh-9rem)] overflow-y-auto pr-1">
+          <MarkdownContent content={content} className="text-sm md:text-base" />
+        </div>
+
+        <div className="mt-6 flex justify-end border-t border-[var(--border-color)] pt-5">
+          <Button variant="outline" onClick={onClose}>
+            {closeLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function getQuickActionLabelKey(action: QuickActionKind) {
