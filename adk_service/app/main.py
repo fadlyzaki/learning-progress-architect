@@ -5,6 +5,7 @@ import json
 from typing import Any
 
 import httpx
+from google import genai
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -67,6 +68,8 @@ class QuickActionRequest(BaseModel):
 
 app = FastAPI(title="Learning Progress Architect ADK Service")
 
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+
 
 def mcp_base_url() -> str:
     return os.environ.get("MCP_BASE_URL", "http://127.0.0.1:3101")
@@ -77,6 +80,18 @@ def internal_service_token() -> str:
     if not token:
         raise HTTPException(status_code=503, detail="INTERNAL_SERVICE_TOKEN is not configured.")
     return token
+
+
+def gemini_api_key() -> str:
+    return os.environ.get("GEMINI_API_KEY", "").strip()
+
+
+def gemini_client() -> genai.Client | None:
+    api_key = gemini_api_key()
+    if not api_key:
+        return None
+
+    return genai.Client(api_key=api_key)
 
 
 @app.middleware("http")
@@ -114,6 +129,16 @@ def parse_streamable_http_payload(raw_text: str) -> dict[str, Any]:
             continue
 
     raise HTTPException(status_code=502, detail="MCP returned an unreadable event stream response.")
+
+
+def normalize_model_text(text: str) -> str:
+    return (
+        text.replace("\r\n", "\n")
+        .removeprefix("```json")
+        .removeprefix("```")
+        .removesuffix("```")
+        .strip()
+    )
 
 
 async def call_mcp_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -164,6 +189,180 @@ def parse_mcp_payload(result: dict[str, Any]) -> Any:
         return text
 
 
+def build_workflow_prompt(request: WorkflowPlanRequest) -> str:
+    resource_context = "\n".join(
+        [
+            f"{index + 1}. [{resource.get('type', 'other')}] {resource.get('title', 'Untitled')}"
+            + (
+                f" | Ref: {resource.get('reference')}"
+                if resource.get("reference")
+                else ""
+            )
+            + (
+                f" | Notes: {resource.get('notes')}"
+                if resource.get("notes")
+                else ""
+            )
+            for index, resource in enumerate(request.input.resources)
+        ]
+    )
+
+    if not resource_context:
+        resource_context = "No learner-supplied materials yet. Build a self-starting beginner-friendly path."
+
+    return f"""
+You are an expert curriculum architect for ambitious self-directed learners.
+
+Create exactly 3 study tasks for this learner:
+- Goal: {request.input.goal}
+- Current level: {request.input.level}
+- Preferred study style: {request.input.preferredStyle or "Mixed"}
+- Resource mode: {request.input.resourceMode}
+- Available resources:
+{resource_context}
+
+Requirements:
+- Each task must sound concrete, useful, and motivating.
+- Avoid generic labels like "Foundations of X" unless you add a more specific focus.
+- The 3 tasks should move through: orientation, applied practice, real-world synthesis.
+- Each description should explain what the learner will actually do and what outcome they should get.
+- Each task needs a searchQuery optimized for official docs, credible tutorials, or high-quality references.
+- Return valid JSON only as an array of 3 objects.
+- Each object must contain: title, description, searchQuery.
+""".strip()
+
+
+def build_quick_action_prompt(request: QuickActionRequest) -> str:
+    context = request.input.context
+    action_guidance = {
+        "explain": """
+Explain the concept clearly for a motivated adult learner.
+Focus on:
+- what this task is really about
+- why it matters in practice
+- what mental model the learner should hold onto
+Avoid vague filler or just repeating the task title.
+""".strip(),
+        "example": """
+Give one concrete, believable real-world example.
+Include:
+- who is using it
+- what they are doing with it
+- why it helps in practice
+Avoid fake-sounding case studies or empty business fluff.
+""".strip(),
+        "analogy": """
+Give one strong analogy that maps clearly to the concept.
+The analogy should make the mechanism easier to picture, not just make it sound friendly.
+After the analogy, briefly connect it back to the actual task.
+""".strip(),
+        "confused": """
+Reset the idea in very simple language.
+Break it into tiny steps using:
+- first
+- then
+- finally
+Use plain words, remove jargon, and help the learner recover confidence quickly.
+""".strip(),
+    }[request.input.action]
+
+    resources = "\n".join(
+        [
+            f"{index + 1}. {resource.get('title', 'Untitled')} [{resource.get('type', 'other')}]"
+            + (
+                f" | Ref: {resource.get('reference')}"
+                if resource.get("reference")
+                else ""
+            )
+            + (
+                f" | Notes: {resource.get('notes')}"
+                if resource.get("notes")
+                else ""
+            )
+            for index, resource in enumerate(context.resources)
+        ]
+    )
+    if not resources:
+        resources = "No linked resources."
+
+    return f"""
+You are a high-quality study coach helping a learner during an active learning session.
+
+Learner goal: {context.goalTitle or "Not provided"}
+Current task: {context.taskTitle}
+Task description: {context.taskDescription}
+Available resources:
+{resources}
+
+Action type: {request.input.action}
+Instructions:
+{action_guidance}
+
+Output rules:
+- Return plain study-ready text only.
+- Be specific and useful, not generic.
+- Keep it concise but meaningful.
+- Do not use markdown code fences or JSON.
+""".strip()
+
+
+async def generate_workflow_plan_with_gemini(request: WorkflowPlanRequest) -> list[WorkflowTaskPayload] | None:
+    client = gemini_client()
+    if client is None:
+        return None
+
+    response = await client.aio.models.generate_content(
+        model=DEFAULT_GEMINI_MODEL,
+        contents=build_workflow_prompt(request),
+        config={
+            "response_mime_type": "application/json",
+            "temperature": 0.7,
+        },
+    )
+
+    payload = json.loads(normalize_model_text(response.text or "[]"))
+    if not isinstance(payload, list) or len(payload) < 3:
+        return None
+
+    tasks: list[WorkflowTaskPayload] = []
+    for item in payload[:3]:
+        if not isinstance(item, dict):
+            return None
+
+        title = str(item.get("title", "")).strip()
+        description = str(item.get("description", "")).strip()
+        search_query = str(item.get("searchQuery", "")).strip()
+        if not title or not description or not search_query:
+            return None
+
+        tasks.append(
+            WorkflowTaskPayload(
+                title=title,
+                description=description,
+                searchQuery=search_query,
+            )
+        )
+
+    return tasks
+
+
+async def generate_quick_action_with_gemini(request: QuickActionRequest) -> str | None:
+    client = gemini_client()
+    if client is None:
+        return None
+
+    response = await client.aio.models.generate_content(
+        model=DEFAULT_GEMINI_MODEL,
+        contents=build_quick_action_prompt(request),
+        config={
+            "temperature": 0.7,
+            "max_output_tokens": 350,
+        },
+    )
+    content = normalize_model_text(response.text or "")
+    return content or None
+
+
 def fallback_workflow_plan(request: WorkflowPlanRequest) -> list[WorkflowTaskPayload]:
     goal = request.input.goal
     return [
@@ -195,6 +394,18 @@ def fallback_quick_action(request: QuickActionRequest) -> str:
     if action == "confused":
         return f"First, {task_title} is the main idea you are learning. Then, it helps you do one job more clearly. Finally, you use it again and again until it feels natural."
     return f"{task_title} is the concept for this step. Its purpose is to help the learner understand what problem this task solves and why it matters."
+
+
+def is_low_quality_quick_action(content: str, task_title: str) -> bool:
+    normalized = content.strip().lower()
+    known_weak_patterns = [
+        f"{task_title.lower()} is the concept for this step",
+        "imagine a real team using it in production",
+        "well-organized kitchen",
+        f"first, {task_title.lower()} is the main idea you are learning",
+    ]
+
+    return len(normalized) < 140 or any(pattern in normalized for pattern in known_weak_patterns)
 
 
 async def enrich_workflow_references(tasks: list[WorkflowTaskPayload]) -> list[WorkflowTaskPayload]:
@@ -255,7 +466,9 @@ async def healthcheck():
 
 @app.post("/workflow/plan")
 async def workflow_plan(request: WorkflowPlanRequest):
-    tasks = fallback_workflow_plan(request)
+    tasks = await generate_workflow_plan_with_gemini(request)
+    if tasks is None:
+        tasks = fallback_workflow_plan(request)
     return await enrich_workflow_references(tasks)
 
 
@@ -271,7 +484,10 @@ async def study_coach_quick_action(request: QuickActionRequest):
     )
     cached_payload = parse_mcp_payload(cached_result) or {}
     cached_quick_action = cached_payload.get("quickAction")
-    if cached_quick_action:
+    if cached_quick_action and not is_low_quality_quick_action(
+        cached_quick_action["content"],
+        request.input.context.taskTitle,
+    ):
         return {
             "content": cached_quick_action["content"],
             "source": "cache",
@@ -289,7 +505,9 @@ async def study_coach_quick_action(request: QuickActionRequest):
     task_context_payload = parse_mcp_payload(task_context_result)
     hydrated_request = merge_quick_action_context(request, task_context_payload)
 
-    content = fallback_quick_action(hydrated_request)
+    content = await generate_quick_action_with_gemini(hydrated_request)
+    if content is None:
+        content = fallback_quick_action(hydrated_request)
 
     saved_result = await call_mcp_tool(
         "save_quick_action",

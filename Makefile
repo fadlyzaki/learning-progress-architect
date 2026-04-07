@@ -18,6 +18,7 @@ APP_BASE_URL ?=
 ADK_SERVICE_URL ?=
 MCP_BASE_URL ?=
 GEMINI_API_KEY ?=
+GEMINI_SECRET ?=
 
 .PHONY: run build build-mcp build-adk push build-push deploy deploy-mcp deploy-adk deploy-demo-web deploy-demo-web-adk deploy-demo-mcp deploy-demo-adk docker-build-local docker-run-local
 
@@ -38,13 +39,16 @@ push:
 
 build-push: build
 
+SET_GEMINI_SECRET = $(if $(GEMINI_SECRET),--set-secrets GEMINI_API_KEY=$(GEMINI_SECRET):latest,)
+
 deploy:
 	gcloud run deploy $(SERVICE) \
 		--image $(IMAGE) \
 		--platform managed \
 		--region $(REGION) \
 		--port 3000 \
-		--allow-unauthenticated
+		--allow-unauthenticated \
+		$(SET_GEMINI_SECRET)
 
 deploy-mcp:
 	gcloud run deploy $(MCP_SERVICE) \
@@ -54,7 +58,8 @@ deploy-mcp:
 		--port 3101 \
 		--allow-unauthenticated \
 		--ingress all \
-		--set-env-vars NODE_ENV=production,MCP_PORT=3101,APP_BASE_URL=$(APP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
+		--set-env-vars NODE_ENV=production,MCP_PORT=3101,APP_BASE_URL=$(APP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
+		$(SET_GEMINI_SECRET)
 
 deploy-adk:
 	gcloud run deploy $(ADK_SERVICE) \
@@ -64,7 +69,8 @@ deploy-adk:
 		--port 8081 \
 		--allow-unauthenticated \
 		--ingress all \
-		--set-env-vars MCP_BASE_URL=$(MCP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
+		--set-env-vars MCP_BASE_URL=$(MCP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
+		$(SET_GEMINI_SECRET)
 
 deploy-demo-web:
 	gcloud run deploy $(SERVICE) \
@@ -73,12 +79,14 @@ deploy-demo-web:
 		--region $(REGION) \
 		--port 3000 \
 		--allow-unauthenticated \
-		--set-env-vars NODE_ENV=production,DB_PROVIDER=sqlite,AGENT_PROVIDER=legacy,DATABASE_FILE=/tmp/app.db,INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
+		--set-env-vars NODE_ENV=production,DB_PROVIDER=sqlite,AGENT_PROVIDER=legacy,DATABASE_FILE=/tmp/app.db,INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
+		$(SET_GEMINI_SECRET)
 
 deploy-demo-web-adk:
 	gcloud run services update $(SERVICE) \
 		--region $(REGION) \
-		--set-env-vars NODE_ENV=production,DB_PROVIDER=sqlite,AGENT_PROVIDER=adk,DATABASE_FILE=/tmp/app.db,ADK_SERVICE_URL=$(ADK_SERVICE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
+		--set-env-vars NODE_ENV=production,DB_PROVIDER=sqlite,AGENT_PROVIDER=adk,DATABASE_FILE=/tmp/app.db,ADK_SERVICE_URL=$(ADK_SERVICE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
+		$(SET_GEMINI_SECRET)
 
 deploy-demo-mcp:
 	gcloud run deploy $(MCP_SERVICE) \
@@ -88,7 +96,8 @@ deploy-demo-mcp:
 		--port 3101 \
 		--allow-unauthenticated \
 		--ingress all \
-		--set-env-vars NODE_ENV=production,MCP_PORT=3101,APP_BASE_URL=$(APP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
+		--set-env-vars NODE_ENV=production,MCP_PORT=3101,APP_BASE_URL=$(APP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
+		$(SET_GEMINI_SECRET)
 
 deploy-demo-adk:
 	gcloud run deploy $(ADK_SERVICE) \
@@ -98,7 +107,8 @@ deploy-demo-adk:
 		--port 8081 \
 		--allow-unauthenticated \
 		--ingress all \
-		--set-env-vars MCP_BASE_URL=$(MCP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
+		--set-env-vars MCP_BASE_URL=$(MCP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
+		$(SET_GEMINI_SECRET)
 
 docker-build-local:
 	docker build -t $(LOCAL_IMAGE) .
