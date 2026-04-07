@@ -3,8 +3,8 @@
 This repo can now run as a three-service demo stack on Cloud Run:
 
 1. public web app
-2. internal ADK service
-3. internal MCP service
+2. ADK service protected by shared-token auth
+3. MCP service protected by shared-token auth
 
 This guide assumes the current `sqlite` demo mode, not AlloyDB.
 
@@ -77,7 +77,7 @@ make deploy-demo-mcp \
   APP_BASE_URL="$APP_BASE_URL"
 ```
 
-MCP is deployed with internal-only ingress and calls the app through `/internal/mcp/*`.
+MCP is deployed with Cloud Run public ingress enabled, but protected by the shared `INTERNAL_SERVICE_TOKEN` inside the app. It calls the web service through `/internal/mcp/*`.
 
 If you want grounded resource search results instead of the empty fallback, update MCP with:
 
@@ -110,7 +110,7 @@ make deploy-demo-adk \
   MCP_BASE_URL="$MCP_BASE_URL"
 ```
 
-ADK is deployed with internal-only ingress and authenticates to MCP using the shared token.
+ADK is deployed with Cloud Run public ingress enabled, but protected by the shared `INTERNAL_SERVICE_TOKEN` inside the app. It authenticates to MCP using the same shared token.
 
 ## 8. Get the ADK URL
 
@@ -161,6 +161,7 @@ Expected behavior:
 ## 11. Current limitations
 
 - SQLite on Cloud Run is ephemeral and not durable
+- ADK and MCP are protected by shared-header auth in this demo rollout, not by Cloud Run IAM identity tokens
 - MCP resource search still depends on `GEMINI_API_KEY` if you want grounded search results
 - this is a demo production topology, not the final scalable storage architecture
 

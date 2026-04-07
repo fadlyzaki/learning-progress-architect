@@ -52,8 +52,8 @@ deploy-mcp:
 		--platform managed \
 		--region $(REGION) \
 		--port 3101 \
-		--no-allow-unauthenticated \
-		--ingress internal \
+		--allow-unauthenticated \
+		--ingress all \
 		--set-env-vars NODE_ENV=production,MCP_PORT=3101,APP_BASE_URL=$(APP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
 
 deploy-adk:
@@ -62,8 +62,8 @@ deploy-adk:
 		--platform managed \
 		--region $(REGION) \
 		--port 8081 \
-		--no-allow-unauthenticated \
-		--ingress internal \
+		--allow-unauthenticated \
+		--ingress all \
 		--set-env-vars MCP_BASE_URL=$(MCP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
 
 deploy-demo-web:
@@ -86,8 +86,8 @@ deploy-demo-mcp:
 		--platform managed \
 		--region $(REGION) \
 		--port 3101 \
-		--no-allow-unauthenticated \
-		--ingress internal \
+		--allow-unauthenticated \
+		--ingress all \
 		--set-env-vars NODE_ENV=production,MCP_PORT=3101,APP_BASE_URL=$(APP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
 
 deploy-demo-adk:
@@ -96,8 +96,8 @@ deploy-demo-adk:
 		--platform managed \
 		--region $(REGION) \
 		--port 8081 \
-		--no-allow-unauthenticated \
-		--ingress internal \
+		--allow-unauthenticated \
+		--ingress all \
 		--set-env-vars MCP_BASE_URL=$(MCP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN)
 
 docker-build-local:
