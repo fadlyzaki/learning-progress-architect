@@ -97,7 +97,7 @@ const messages: Record<Locale, MessageMap> = {
     'landing.snapshot': 'Product Snapshot',
     'landing.valueTitle': 'Value Proposition',
     'landing.valueBody':
-      'This product keeps learners from carrying the whole study system in their head at once. The plan, the next step, and the review loop stay visible.',
+      'This product keeps learners from carrying the whole study system in their head at once. AI agents help shape the plan, surface the next step, and keep the review loop visible.',
     'landing.system.1.title': 'Shape the work',
     'landing.system.1.body':
       'Define a goal, set the pace, and generate a roadmap with realistic structure.',
@@ -107,6 +107,9 @@ const messages: Record<Locale, MessageMap> = {
     'landing.system.3.title': 'Close the loop',
     'landing.system.3.body':
       'Capture reflection and confidence so the next review arrives with purpose.',
+    'landing.agentTitle': 'AI agent layer',
+    'landing.agentBody':
+      'Planning, material selection, and workflow guidance are surfaced as calm support instead of noisy automation theater.',
     'landing.principles.kicker': 'Product Principles',
     'landing.principles.title': 'Calm hierarchy. Clear next actions. No productivity theater.',
     'landing.principles.body':
@@ -206,6 +209,29 @@ const messages: Record<Locale, MessageMap> = {
     'onboarding.resourcesSection': 'Learning resources',
     'onboarding.resourcesHint':
       'Add the materials you already trust. Lightweight references are enough for this phase.',
+    'onboarding.previewTitle': 'Plan taking shape',
+    'onboarding.previewBody':
+      'A compact summary of the study system the workflow is preparing for you.',
+    'onboarding.previewGoalLabel': 'Focus',
+    'onboarding.previewGoalEmpty': 'Your roadmap focus will appear here.',
+    'onboarding.previewRoadmapLabel': 'Roadmap shape',
+    'onboarding.previewRhythmLabel': 'Weekly rhythm',
+    'onboarding.previewReviewLabel': 'Review rhythm',
+    'onboarding.previewResourcesLabel': 'Materials',
+    'onboarding.previewNextSessionLabel': 'First session feel',
+    'onboarding.previewAgentLabel': 'AI agent layer',
+    'onboarding.previewRhythmBody':
+      'The system will bias toward a pace that feels sustainable instead of aspirational.',
+    'onboarding.previewReviewSoon': 'Faster reinforcement while the concept is still fragile.',
+    'onboarding.previewReviewSteady': 'A steady review loop once the plan is in motion.',
+    'onboarding.previewReviewSpaced': 'More space between reviews when you already have depth.',
+    'onboarding.previewResourcesPlan': 'The agent will suggest starter materials and sequence them for you.',
+    'onboarding.previewResourcesAttached': '{count} existing materials will anchor the roadmap.',
+    'onboarding.previewNextSessionBody':
+      'Expect one runnable task with a clear study objective instead of the whole goal at once.',
+    'onboarding.previewAgentValue': 'AI planning support',
+    'onboarding.previewAgentBody':
+      'AI agents organize the roadmap and resource guidance quietly in the background.',
     'onboarding.addResource': 'Add Resource',
     'onboarding.removeResource': 'Remove',
     'onboarding.resourceTitle': 'Title',
@@ -249,8 +275,8 @@ const messages: Record<Locale, MessageMap> = {
       'Start with the task that moves the roadmap forward fastest. The rest of the workspace supports that move.',
     'dashboard.planNotes': 'Plan Notes',
     'dashboard.planNotesBody': 'The latest context generated for your active learning system.',
-    'dashboard.notePreview': 'Latest system note',
-    'dashboard.notePreviewBody': 'A short preview of the latest planning context for your active goal.',
+    'dashboard.notePreview': 'Latest AI system note',
+    'dashboard.notePreviewBody': 'A short preview of the latest AI planning context for your active goal.',
     'dashboard.moreNotes': 'Open reflections for more context after your next session.',
     'dashboard.noNotes': 'No notes generated yet.',
     'dashboard.resourceSignal': 'Study Materials',
@@ -303,6 +329,22 @@ const messages: Record<Locale, MessageMap> = {
     'session.objectiveTask': 'Turn {task} into one concrete explanation, example, or reusable mental model.',
     'session.objectiveMaterials': 'Use {resource} as your anchor material and note one idea worth revisiting in reflection.',
     'session.objectiveNoMaterials': 'Use the task description as your scaffold and capture one open question to revisit in comprehension.',
+    'session.flowTitle': 'Session flow',
+    'session.flowPrepare': 'Start',
+    'session.flowStudy': 'Study',
+    'session.flowReflect': 'Reflect',
+    'session.studyBrief': 'Study brief',
+    'session.studyBriefBody': 'Keep only the context that helps you stay with the task right now.',
+    'session.saveBoundaryTitle': 'What gets saved',
+    'session.saveBoundaryBody':
+      'Starting opens the session. Final duration, reflection, blockers, and confidence are saved after the comprehension step.',
+    'session.scratchLocal': 'Scratch notes stay on this screen',
+    'session.scratchLocalBody':
+      'Use them freely while you study, then move the durable insight into comprehension if you want it saved.',
+    'session.nextStepTitle': 'What happens after this',
+    'session.nextStepBody':
+      'Completing the session opens a short comprehension check that updates your reflection log and review timing.',
+    'session.keepStudying': 'Stay in the task until you are ready to capture what stuck.',
     'session.notes': 'Notes & Reflection',
     'session.notesBody':
       'Use the comprehension step at the end to save the reflection to your session log.',
@@ -310,6 +352,10 @@ const messages: Record<Locale, MessageMap> = {
     'session.materials': 'Study Materials',
     'session.materialsBody':
       'Keep the best source material visible while you work through the task.',
+    'session.materialsCount': '{count} sources ready',
+    'session.materialSource': 'Source',
+    'session.referenceUnavailable': 'Reference available',
+    'session.materialNotes': 'Why this matters',
     'session.openMaterial': 'Open material',
     'session.materialsEmpty':
       'This task was generated without attached materials. Use the task description as your primary scaffold for now.',
@@ -323,6 +369,9 @@ const messages: Record<Locale, MessageMap> = {
     'session.notesScratch': 'Scratch Notes',
     'session.notesScratchBody':
       'These notes stay on this screen while you study. The saved reflection happens in the next step.',
+    'session.notesScratchHint': 'Capture rough ideas here, then move the durable version into comprehension.',
+    'session.notesScratchCount': '{count} words captured',
+    'session.notesScratchEmpty': 'No notes yet',
     'session.startNow': 'Start timer',
     'session.pauseNow': 'Pause timer',
     'session.resumeNow': 'Resume timer',
@@ -356,6 +405,19 @@ const messages: Record<Locale, MessageMap> = {
     'comprehension.saveSummary': 'What gets saved',
     'comprehension.saveSummaryBody':
       'Finishing this step saves your reflection, blockers, confidence, and session time back into the learning loop.',
+    'comprehension.flowTitle': 'Close the loop',
+    'comprehension.flowStudy': 'Study complete',
+    'comprehension.flowReflect': 'Capture signal',
+    'comprehension.flowSchedule': 'Schedule review',
+    'comprehension.afterFinishTitle': 'After you finish',
+    'comprehension.afterFinishBody':
+      'You will return to Today with updated confidence, saved reflection, and a review scheduled from your score.',
+    'comprehension.statusReady': 'Ready',
+    'comprehension.statusPending': 'Needed',
+    'comprehension.statusOptional': 'Optional',
+    'comprehension.statusReflection': 'Reflection',
+    'comprehension.statusBlockers': 'Blockers',
+    'comprehension.statusConfidence': 'Confidence',
     'comprehension.saveFinish': 'Save & Finish',
     'comprehension.saveFailed': 'Failed to save your session.',
     'comprehension.retrySave': 'Try save again',
@@ -509,7 +571,7 @@ const messages: Record<Locale, MessageMap> = {
     'landing.snapshot': 'Ringkasan Produk',
     'landing.valueTitle': 'Nilai Utama',
     'landing.valueBody':
-      'Produk ini menjaga agar learner tidak harus menahan seluruh sistem belajar di kepalanya sekaligus. Rencana, langkah berikutnya, dan loop review tetap terlihat.',
+      'Produk ini menjaga agar learner tidak harus menahan seluruh sistem belajar di kepalanya sekaligus. AI agent membantu membentuk rencana, menampilkan langkah berikutnya, dan menjaga loop review tetap terlihat.',
     'landing.system.1.title': 'Bentuk pekerjaannya',
     'landing.system.1.body':
       'Tentukan goal, atur ritme, dan hasilkan roadmap dengan struktur yang realistis.',
@@ -519,6 +581,9 @@ const messages: Record<Locale, MessageMap> = {
     'landing.system.3.title': 'Tutup loop',
     'landing.system.3.body':
       'Simpan refleksi dan keyakinan supaya review berikutnya datang dengan tujuan.',
+    'landing.agentTitle': 'Lapisan AI agent',
+    'landing.agentBody':
+      'Perencanaan, pemilihan materi, dan panduan workflow ditampilkan sebagai dukungan yang tenang, bukan automasi yang ramai.',
     'landing.principles.kicker': 'Prinsip Produk',
     'landing.principles.title': 'Hierarki yang tenang. Langkah berikutnya yang jelas. Tanpa sandiwara produktivitas.',
     'landing.principles.body':
@@ -618,6 +683,29 @@ const messages: Record<Locale, MessageMap> = {
     'onboarding.resourcesSection': 'Materi belajar',
     'onboarding.resourcesHint':
       'Tambahkan materi yang sudah kamu percaya. Referensi ringan saja sudah cukup untuk fase ini.',
+    'onboarding.previewTitle': 'Rencana yang mulai terbentuk',
+    'onboarding.previewBody':
+      'Ringkasan singkat dari sistem belajar yang sedang disiapkan workflow untukmu.',
+    'onboarding.previewGoalLabel': 'Fokus',
+    'onboarding.previewGoalEmpty': 'Fokus roadmap-mu akan muncul di sini.',
+    'onboarding.previewRoadmapLabel': 'Bentuk roadmap',
+    'onboarding.previewRhythmLabel': 'Ritme mingguan',
+    'onboarding.previewReviewLabel': 'Ritme review',
+    'onboarding.previewResourcesLabel': 'Materi',
+    'onboarding.previewNextSessionLabel': 'Rasa sesi pertama',
+    'onboarding.previewAgentLabel': 'Lapisan AI agent',
+    'onboarding.previewRhythmBody':
+      'Sistem akan condong ke ritme yang terasa berkelanjutan, bukan sekadar ambisius.',
+    'onboarding.previewReviewSoon': 'Penguatan lebih cepat saat konsepnya masih rapuh.',
+    'onboarding.previewReviewSteady': 'Loop review yang stabil saat rencana mulai berjalan.',
+    'onboarding.previewReviewSpaced': 'Jarak review lebih lega saat kamu sudah punya dasar kuat.',
+    'onboarding.previewResourcesPlan': 'Agent akan menyarankan materi awal dan mengurutkannya untukmu.',
+    'onboarding.previewResourcesAttached': '{count} materi yang sudah ada akan menjadi jangkar roadmap.',
+    'onboarding.previewNextSessionBody':
+      'Harapkan satu task yang benar-benar bisa dijalankan dengan tujuan belajar yang jelas, bukan seluruh goal sekaligus.',
+    'onboarding.previewAgentValue': 'Dukungan perencanaan AI',
+    'onboarding.previewAgentBody':
+      'AI agent menyusun roadmap dan panduan materi secara tenang di belakang layar.',
     'onboarding.addResource': 'Tambah Materi',
     'onboarding.removeResource': 'Hapus',
     'onboarding.resourceTitle': 'Judul',
@@ -661,8 +749,8 @@ const messages: Record<Locale, MessageMap> = {
       'Mulailah dari task yang paling cepat mendorong roadmap maju. Sisa workspace mendukung langkah itu.',
     'dashboard.planNotes': 'Catatan Sistem',
     'dashboard.planNotesBody': 'Konteks terbaru yang dihasilkan untuk sistem belajar aktifmu.',
-    'dashboard.notePreview': 'Catatan sistem terbaru',
-    'dashboard.notePreviewBody': 'Preview singkat dari konteks perencanaan terbaru untuk goal aktifmu.',
+    'dashboard.notePreview': 'Catatan AI sistem terbaru',
+    'dashboard.notePreviewBody': 'Preview singkat dari konteks perencanaan AI terbaru untuk goal aktifmu.',
     'dashboard.moreNotes': 'Buka refleksi untuk konteks tambahan setelah sesi berikutnya.',
     'dashboard.noNotes': 'Belum ada catatan yang dihasilkan.',
     'dashboard.resourceSignal': 'Materi Belajar',
@@ -715,6 +803,22 @@ const messages: Record<Locale, MessageMap> = {
     'session.objectiveTask': 'Ubah {task} menjadi satu penjelasan konkret, contoh, atau model mental yang bisa dipakai ulang.',
     'session.objectiveMaterials': 'Gunakan {resource} sebagai materi jangkar dan catat satu ide yang layak ditinjau lagi saat refleksi.',
     'session.objectiveNoMaterials': 'Gunakan deskripsi task sebagai scaffold dan tangkap satu pertanyaan terbuka untuk ditinjau di comprehension.',
+    'session.flowTitle': 'Alur sesi',
+    'session.flowPrepare': 'Mulai',
+    'session.flowStudy': 'Belajar',
+    'session.flowReflect': 'Refleksi',
+    'session.studyBrief': 'Ringkasan belajar',
+    'session.studyBriefBody': 'Simpan hanya konteks yang membantumu tetap di task saat ini.',
+    'session.saveBoundaryTitle': 'Yang akan disimpan',
+    'session.saveBoundaryBody':
+      'Memulai akan membuka sesi. Durasi akhir, refleksi, hambatan, dan confidence disimpan setelah langkah comprehension.',
+    'session.scratchLocal': 'Catatan sementara tetap di layar ini',
+    'session.scratchLocalBody':
+      'Gunakan dengan bebas saat belajar, lalu pindahkan insight yang tahan lama ke comprehension kalau ingin disimpan.',
+    'session.nextStepTitle': 'Apa yang terjadi setelah ini',
+    'session.nextStepBody':
+      'Menyelesaikan sesi akan membuka cek comprehension singkat yang memperbarui log refleksi dan jadwal review.',
+    'session.keepStudying': 'Tetaplah di task ini sampai kamu siap menangkap apa yang benar-benar tertinggal.',
     'session.notes': 'Catatan & Refleksi',
     'session.notesBody':
       'Gunakan langkah comprehension di akhir untuk menyimpan refleksi ke session log-mu.',
@@ -723,6 +827,10 @@ const messages: Record<Locale, MessageMap> = {
     'session.materials': 'Materi Belajar',
     'session.materialsBody':
       'Jaga sumber materi terbaik tetap terlihat saat kamu mengerjakan task ini.',
+    'session.materialsCount': '{count} sumber siap dipakai',
+    'session.materialSource': 'Sumber',
+    'session.referenceUnavailable': 'Referensi tersedia',
+    'session.materialNotes': 'Kenapa ini penting',
     'session.openMaterial': 'Buka materi',
     'session.materialsEmpty':
       'Task ini dibuat tanpa materi terlampir. Gunakan deskripsi task sebagai scaffold utama untuk sementara.',
@@ -736,6 +844,9 @@ const messages: Record<Locale, MessageMap> = {
     'session.notesScratch': 'Catatan Sementara',
     'session.notesScratchBody':
       'Catatan ini tetap ada di layar ini saat kamu belajar. Refleksi yang tersimpan terjadi di langkah berikutnya.',
+    'session.notesScratchHint': 'Tangkap ide mentah di sini, lalu pindahkan versi yang matang ke comprehension.',
+    'session.notesScratchCount': '{count} kata tercatat',
+    'session.notesScratchEmpty': 'Belum ada catatan',
     'session.startNow': 'Mulai timer',
     'session.pauseNow': 'Jeda timer',
     'session.resumeNow': 'Lanjutkan timer',
@@ -770,6 +881,19 @@ const messages: Record<Locale, MessageMap> = {
     'comprehension.saveSummary': 'Yang akan disimpan',
     'comprehension.saveSummaryBody':
       'Menyelesaikan langkah ini akan menyimpan refleksi, hambatan, confidence, dan waktu sesi kembali ke loop belajar.',
+    'comprehension.flowTitle': 'Tutup loop',
+    'comprehension.flowStudy': 'Belajar selesai',
+    'comprehension.flowReflect': 'Tangkap sinyal',
+    'comprehension.flowSchedule': 'Jadwalkan review',
+    'comprehension.afterFinishTitle': 'Setelah selesai',
+    'comprehension.afterFinishBody':
+      'Kamu akan kembali ke Hari Ini dengan confidence yang diperbarui, refleksi yang tersimpan, dan review yang dijadwalkan dari skormu.',
+    'comprehension.statusReady': 'Siap',
+    'comprehension.statusPending': 'Dibutuhkan',
+    'comprehension.statusOptional': 'Opsional',
+    'comprehension.statusReflection': 'Refleksi',
+    'comprehension.statusBlockers': 'Hambatan',
+    'comprehension.statusConfidence': 'Confidence',
     'comprehension.saveFinish': 'Simpan & Selesai',
     'comprehension.saveFailed': 'Gagal menyimpan sesi.',
     'comprehension.retrySave': 'Coba simpan lagi',

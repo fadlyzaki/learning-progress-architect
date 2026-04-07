@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
-import { PageLoadingState, PageMessageState } from '../components/PageStates';
+import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { PrimaryActionPanel, SecondaryActionHint } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
@@ -28,21 +28,15 @@ export function DashboardPage() {
   });
 
   if (loading) {
-    return <PageLoadingState stats={3} rows={2} />;
+    return <PageLoadingState variant="dashboard" rows={2} />;
   }
 
   if (!data) {
     return (
       <div className="space-y-6">
-        <div className="space-y-3">
-          <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.24em] text-[var(--accent-amber)]">
-            {t('dashboard.kicker')}
-          </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
-            {t('nav.today')}
-          </h1>
-        </div>
+        <PageIntro eyebrow={t('dashboard.kicker')} title={t('nav.today')} />
         <PageMessageState
+          eyebrow={t('dashboard.kicker')}
           title={t('nav.today')}
           body={error ?? t('dashboard.emptyBody')}
           actionLabel={t('common.retry')}
@@ -206,7 +200,7 @@ export function DashboardPage() {
             {tasks.map((task) => (
               <div
                 key={task.id}
-                className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/78 p-4"
+                className="app-list-row-quiet rounded-2xl p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

@@ -124,6 +124,10 @@ export function LandingPage() {
                   title={t('landing.system.3.title')}
                   body={t('landing.system.3.body')}
                 />
+                <SystemRow
+                  title={t('landing.agentTitle')}
+                  body={t('landing.agentBody')}
+                />
               </div>
             </div>
           </div>

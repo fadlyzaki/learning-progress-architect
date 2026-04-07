@@ -4,7 +4,7 @@ import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
-import { PageLoadingState, PageMessageState } from '../components/PageStates';
+import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
 
@@ -50,7 +50,7 @@ export function ProgressPage() {
   });
 
   if (loading) {
-    return <PageLoadingState stats={4} rows={2} />;
+    return <PageLoadingState variant="metrics" stats={4} rows={2} />;
   }
 
   if (!data) {
@@ -91,12 +91,7 @@ export function ProgressPage() {
 
   return (
     <div className="space-y-8 font-sans">
-      <div>
-        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">{t('progress.title')}</h1>
-        <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
-          {t('progress.subtitle')}
-        </p>
-      </div>
+      <PageIntro title={t('progress.title')} body={t('progress.subtitle')} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title={t('progress.totalStudyTime')} value={`${totalStudyMinutes}m`} body={t('progress.totalStudyTimeBody')} accent="text-green-500" icon={<TrendingUp className="h-4 w-4" />} />
@@ -131,7 +126,7 @@ export function ProgressPage() {
                     {t('progress.taskStatus')}
                   </div>
                   {activeGoalTasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-3">
+                    <div key={task.id} className="app-list-row-quiet flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
                       <div className="flex items-center gap-3">
                         {task.status === 'completed' ? (
                           <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -156,7 +151,7 @@ export function ProgressPage() {
                 </div>
               </>
             ) : (
-              <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-4 text-sm text-[var(--text-muted)]">
+              <div className="app-list-row-quiet rounded-2xl px-4 py-4 text-sm text-[var(--text-muted)]">
                 {t('progress.unlock')}
               </div>
             )}
@@ -175,7 +170,7 @@ export function ProgressPage() {
               recentSessions.map((session) => {
                 const task = data.tasks.find((item) => item.id === session.task_id);
                 return (
-                  <div key={session.id} className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 p-4">
+                  <div key={session.id} className="app-list-row rounded-2xl p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-[var(--text-primary)]">
@@ -195,7 +190,7 @@ export function ProgressPage() {
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-4 text-sm text-[var(--text-muted)]">
+              <div className="app-list-row-quiet rounded-2xl px-4 py-4 text-sm text-[var(--text-muted)]">
                 {t('progress.noActivity')}
               </div>
             )}

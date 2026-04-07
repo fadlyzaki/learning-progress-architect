@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
-import { PageLoadingState, PageMessageState } from '../components/PageStates';
+import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
 import type { AppDataPayload, GoalRecord } from '../types';
@@ -20,7 +20,7 @@ export function GoalsPage() {
   });
 
   if (loading) {
-    return <PageLoadingState rows={2} />;
+    return <PageLoadingState variant="collection" rows={2} />;
   }
 
   if (!data) {
@@ -39,22 +39,18 @@ export function GoalsPage() {
 
   return (
     <div className="space-y-8 font-sans">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
-            {t('goals.title')}
-          </h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
-            {t('goals.subtitle')}
-          </p>
-        </div>
-        <Link to="/onboarding">
-          <Button variant="accent" className="gap-2">
-            <Plus className="h-4 w-4" />
-            {t('goals.newGoal')}
-          </Button>
-        </Link>
-      </div>
+      <PageIntro
+        title={t('goals.title')}
+        body={t('goals.subtitle')}
+        actions={
+          <Link to="/onboarding">
+            <Button variant="accent" className="gap-2">
+              <Plus className="h-4 w-4" />
+              {t('goals.newGoal')}
+            </Button>
+          </Link>
+        }
+      />
 
       {activeGoal ? (
         <GoalCard goal={activeGoal} isPrimary data={data} />
@@ -138,7 +134,7 @@ function GoalCard({
 
 function GoalSignal({ icon, label }: { icon?: ReactNode; label: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/70 px-4 py-3 text-sm text-[var(--text-secondary)]">
+    <div className="app-list-row-quiet flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-[var(--text-secondary)]">
       {icon}
       <span>{label}</span>
     </div>

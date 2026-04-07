@@ -18,11 +18,75 @@ function isNavItemActive(pathname: string, path: string) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
+function getMobilePageContext(pathname: string, t: (key: string, params?: Record<string, string | number>) => string) {
+  if (pathname === '/app') {
+    return {
+      title: t('nav.today'),
+      subtitle: t('dashboard.nextFocusBody'),
+    };
+  }
+
+  if (pathname.startsWith('/app/goals')) {
+    return {
+      title: t('nav.goals'),
+      subtitle: t('goals.subtitle'),
+    };
+  }
+
+  if (pathname.startsWith('/app/roadmap')) {
+    return {
+      title: t('nav.roadmap'),
+      subtitle: t('roadmap.timelineBody'),
+    };
+  }
+
+  if (pathname.startsWith('/app/reviews')) {
+    return {
+      title: t('nav.reviews'),
+      subtitle: t('reviews.priorityFocusBody'),
+    };
+  }
+
+  if (pathname.startsWith('/app/progress')) {
+    return {
+      title: t('nav.progress'),
+      subtitle: t('progress.subtitle'),
+    };
+  }
+
+  if (pathname.startsWith('/app/reflections')) {
+    return {
+      title: t('nav.reflections'),
+      subtitle: t('reflections.subtitle'),
+    };
+  }
+
+  if (pathname.startsWith('/app/session/')) {
+    return {
+      title: t('common.session'),
+      subtitle: t('session.completeHint'),
+    };
+  }
+
+  if (pathname.startsWith('/app/comprehension/')) {
+    return {
+      title: t('comprehension.badge'),
+      subtitle: t('comprehension.saveSummaryBody'),
+    };
+  }
+
+  return {
+    title: t('brand.product'),
+    subtitle: t('layout.summary'),
+  };
+}
+
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const session = getStoredSession();
   const { t } = usePreferences();
+  const mobilePage = getMobilePageContext(location.pathname, t);
   const navItems = [
     { icon: LayoutDashboard, label: t('nav.today'), path: '/app' },
     { icon: Target, label: t('nav.goals'), path: '/app/goals' },
@@ -99,13 +163,16 @@ export function Layout() {
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex min-h-16 items-center justify-between gap-3 border-b border-[var(--border-color)] bg-[var(--bg-panel)] px-4 py-3 backdrop-blur md:hidden">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-[var(--accent-amber)]">
               {t('brand.name')}
             </span>
-            <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
-              {t('brand.product')}
-            </span>
+            <div className="mt-1 text-base font-semibold leading-tight text-[var(--text-primary)]">
+              {mobilePage.title}
+            </div>
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+              {mobilePage.subtitle}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <PreferenceControls compact />

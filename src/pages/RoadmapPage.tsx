@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
-import { PageLoadingState, PageMessageState } from '../components/PageStates';
+import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { PrimaryActionPanel } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
@@ -21,7 +21,7 @@ export function RoadmapPage() {
   });
 
   if (loading) {
-    return <PageLoadingState rows={3} />;
+    return <PageLoadingState variant="detail" rows={3} />;
   }
 
   const activeGoal = data?.goals[0] ?? null;
@@ -29,15 +29,9 @@ export function RoadmapPage() {
   if (!data || !activeGoal) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
-            {t('roadmap.title')}
-          </h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
-            {error ?? t('roadmap.empty')}
-          </p>
-        </div>
+        <PageIntro title={t('roadmap.title')} body={error ?? t('roadmap.empty')} />
         <PageMessageState
+          eyebrow={t('roadmap.activeGoal')}
           title={t('roadmap.title')}
           body={error ?? t('roadmap.empty')}
           actionLabel={error ? t('common.retry') : t('dashboard.emptyAction')}
@@ -55,35 +49,28 @@ export function RoadmapPage() {
 
   return (
     <div className="space-y-8 font-sans">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="mb-3 text-[11px] font-mono font-semibold uppercase tracking-[0.24em] text-[var(--accent-amber)]">
-            {t('roadmap.activeGoal')}
-          </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
-            {t('roadmap.title')}
-          </h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
-            {t('roadmap.subtitle', { goal: activeGoal.title })}
-          </p>
-        </div>
-
-        <Card className="app-card-muted max-w-sm">
-          <CardHeader className="pb-4">
-            <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-              {t('roadmap.progress')}
-            </div>
-            <CardTitle className="text-xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
-            <CardDescription className="text-sm leading-relaxed">
-              {t('dashboard.tasksCount', { completed: completedTasks, total: tasks.length })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-0">
-            <Progress value={progressPercentage} indicatorClassName="bg-[var(--accent-amber)]" />
-            <div className="text-sm text-[var(--text-muted)]">{progressPercentage}%</div>
-          </CardContent>
-        </Card>
-      </div>
+      <PageIntro
+        eyebrow={t('roadmap.activeGoal')}
+        title={t('roadmap.title')}
+        body={t('roadmap.subtitle', { goal: activeGoal.title })}
+        actions={
+          <Card className="app-card-muted max-w-sm">
+            <CardHeader className="pb-4">
+              <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                {t('roadmap.progress')}
+              </div>
+              <CardTitle className="text-xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                {t('dashboard.tasksCount', { completed: completedTasks, total: tasks.length })}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              <Progress value={progressPercentage} indicatorClassName="bg-[var(--accent-amber)]" />
+              <div className="text-sm text-[var(--text-muted)]">{progressPercentage}%</div>
+            </CardContent>
+          </Card>
+        }
+      />
 
       <PrimaryActionPanel
         eyebrow={t('roadmap.nextStep')}
@@ -144,10 +131,10 @@ export function RoadmapPage() {
             return (
               <div
                 key={task.id}
-                className={`rounded-[1.35rem] border p-4 transition-colors ${
+                className={`rounded-[1.35rem] p-4 transition-colors ${
                   isRecommended
-                    ? 'border-amber-500/35 bg-[var(--bg-card)] shadow-[0_0_22px_var(--glow-amber)]'
-                    : 'border-[var(--border-color)] bg-[var(--bg-soft)]'
+                    ? 'border border-amber-500/35 bg-[var(--bg-card)] shadow-[0_0_22px_var(--glow-amber)]'
+                    : 'app-list-row-quiet'
                 }`}
               >
                 <div className="flex gap-4">
@@ -200,7 +187,7 @@ export function RoadmapPage() {
           })}
 
           <Link to="/app" className="inline-flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
-            {t('dashboard.openRoadmapLink')}
+            {t('nav.today')}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </CardContent>

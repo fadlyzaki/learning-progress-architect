@@ -72,7 +72,7 @@ export function ComprehensionPage() {
   };
 
   if (loading) {
-    return <PageLoadingState rows={1} />;
+    return <PageLoadingState variant="detail" rows={1} />;
   }
 
   if (!data || !task) {
@@ -115,14 +115,15 @@ export function ComprehensionPage() {
 
       <Card className="app-card-primary">
         <CardHeader className="space-y-5 border-b border-[var(--border-color)] pb-8">
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3].map((value) => (
-              <div key={value}>
-                <Badge variant={value === step ? 'info' : 'outline'}>
-                  {t('common.stepOf', { step: value, total: 3 })}
-                </Badge>
-              </div>
-            ))}
+          <div>
+            <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+              {t('comprehension.flowTitle')}
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <FlowCheckpoint label={t('comprehension.flowStudy')} active={step === 1} complete={step > 1} />
+              <FlowCheckpoint label={t('comprehension.flowReflect')} active={step === 2} complete={step > 2} />
+              <FlowCheckpoint label={t('comprehension.flowSchedule')} active={step === 3} />
+            </div>
           </div>
           <div>
             <CardTitle className="text-3xl text-[var(--text-primary)]">
@@ -149,14 +150,43 @@ export function ComprehensionPage() {
             />
           )}
 
-          <Card className="app-card-muted">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg text-[var(--text-primary)]">{t('comprehension.saveSummary')}</CardTitle>
-              <CardDescription className="text-sm leading-relaxed">
-                {t('comprehension.saveSummaryBody')}
-              </CardDescription>
-            </CardHeader>
-          </Card>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="app-card-muted">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg text-[var(--text-primary)]">{t('comprehension.saveSummary')}</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  {t('comprehension.saveSummaryBody')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                <SaveStatusRow
+                  label={t('comprehension.statusReflection')}
+                  state={explanation.trim() ? t('comprehension.statusReady') : t('comprehension.statusPending')}
+                  ready={Boolean(explanation.trim())}
+                />
+                <SaveStatusRow
+                  label={t('comprehension.statusBlockers')}
+                  state={blockers.trim() ? t('comprehension.statusReady') : t('comprehension.statusOptional')}
+                  ready={Boolean(blockers.trim())}
+                  optional
+                />
+                <SaveStatusRow
+                  label={t('comprehension.statusConfidence')}
+                  state={confidence ? t('comprehension.statusReady') : t('comprehension.statusPending')}
+                  ready={Boolean(confidence)}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="app-card-muted">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg text-[var(--text-primary)]">{t('comprehension.afterFinishTitle')}</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  {t('comprehension.afterFinishBody')}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
 
           {step === 1 && (
             <textarea
@@ -202,7 +232,7 @@ export function ComprehensionPage() {
               </div>
 
               {confidence && (
-                <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)]/82 p-5">
+                <div className="app-list-row rounded-3xl p-5">
                   <div className="flex items-start gap-4">
                     <RefreshCw className="mt-1 h-5 w-5 shrink-0 text-[var(--accent-amber)]" />
                     <div>
@@ -250,6 +280,49 @@ export function ComprehensionPage() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function FlowCheckpoint({
+  label,
+  active,
+  complete = false,
+}: {
+  label: string;
+  active: boolean;
+  complete?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border px-4 py-3 ${
+        active
+          ? 'border-amber-500/35 bg-amber-500/8'
+          : complete
+            ? 'border-green-500/25 bg-green-500/8'
+            : 'border-[var(--border-color)] bg-[var(--bg-card)]/72'
+      }`}
+    >
+      <div className="text-sm font-medium text-[var(--text-primary)]">{label}</div>
+    </div>
+  );
+}
+
+function SaveStatusRow({
+  label,
+  state,
+  ready,
+  optional = false,
+}: {
+  label: string;
+  state: string;
+  ready: boolean;
+  optional?: boolean;
+}) {
+  return (
+    <div className="app-list-row-quiet flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
+      <span className="text-sm text-[var(--text-primary)]">{label}</span>
+      <Badge variant={ready ? 'success' : optional ? 'outline' : 'warning'}>{state}</Badge>
     </div>
   );
 }

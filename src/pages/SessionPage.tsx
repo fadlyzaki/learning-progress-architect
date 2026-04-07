@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -117,7 +117,7 @@ export function SessionPage() {
   };
 
   if (loading) {
-    return <PageLoadingState rows={2} />;
+    return <PageLoadingState variant="detail" rows={2} />;
   }
 
   if (!data || !task) {
@@ -139,10 +139,13 @@ export function SessionPage() {
       ? t('session.objectiveMaterials', { resource: taskResources[0].title })
       : t('session.objectiveNoMaterials'),
   ];
+  const primarySupportTitle = taskResources.length > 0 ? t('session.materials') : t('session.objectives');
+  const primarySupportBody = taskResources.length > 0 ? t('session.materialsBody') : t('session.studyBriefBody');
+  const scratchWordCount = countWords(scratchNotes);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 font-sans">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="space-y-4">
         <div>
           <Badge variant="warning">{t('session.badge')}</Badge>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
@@ -157,33 +160,56 @@ export function SessionPage() {
             </p>
           )}
         </div>
-
-        <Card className="app-card-primary min-w-[19rem]">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                  {t('session.stateLabel')}
-                </div>
-                <CardTitle className="mt-3 text-2xl text-[var(--text-primary)]">
-                  {t(`session.state.${sessionState}`)}
-                </CardTitle>
-                <CardDescription className="mt-2 text-sm leading-relaxed">
-                  {t(`session.stateBody.${sessionState}`)}
-                </CardDescription>
+      </div>
+      <Card className="app-card-primary">
+        <CardHeader className="pb-5">
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <div>
+              <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                {t('session.stateLabel')}
               </div>
-              <div className="text-right">
-                <div className="font-mono text-3xl font-semibold tracking-[0.08em] text-[var(--accent-amber)]">
-                  {formatTime(time)}
-                </div>
+              <CardTitle className="mt-3 text-3xl text-[var(--text-primary)]">
+                {t(`session.state.${sessionState}`)}
+              </CardTitle>
+              <CardDescription className="mt-3 max-w-2xl text-base leading-relaxed">
+                {t(`session.stateBody.${sessionState}`)}
+              </CardDescription>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <FlowStep
+                  label={t('session.flowPrepare')}
+                  active={!hasStarted}
+                  complete={hasStarted}
+                />
+                <FlowStep
+                  label={t('session.flowStudy')}
+                  active={hasStarted}
+                  complete={canComplete}
+                />
+                <FlowStep
+                  label={t('session.flowReflect')}
+                  active={canComplete && !isActive}
+                />
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-0">
+            <div className="rounded-[1.5rem] border border-amber-500/22 bg-[var(--bg-card)]/70 p-5 lg:text-right">
+              <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                {t('session.flowTitle')}
+              </div>
+              <div className="mt-3 font-mono text-4xl font-semibold tracking-[0.08em] text-[var(--accent-amber)]">
+                {formatTime(time)}
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+                {t('session.keepStudying')}
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5 pt-0">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <Button
               variant={isActive || !hasStarted ? 'accent' : 'outline'}
               size="lg"
-              className="w-full gap-2"
+              className="w-full gap-2 sm:flex-1"
               onClick={() => void handleToggle()}
               disabled={starting}
             >
@@ -209,111 +235,88 @@ export function SessionPage() {
                 </>
               )}
             </Button>
+
+            <Button
+              variant="accent"
+              size="lg"
+              className="w-full gap-2 sm:flex-1"
+              onClick={handleComplete}
+              disabled={!canComplete}
+            >
+              <CheckCircle2 className="h-5 w-5" />
+              {t('session.complete')}
+            </Button>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            <InlineStateMessage
+              title={t('session.saveBoundaryTitle')}
+              body={t('session.saveBoundaryBody')}
+            />
+            <InlineStateMessage
+              title={t('session.nextStepTitle')}
+              body={canComplete ? t('session.nextStepBody') : t('session.completeDisabled')}
+            />
+          </div>
+
+          {!canComplete && (
             <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-              {canComplete ? t('session.completeHint') : t('session.completeDisabled')}
+              {t('session.completeDisabled')}
             </p>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.92fr]">
-        <div className="space-y-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,39rem)_minmax(18rem,19rem)] xl:items-start xl:justify-between">
+        <div className="space-y-6 xl:max-w-[39rem]">
           <Card className="app-card-supporting">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[var(--text-primary)]">{t('session.objectives')}</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <ul className="space-y-3 text-[var(--text-primary)]">
-                {sessionObjectives.map((objective) => (
-                  <li key={objective} className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-3">
-                    {objective}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card className="app-card-supporting">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[var(--text-primary)]">{t('session.materials')}</CardTitle>
-              <CardDescription className="text-base leading-relaxed">
-                {t('session.materialsBody')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              {taskResources.length > 0 ? (
-                taskResources.map((resource) => (
-                  <div key={resource.id} className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/78 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-base font-medium text-[var(--text-primary)]">{resource.title}</div>
-                        <div className="mt-2 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                          {t(`resourceType.${resource.type}`)}
-                        </div>
-                      </div>
-                    </div>
-                    {resource.reference && (
-                      <div className="mt-3">
-                        {getReferenceUrl(resource.reference) ? (
-                          <a
-                            href={getReferenceUrl(resource.reference) ?? undefined}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 text-sm break-all text-[var(--accent-blue)] underline decoration-[var(--accent-blue)]/40 underline-offset-4 transition-colors hover:text-[var(--text-primary)]"
-                          >
-                            <span>{resource.reference}</span>
-                            <ExternalLink className="h-4 w-4 shrink-0" />
-                          </a>
-                        ) : (
-                          <div className="text-sm break-all text-[var(--text-secondary)]">{resource.reference}</div>
-                        )}
-                      </div>
-                    )}
-                    {resource.notes && (
-                      <div className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{resource.notes}</div>
-                    )}
-                    {getReferenceUrl(resource.reference ?? null) && (
-                      <div className="mt-3">
-                        <a
-                          href={getReferenceUrl(resource.reference ?? null) ?? undefined}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:text-[var(--accent-blue)]"
-                        >
-                          {t('session.openMaterial')}
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-4 text-sm leading-relaxed text-[var(--text-muted)]">
-                  {t('session.materialsEmpty')}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-xl text-[var(--text-primary)]">{primarySupportTitle}</CardTitle>
+                  <CardDescription className="mt-2 text-base leading-relaxed">
+                    {primarySupportBody}
+                  </CardDescription>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="app-card-supporting">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[var(--text-primary)]">{t('session.notesScratch')}</CardTitle>
-              <CardDescription className="text-base leading-relaxed">
-                {t('session.notesScratchBody')}
-              </CardDescription>
+                {taskResources.length > 0 ? <Badge variant="outline">{t('session.materialsCount', { count: taskResources.length })}</Badge> : null}
+              </div>
             </CardHeader>
-            <CardContent className="pt-0">
-              <textarea
-                className="app-field h-52"
-                placeholder={t('session.notesPlaceholder')}
-                value={scratchNotes}
-                onChange={(event) => setScratchNotes(event.target.value)}
-              />
+            <CardContent className="space-y-4 pt-0">
+              {taskResources.length > 0 ? (
+                <div className="space-y-3">
+                  {taskResources.map((resource) => (
+                    <div key={resource.id}>
+                      <StudyMaterialCard resource={resource} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <ul className="space-y-3 text-[var(--text-primary)]">
+                  {sessionObjectives.map((objective) => (
+                    <li key={objective} className="app-list-row-quiet rounded-2xl px-4 py-3">
+                      {objective}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {taskResources.length > 0 ? (
+                <div className="rounded-2xl border border-[var(--border-color)]/70 bg-[var(--bg-soft)]/46 p-4">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                    {t('session.objectives')}
+                  </div>
+                  <ul className="mt-3 space-y-2 text-sm text-[var(--text-secondary)]">
+                    {sessionObjectives.map((objective) => (
+                      <li key={objective} className="app-list-row-quiet rounded-xl px-3 py-2">
+                        {objective}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
-        </div>
 
-        <div className="space-y-6">
           {errorMessage && (
             <div className="space-y-3">
               <InlineStateMessage title={t('session.startFailed')} body={errorMessage} tone="danger" />
@@ -323,6 +326,40 @@ export function SessionPage() {
             </div>
           )}
 
+          <Card className="app-card-supporting">
+            <CardHeader className="pb-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-xl text-[var(--text-primary)]">{t('session.notesScratch')}</CardTitle>
+                    <Badge variant="outline">{t('session.scratchLocal')}</Badge>
+                  </div>
+                  <CardDescription className="mt-2 text-base leading-relaxed">
+                    {t('session.notesScratchHint')}
+                  </CardDescription>
+                </div>
+                <Badge variant="outline">
+                  {scratchWordCount > 0 ? t('session.notesScratchCount', { count: scratchWordCount }) : t('session.notesScratchEmpty')}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="rounded-[1.4rem] border border-[var(--border-color)] bg-[var(--bg-card)]/70 p-3">
+                <textarea
+                  className="app-field h-52 border-transparent bg-transparent px-3 py-3 shadow-none"
+                  placeholder={t('session.notesPlaceholder')}
+                  value={scratchNotes}
+                  onChange={(event) => setScratchNotes(event.target.value)}
+                />
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">
+                {t('session.scratchLocalBody')}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6 xl:max-w-[19rem]">
           <Card className="app-card-muted">
             <CardHeader className="pb-4">
               <CardTitle className="text-xl text-[var(--text-primary)]">{t('session.quickActions')}</CardTitle>
@@ -337,23 +374,6 @@ export function SessionPage() {
               <UnavailablePrompt icon={<AlertTriangle className="h-4 w-4 text-red-400" />} label={t('session.actionConfused')} unavailable={t('session.actionUnavailable')} />
             </CardContent>
           </Card>
-
-          <Button
-            variant="accent"
-            size="lg"
-            className="w-full gap-2 py-6 text-base"
-            onClick={handleComplete}
-            disabled={!canComplete}
-          >
-            <CheckCircle2 className="h-5 w-5" />
-            {t('session.complete')}
-          </Button>
-
-          {!canComplete && (
-            <p className="text-center text-sm leading-relaxed text-[var(--text-muted)]">
-              {t('session.completeDisabled')}
-            </p>
-          )}
 
           <Link to="/app" className="block">
             <Button variant="ghost" className="w-full">
@@ -391,6 +411,105 @@ function getReferenceUrl(reference: string | null) {
   }
 }
 
+function formatReferenceLabel(reference: string | null) {
+  if (!reference) {
+    return '';
+  }
+
+  const trimmed = reference.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const normalized = getReferenceUrl(trimmed);
+  if (!normalized) {
+    return trimmed;
+  }
+
+  try {
+    const url = new URL(normalized);
+    const host = url.hostname.replace(/^www\./i, '');
+    const path = url.pathname.replace(/\/$/, '');
+    const readablePath = path && path !== '/'
+      ? path
+          .split('/')
+          .filter(Boolean)
+          .slice(0, 2)
+          .join(' / ')
+      : '';
+    return readablePath ? `${host} · ${readablePath}` : host;
+  } catch {
+    return trimmed;
+  }
+}
+
+function StudyMaterialCard({
+  resource,
+}: {
+  resource: {
+    id: number;
+    title: string;
+    type: string;
+    reference: string | null;
+    notes: string | null;
+  };
+}) {
+  const { t } = usePreferences();
+  const referenceUrl = getReferenceUrl(resource.reference);
+  const referenceLabel = formatReferenceLabel(resource.reference);
+
+  return (
+    <div className="app-list-row rounded-2xl p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 text-[var(--accent-amber)]">
+          <BookOpen className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="text-base font-medium text-[var(--text-primary)]">{resource.title}</div>
+            <Badge variant="outline">{t(`resourceType.${resource.type}`)}</Badge>
+          </div>
+        </div>
+      </div>
+      {resource.reference ? (
+        <div className="mt-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                {t('session.materialSource')}
+              </div>
+              <div className="mt-1 break-words text-sm text-[var(--text-primary)] sm:truncate">
+                {referenceLabel}
+              </div>
+            </div>
+            {referenceUrl ? (
+              <a
+                href={referenceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-surface)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent-blue)] hover:text-[var(--accent-blue)]"
+              >
+                {t('session.openMaterial')}
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            ) : (
+              <span className="text-sm text-[var(--text-secondary)]">{t('session.referenceUnavailable')}</span>
+            )}
+          </div>
+        </div>
+      ) : null}
+      {resource.notes ? (
+        <div className="mt-3 rounded-2xl border border-[var(--border-color)]/70 bg-[var(--bg-soft)]/48 px-4 py-3">
+          <div className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            {t('session.materialNotes')}
+          </div>
+          <div className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{resource.notes}</div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function UnavailablePrompt({
   icon,
   label,
@@ -403,7 +522,7 @@ function UnavailablePrompt({
   return (
     <div
       aria-disabled="true"
-      className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-3 text-left opacity-76"
+      className="app-list-row-quiet flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left opacity-76"
     >
       <div className="flex items-center gap-3 text-sm text-[var(--text-primary)]">
         {icon}
@@ -412,4 +531,45 @@ function UnavailablePrompt({
       <Badge variant="outline">{unavailable}</Badge>
     </div>
   );
+}
+
+function FlowStep({
+  label,
+  active,
+  complete = false,
+}: {
+  label: string;
+  active: boolean;
+  complete?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border px-4 py-3 ${
+        active
+          ? 'border-amber-500/35 bg-amber-500/8'
+          : complete
+            ? 'border-green-500/25 bg-green-500/8'
+            : 'border-[var(--border-color)] bg-[var(--bg-card)]/72'
+      }`}
+    >
+      <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[var(--text-muted)]">{label}</div>
+      <div className="mt-3 h-1.5 rounded-full bg-[var(--border-color)]">
+        <div
+          className={`h-full rounded-full ${
+            complete || active ? 'bg-[var(--accent-amber)]' : 'bg-transparent'
+          }`}
+          style={{ width: complete ? '100%' : active ? '58%' : '0%' }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function countWords(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return 0;
+  }
+
+  return trimmed.split(/\s+/).length;
 }

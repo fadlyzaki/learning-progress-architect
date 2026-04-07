@@ -3,7 +3,7 @@ import { AlertCircle, ArrowRight, BookOpen } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { PageLoadingState, PageMessageState } from '../components/PageStates';
+import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
 
@@ -16,7 +16,7 @@ export function ReflectionsPage() {
   });
 
   if (loading) {
-    return <PageLoadingState rows={3} />;
+    return <PageLoadingState variant="collection" rows={3} />;
   }
 
   if (!data) {
@@ -35,14 +35,7 @@ export function ReflectionsPage() {
 
   return (
     <div className="space-y-8 font-sans">
-      <div>
-        <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
-          {t('reflections.title')}
-        </h1>
-        <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
-          {t('reflections.subtitle')}
-        </p>
-      </div>
+      <PageIntro title={t('reflections.title')} body={t('reflections.subtitle')} />
 
       {reflections.length > 0 ? (
         <div className="space-y-5">
@@ -107,7 +100,7 @@ function ReflectionBlock({
   body: string;
 }) {
   return (
-    <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 p-5">
+    <div className="app-list-row rounded-3xl p-5">
       <div className="flex items-center gap-2 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
         {icon}
         {title}

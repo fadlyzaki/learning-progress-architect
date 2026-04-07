@@ -4,7 +4,7 @@ import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { PageLoadingState, PageMessageState } from '../components/PageStates';
+import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { PrimaryActionPanel } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
@@ -18,21 +18,15 @@ export function ReviewsPage() {
   });
 
   if (loading) {
-    return <PageLoadingState rows={3} />;
+    return <PageLoadingState variant="detail" rows={3} />;
   }
 
   if (!data) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
-            {t('reviews.title')}
-          </h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
-            {error ?? t('reviews.subtitle')}
-          </p>
-        </div>
+        <PageIntro title={t('reviews.title')} body={error ?? t('reviews.subtitle')} />
         <PageMessageState
+          eyebrow={t('reviews.dueTitle')}
           title={t('reviews.title')}
           body={error ?? t('reviews.subtitle')}
           actionLabel={t('common.retry')}
@@ -57,22 +51,16 @@ export function ReviewsPage() {
 
   return (
     <div className="space-y-8 font-sans">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="mb-3 text-[11px] font-mono font-semibold uppercase tracking-[0.24em] text-[var(--accent-amber)]">
-            {t('reviews.dueTitle')}
-          </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
-            {t('reviews.title')}
-          </h1>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
-            {t('reviews.subtitle')}
-          </p>
-        </div>
-        <Badge variant={dueReviews.length > 0 ? 'destructive' : 'outline'} className="self-start lg:self-auto">
-          {t('reviews.dueNow', { count: dueReviews.length })}
-        </Badge>
-      </div>
+      <PageIntro
+        eyebrow={t('reviews.dueTitle')}
+        title={t('reviews.title')}
+        body={t('reviews.subtitle')}
+        actions={
+          <Badge variant={dueReviews.length > 0 ? 'destructive' : 'outline'} className="self-start lg:self-auto">
+            {t('reviews.dueNow', { count: dueReviews.length })}
+          </Badge>
+        }
+      />
 
       <PrimaryActionPanel
         eyebrow={t('reviews.priorityFocus')}
@@ -137,7 +125,7 @@ export function ReviewsPage() {
                 const task = data.tasks.find((item) => item.id === review.task_id);
 
                 return (
-                  <div key={review.id} className="rounded-[1.35rem] border border-[var(--border-color)] bg-[var(--bg-soft)] p-4">
+                  <div key={review.id} className="app-list-row rounded-[1.35rem] p-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -181,7 +169,7 @@ export function ReviewsPage() {
                   const task = data.tasks.find((item) => item.id === review.task_id);
 
                   return (
-                    <div key={review.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/75 px-4 py-3">
+                    <div key={review.id} className="app-list-row-quiet flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
                       <div>
                         <p className="text-sm font-medium text-[var(--text-primary)]">{task?.title ?? t('reviews.taskReview')}</p>
                         <p className="mt-1 text-xs text-[var(--text-muted)]">
@@ -214,7 +202,7 @@ export function ReviewsPage() {
                 const task = data.tasks.find((item) => item.id === session.task_id);
 
                 return (
-                  <div key={session.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-3">
+                  <div key={session.id} className="app-list-row-quiet flex items-center justify-between gap-3 rounded-2xl px-4 py-3">
                     <div className="flex items-center gap-3">
                       <AlertTriangle className="h-4 w-4 text-amber-400" />
                       <span className="text-sm text-[var(--text-primary)]">{task?.title ?? t('reviews.taskReview')}</span>
@@ -226,12 +214,12 @@ export function ReviewsPage() {
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-4 text-sm text-[var(--text-muted)]">
+              <div className="app-list-row-quiet rounded-2xl px-4 py-4 text-sm text-[var(--text-muted)]">
                 {t('reviews.noWeakAreas')}
               </div>
             )}
 
-            <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-4 text-sm text-[var(--text-muted)]">
+            <div className="app-list-row-quiet rounded-2xl px-4 py-4 text-sm text-[var(--text-muted)]">
               <div className="flex items-center gap-2 text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 {t('reviews.noPriorityTitle')}
