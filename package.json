@@ -10,10 +10,14 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "node --test --import tsx tests/**/*.test.ts"
+    "test": "node --test --import tsx tests/**/*.test.ts",
+    "mcp:dev": "tsx server/mcp/index.ts",
+    "db:migrate:alloydb": "node-pg-migrate up --config-file node-pg-migrate.config.cjs",
+    "db:import:sqlite": "tsx server/scripts/importSqliteToPostgres.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "better-sqlite3": "^12.8.0",
@@ -22,12 +26,15 @@
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "node-pg-migrate": "^8.0.4",
+    "pg": "^8.20.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.13.2",
     "tailwind-merge": "^3.5.0",
     "tsx": "^4.21.0",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

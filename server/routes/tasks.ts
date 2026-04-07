@@ -1,99 +1,52 @@
 import { Router } from 'express';
-import { db } from '../db.ts';
+import crypto from 'crypto';
+import { getAppContext } from '../appContext.ts';
 import { requireUser } from '../middleware/auth.ts';
 import { jsonError } from '../utils/http.ts';
 import { nowIso, addDays } from '../utils/date.ts';
 import { getReviewSchedule } from '../services/reviewService.ts';
-import {
-  QuickActionGenerationError,
-  generateQuickActionContent,
-  isQuickActionKind,
-} from '../services/quickActionService.ts';
-import type {
-  QuickActionRow,
-  QuickActionResource,
-  StudySessionRow,
-  TaskRow,
-} from '../types.ts';
+import { QuickActionGenerationError, isQuickActionKind } from '../services/quickActionService.ts';
+import { createRequestId } from '../services/agentRuntime.ts';
 
 export const tasksRouter = Router();
 
-function loadTaskForUser(taskId: number, userId: string) {
-  return db
-    .prepare('SELECT * FROM tasks WHERE id = ? AND user_id = ?')
-    .get(taskId, userId) as TaskRow | undefined;
-}
-
-function loadTaskResources(taskId: number, userId: string): QuickActionResource[] {
-  return db
-    .prepare(
-      `
-        SELECT resources.title, resources.type, resources.reference, resources.notes, resources.source_kind
-        FROM task_resources
-        INNER JOIN resources ON resources.id = task_resources.resource_id
-        WHERE task_resources.task_id = ? AND task_resources.user_id = ?
-        ORDER BY task_resources.id ASC
-      `,
-    )
-    .all(taskId, userId) as QuickActionResource[];
-}
-
-tasksRouter.post('/:taskId/start', (req, res) => {
-  const user = requireUser(req, res);
+tasksRouter.post('/:taskId/start', async (req, res) => {
+  const user = await requireUser(req, res);
   if (!user) {
     return;
   }
 
   const taskId = Number(req.params.taskId);
-  const task = loadTaskForUser(taskId, user.id);
+  const { tasks, sessions } = getAppContext().repositories;
+  const task = await tasks.findByIdForUser(taskId, user.id);
 
   if (!task) {
     jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
     return;
   }
 
-  let session = db
-    .prepare(
-      `
-        SELECT * FROM study_sessions
-        WHERE task_id = ? AND user_id = ? AND completed_at IS NULL
-        ORDER BY started_at DESC, id DESC
-        LIMIT 1
-      `,
-    )
-    .get(taskId, user.id) as StudySessionRow | undefined;
+  let session = await sessions.findOpenByTask(taskId, user.id);
 
   if (!session) {
-    const startedAt = nowIso();
-    const insertResult = db
-      .prepare(
-        `
-          INSERT INTO study_sessions (user_id, task_id, started_at, completed_at, duration_seconds, reflection, confusion, confidence)
-          VALUES (?, ?, ?, NULL, 0, NULL, NULL, NULL)
-        `,
-      )
-      .run(user.id, taskId, startedAt);
-
-    session = db
-      .prepare('SELECT * FROM study_sessions WHERE id = ?')
-      .get(Number(insertResult.lastInsertRowid)) as StudySessionRow;
+    session = await sessions.createOpenSession(taskId, user.id, nowIso());
   }
 
   if (task.status === 'pending') {
-    db.prepare('UPDATE tasks SET status = ? WHERE id = ?').run('in_progress', taskId);
+    await tasks.markInProgress(taskId, user.id);
   }
 
   res.json({ session });
 });
 
-tasksRouter.post('/:taskId/complete', (req, res) => {
-  const user = requireUser(req, res);
+tasksRouter.post('/:taskId/complete', async (req, res) => {
+  const user = await requireUser(req, res);
   if (!user) {
     return;
   }
 
   const taskId = Number(req.params.taskId);
-  const task = loadTaskForUser(taskId, user.id);
+  const { tasks, sessions, reviews } = getAppContext().repositories;
+  const task = await tasks.findByIdForUser(taskId, user.id);
 
   if (!task) {
     jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
@@ -109,69 +62,59 @@ tasksRouter.post('/:taskId/complete', (req, res) => {
   const durationSeconds = Math.max(0, Number(req.body?.durationSeconds ?? 0));
   const completedAt = nowIso();
 
-  const existingOpenSession = db
-    .prepare(
-      `
-        SELECT * FROM study_sessions
-        WHERE task_id = ? AND user_id = ? AND completed_at IS NULL
-        ORDER BY started_at DESC, id DESC
-        LIMIT 1
-      `,
-    )
-    .get(taskId, user.id) as StudySessionRow | undefined;
+  const existingOpenSession = await sessions.findOpenByTask(taskId, user.id);
 
   if (existingOpenSession) {
-    db.prepare(
-      `
-        UPDATE study_sessions
-        SET completed_at = ?, duration_seconds = ?, reflection = ?, confusion = ?, confidence = ?
-        WHERE id = ?
-      `,
-    ).run(completedAt, durationSeconds, reflection || null, confusion || null, confidence, existingOpenSession.id);
+    await sessions.completeTaskSession({
+      userId: user.id,
+      taskId,
+      reflection: reflection || null,
+      confusion: confusion || null,
+      confidence,
+      durationSeconds,
+      completedAt,
+    });
   } else {
-    db.prepare(
-      `
-        INSERT INTO study_sessions (user_id, task_id, started_at, completed_at, duration_seconds, reflection, confusion, confidence)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-    ).run(user.id, taskId, completedAt, completedAt, durationSeconds, reflection || null, confusion || null, confidence);
+    await sessions.createCompletedSession({
+      userId: user.id,
+      taskId,
+      reflection: reflection || null,
+      confusion: confusion || null,
+      confidence,
+      durationSeconds,
+      completedAt,
+    });
   }
 
-  db.prepare(
-    'UPDATE tasks SET status = ?, completed_at = ? WHERE id = ? AND user_id = ?',
-  ).run('completed', completedAt, taskId, user.id);
+  await tasks.markCompleted(taskId, user.id, completedAt);
 
   const { daysUntilReview, priority } = getReviewSchedule(confidence);
   const dueDate = addDays(new Date(), daysUntilReview).toISOString();
-  const existingReview = db
-    .prepare(
-      `
-        SELECT id FROM reviews
-        WHERE task_id = ? AND user_id = ?
-        ORDER BY id DESC
-        LIMIT 1
-      `,
-    )
-    .get(taskId, user.id) as { id: number } | undefined;
+  const existingReview = await reviews.findLatestForTask(taskId, user.id);
 
   if (existingReview) {
-    db.prepare(
-      'UPDATE reviews SET due_date = ?, priority = ?, status = ? WHERE id = ?',
-    ).run(dueDate, priority, 'pending', existingReview.id);
+    await reviews.updateById(existingReview.id, {
+      userId: user.id,
+      taskId,
+      dueDate,
+      priority,
+      status: 'pending',
+    });
   } else {
-    db.prepare(
-      `
-        INSERT INTO reviews (user_id, task_id, due_date, priority, status)
-        VALUES (?, ?, ?, ?, 'pending')
-      `,
-    ).run(user.id, taskId, dueDate, priority);
+    await reviews.create({
+      userId: user.id,
+      taskId,
+      dueDate,
+      priority,
+      status: 'pending',
+    });
   }
 
   res.json({ success: true });
 });
 
-tasksRouter.post('/:taskId/quick-action', (req, res) => {
-  const user = requireUser(req, res);
+tasksRouter.post('/:taskId/quick-action', async (req, res) => {
+  const user = await requireUser(req, res);
   if (!user) {
     return;
   }
@@ -188,24 +131,16 @@ tasksRouter.post('/:taskId/quick-action', (req, res) => {
     return;
   }
 
-  void (async () => {
-    const task = loadTaskForUser(taskId, user.id);
+  try {
+    const appContext = getAppContext();
+    const { tasks, goals, resources, quickActions, retrieval } = appContext.repositories;
+    const task = await tasks.findByIdForUser(taskId, user.id);
     if (!task) {
       jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
       return;
     }
 
-    const cachedRow = db
-      .prepare(
-        `
-          SELECT * FROM quick_actions
-          WHERE task_id = ? AND user_id = ? AND action = ?
-          ORDER BY updated_at DESC, id DESC
-          LIMIT 1
-        `,
-      )
-      .get(taskId, user.id, action) as QuickActionRow | undefined;
-
+    const cachedRow = await quickActions.findByTaskAndAction(taskId, user.id, action);
     if (cachedRow) {
       res.json({
         action: cachedRow.action,
@@ -216,60 +151,54 @@ tasksRouter.post('/:taskId/quick-action', (req, res) => {
       return;
     }
 
-    const goal = db
-      .prepare('SELECT title FROM goals WHERE id = ? AND user_id = ?')
-      .get(task.goal_id, user.id) as { title: string | null } | undefined;
-    const resources = loadTaskResources(taskId, user.id);
-    const content = await generateQuickActionContent({
+    const goal = await goals.getByIdForUser(task.goal_id, user.id);
+    const taskResources = await resources.getTaskResources(taskId, user.id);
+    const content = await appContext.agents.generateQuickAction({
       action,
       context: {
         taskTitle: task.title,
         taskDescription: task.description,
         goalTitle: goal?.title ?? null,
-        resources,
+        resources: taskResources,
       },
+    }, {
+      user,
+      task,
+      requestId: createRequestId(),
     });
 
     const timestamp = nowIso();
-    const insertResult = db
-      .prepare(
-        `
-          INSERT OR IGNORE INTO quick_actions (user_id, task_id, action, content, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `,
-      )
-      .run(user.id, taskId, action, content, timestamp, timestamp);
+    const storedRow = await quickActions.save({
+      userId: user.id,
+      taskId,
+      action,
+      content,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
 
-    if (insertResult.changes === 0) {
-      const existingRow = db
-        .prepare(
-          `
-            SELECT * FROM quick_actions
-            WHERE task_id = ? AND user_id = ? AND action = ?
-            ORDER BY updated_at DESC, id DESC
-            LIMIT 1
-          `,
-        )
-        .get(taskId, user.id, action) as QuickActionRow | undefined;
-
-      if (existingRow) {
-        res.json({
-          action: existingRow.action,
-          content: existingRow.content,
-          source: 'cache',
-          updatedAt: existingRow.updated_at,
-        });
-        return;
-      }
-    }
+    await retrieval.saveSource({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      sourceType: 'quick_action',
+      sourceId: String(storedRow.id),
+      content,
+      metadataJson: JSON.stringify({
+        taskId,
+        action,
+        goalId: task.goal_id,
+      }),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
 
     res.json({
       action,
       content,
       source: 'generated',
-      updatedAt: timestamp,
+      updatedAt: storedRow.updated_at,
     });
-  })().catch((error) => {
+  } catch (error) {
     if (error instanceof QuickActionGenerationError) {
       jsonError(res, 503, error.message, 'QUICK_ACTION_UNAVAILABLE');
       return;
@@ -277,5 +206,5 @@ tasksRouter.post('/:taskId/quick-action', (req, res) => {
 
     console.error('Quick action request failed.', error);
     jsonError(res, 500, 'Something went wrong while preparing your quick action.', 'QUICK_ACTION_FAILED');
-  });
+  }
 });

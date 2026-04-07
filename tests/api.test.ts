@@ -215,6 +215,39 @@ test('quick action endpoint validates action type and returns a service-unavaila
   });
 });
 
+test('workflow falls back to the legacy planner when AGENT_PROVIDER=adk is enabled but the ADK service is unavailable', async () => {
+  const server = await startServer({
+    AGENT_PROVIDER: 'adk',
+    ADK_SERVICE_URL: 'http://127.0.0.1:65534',
+  });
+  cleanupTasks.push(server.stop);
+  const token = await signupAndGetToken(server.baseUrl, 'adk-fallback@example.com');
+
+  const workflow = await request(
+    server.baseUrl,
+    '/api/agent/workflow',
+    {
+      goal: 'Learn system design',
+      level: 'Intermediate',
+      hours: 4,
+      preferredStyle: 'Mixed',
+      resourceMode: 'needs_plan',
+      resources: [],
+    },
+    token,
+  );
+
+  assert.equal(workflow.status, 201);
+
+  const data = await getData(server.baseUrl, token);
+  assert.equal(data.tasks.length, 3);
+  assert.ok(
+    data.notes.some((note: { content: string }) =>
+      note.content.includes('Planning mode: generated starting plan'),
+    ),
+  );
+});
+
 async function signupAndGetToken(baseUrl: string, email: string) {
   const signup = await request(baseUrl, '/api/auth/signup', {
     name: 'Test User',
@@ -247,7 +280,7 @@ async function request(baseUrl: string, route: string, body: unknown, token?: st
   });
 }
 
-async function startServer(): Promise<TestServer> {
+async function startServer(extraEnv: Record<string, string> = {}): Promise<TestServer> {
   const port = await getFreePort();
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'lpa-test-'));
   const databaseFile = path.join(tempDir, 'app.db');
@@ -258,6 +291,7 @@ async function startServer(): Promise<TestServer> {
       NODE_ENV: 'test',
       PORT: String(port),
       DATABASE_FILE: databaseFile,
+      ...extraEnv,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

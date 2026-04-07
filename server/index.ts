@@ -1,15 +1,16 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import { migrateDatabase } from './db.ts';
+import { env } from './config/env.ts';
+import { initializeAppContext } from './appContext.ts';
 import { authRouter } from './routes/auth.ts';
 import { dataRouter } from './routes/data.ts';
 import { workflowRouter } from './routes/workflow.ts';
 import { tasksRouter } from './routes/tasks.ts';
 
-migrateDatabase();
-
 export async function startServer() {
+  await initializeAppContext();
+
   const app = express();
   app.use(express.json());
 
@@ -31,8 +32,7 @@ export async function startServer() {
     });
   }
 
-  const port = Number(process.env.PORT ?? 3000);
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port ${port}`);
+  app.listen(env.port, '0.0.0.0', () => {
+    console.log(`Server running on port ${env.port}`);
   });
 }

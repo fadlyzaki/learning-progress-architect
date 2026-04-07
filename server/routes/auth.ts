@@ -1,14 +1,13 @@
 import crypto from 'crypto';
 import { Router } from 'express';
-import { db } from '../db.ts';
+import { getAppContext } from '../appContext.ts';
 import { jsonError } from '../utils/http.ts';
 import { nowIso } from '../utils/date.ts';
 import { normalizeEmail, hashPassword, verifyPassword, createSessionToken } from '../services/authService.ts';
-import type { UserRow } from '../types.ts';
 
 export const authRouter = Router();
 
-authRouter.post('/signup', (req, res) => {
+authRouter.post('/signup', async (req, res) => {
   const name = String(req.body?.name ?? '').trim();
   const email = normalizeEmail(String(req.body?.email ?? ''));
   const password = String(req.body?.password ?? '');
@@ -23,8 +22,9 @@ authRouter.post('/signup', (req, res) => {
     return;
   }
 
-  const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: string } | undefined;
-  if (existingUser) {
+  const { authSessions } = getAppContext().repositories;
+  const existingUserId = await authSessions.findUserIdByEmail(email);
+  if (existingUserId) {
     jsonError(res, 409, 'An account with that email already exists.', 'EMAIL_IN_USE');
     return;
   }
@@ -33,11 +33,21 @@ authRouter.post('/signup', (req, res) => {
   const createdAt = nowIso();
   const passwordHash = hashPassword(password);
 
-  db.prepare(
-    'INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?)',
-  ).run(userId, name, email, passwordHash, createdAt);
+  await authSessions.createUser({
+    id: userId,
+    name,
+    email,
+    passwordHash,
+    createdAt,
+  });
 
-  const token = createSessionToken(userId);
+  const token = createSessionToken();
+  await authSessions.createSession({
+    token,
+    userId,
+    createdAt,
+  });
+
   res.status(201).json({
     token,
     user: {
@@ -49,20 +59,24 @@ authRouter.post('/signup', (req, res) => {
   });
 });
 
-authRouter.post('/login', (req, res) => {
+authRouter.post('/login', async (req, res) => {
   const email = normalizeEmail(String(req.body?.email ?? ''));
   const password = String(req.body?.password ?? '');
+  const { authSessions } = getAppContext().repositories;
 
-  const user = db
-    .prepare('SELECT id, name, email, password_hash, created_at FROM users WHERE email = ?')
-    .get(email) as (UserRow & { password_hash: string }) | undefined;
+  const user = await authSessions.findUserByEmail(email);
 
   if (!user || !verifyPassword(password, user.password_hash)) {
     jsonError(res, 401, 'Incorrect email or password.', 'INVALID_CREDENTIALS');
     return;
   }
 
-  const token = createSessionToken(user.id);
+  const token = createSessionToken();
+  await authSessions.createSession({
+    token,
+    userId: user.id,
+    createdAt: nowIso(),
+  });
   res.json({
     token,
     user: {

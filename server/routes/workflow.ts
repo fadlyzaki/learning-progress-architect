@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getAppContext } from '../appContext.ts';
 import { requireUser } from '../middleware/auth.ts';
 import { jsonError } from '../utils/http.ts';
 import { normalizeResourceMode, sanitizeResourceInput } from '../utils/validation.ts';
@@ -7,7 +8,7 @@ import { runWorkflow } from '../services/workflowService.ts';
 export const workflowRouter = Router();
 
 workflowRouter.post('/', async (req, res) => {
-  const user = requireUser(req, res);
+  const user = await requireUser(req, res);
   if (!user) {
     return;
   }
@@ -36,7 +37,8 @@ workflowRouter.post('/', async (req, res) => {
       return;
     }
 
-    const { goalId } = await runWorkflow(user, {
+    const appContext = getAppContext();
+    const { goalId } = await runWorkflow(appContext.repositories, appContext.agents, user, {
       goal,
       level,
       hours,

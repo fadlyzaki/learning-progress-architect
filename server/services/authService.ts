@@ -1,6 +1,4 @@
 import crypto from 'crypto';
-import { db } from '../db.ts';
-import { nowIso } from '../utils/date.ts';
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -27,9 +25,6 @@ export function verifyPassword(password: string, storedHash: string) {
   );
 }
 
-export function createSessionToken(userId: string) {
-  const token = crypto.randomUUID();
-  db.prepare('INSERT INTO auth_sessions (token, user_id, created_at) VALUES (?, ?, ?)')
-    .run(token, userId, nowIso());
-  return token;
+export function createSessionToken() {
+  return crypto.randomUUID();
 }

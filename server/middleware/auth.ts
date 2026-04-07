@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { db } from '../db.ts';
+import { getAppContext } from '../appContext.ts';
 import { jsonError } from '../utils/http.ts';
 import type { UserRow } from '../types.ts';
 
@@ -13,28 +13,17 @@ export function getBearerToken(req: Request) {
   return authHeader.slice('Bearer '.length).trim();
 }
 
-export function getAuthenticatedUser(req: Request): UserRow | null {
+export async function getAuthenticatedUser(req: Request): Promise<UserRow | null> {
   const token = getBearerToken(req);
   if (!token) {
     return null;
   }
 
-  const user = db
-    .prepare(
-      `
-        SELECT users.id, users.name, users.email, users.created_at
-        FROM auth_sessions
-        INNER JOIN users ON users.id = auth_sessions.user_id
-        WHERE auth_sessions.token = ?
-      `,
-    )
-    .get(token) as UserRow | undefined;
-
-  return user ?? null;
+  return getAppContext().repositories.authSessions.getUserByToken(token);
 }
 
-export function requireUser(req: Request, res: Response) {
-  const user = getAuthenticatedUser(req);
+export async function requireUser(req: Request, res: Response) {
+  const user = await getAuthenticatedUser(req);
   if (!user) {
     jsonError(res, 401, 'Your session has expired. Please sign in again.', 'AUTH_REQUIRED');
     return null;

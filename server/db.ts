@@ -128,6 +128,49 @@ export function migrateDatabase() {
       UNIQUE(user_id, task_id, action),
       FOREIGN KEY(task_id) REFERENCES tasks(id)
     );
+
+    CREATE TABLE IF NOT EXISTS agent_runs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      kind TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      status TEXT NOT NULL,
+      request_id TEXT NOT NULL,
+      metadata_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS agent_run_events (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL,
+      level TEXT NOT NULL,
+      message TEXT NOT NULL,
+      payload_json TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(run_id) REFERENCES agent_runs(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS retrieval_sources (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      source_type TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      metadata_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS document_embeddings (
+      id TEXT PRIMARY KEY,
+      retrieval_source_id TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      embedding_model TEXT NOT NULL,
+      embedding TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(retrieval_source_id) REFERENCES retrieval_sources(id)
+    );
   `);
 
   ensureColumn('goals', 'user_id TEXT');
