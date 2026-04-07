@@ -476,6 +476,9 @@ export function SessionPage() {
               <CardDescription className="text-base leading-relaxed">
                 {t('session.quickActionsBody')}
               </CardDescription>
+              <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+                {t('session.quickActionsHelper')}
+              </p>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
               {SESSION_QUICK_ACTIONS.map((action) => (
@@ -483,6 +486,13 @@ export function SessionPage() {
                   <QuickActionRow
                     icon={action.icon}
                     label={t(action.label)}
+                    stateLabel={
+                      quickActionLoading[action.kind]
+                        ? t('session.actionLoading')
+                        : quickActionState[action.kind]
+                          ? t('session.actionGenerated')
+                          : t('session.actionNotGenerated')
+                    }
                     ctaLabel={quickActionState[action.kind] ? t('session.actionView') : t('session.actionGenerate')}
                     isLoading={quickActionLoading[action.kind]}
                     onClick={() => void handleQuickAction(action.kind)}
@@ -647,12 +657,14 @@ function StudyMaterialCard({
 function QuickActionRow({
   icon,
   label,
+  stateLabel,
   ctaLabel,
   isLoading,
   onClick,
 }: {
   icon: ReactNode;
   label: string;
+  stateLabel: string;
   ctaLabel: string;
   isLoading: boolean;
   onClick: () => void;
@@ -662,15 +674,18 @@ function QuickActionRow({
       aria-disabled="true"
       className="app-list-row-quiet flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left opacity-76"
     >
-      <div className="flex items-center gap-3 text-sm text-[var(--text-primary)]">
-        {icon}
-        <span>{label}</span>
+      <div className="flex min-w-0 items-center gap-3 text-sm text-[var(--text-primary)]">
+        <div className="shrink-0">{icon}</div>
+        <div className="min-w-0">
+          <div className="font-medium text-[var(--text-primary)]">{label}</div>
+          <div className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">{stateLabel}</div>
+        </div>
       </div>
       <Button variant="outline" size="sm" className="min-w-24" onClick={onClick} disabled={isLoading}>
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Working
+            {stateLabel}
           </>
         ) : (
           ctaLabel
