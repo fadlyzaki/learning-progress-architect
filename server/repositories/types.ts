@@ -190,9 +190,16 @@ export interface WorkflowPlanner {
   }>>;
 }
 
+export type StudyCoachQuickActionResult = {
+  content: string;
+  source: 'generated' | 'cache';
+  updatedAt: string | null;
+  persisted: boolean;
+};
+
 export interface StudyCoach {
   generateQuickAction(input: {
     action: QuickActionKind;
     context: QuickActionContext;
-  }, context: { user: UserRow; task: TaskRow; requestId: string }): Promise<string>;
+  }, context: { user: UserRow; task: TaskRow; requestId: string }): Promise<StudyCoachQuickActionResult>;
 }

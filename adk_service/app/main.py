@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import os
+import json
 from typing import Any
 
 import httpx
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 
 class ReferencePayload(BaseModel):
@@ -19,7 +21,7 @@ class WorkflowTaskPayload(BaseModel):
     title: str
     description: str
     searchQuery: str
-    references: list[ReferencePayload] = []
+    references: list[ReferencePayload] = Field(default_factory=list)
 
 
 class WorkflowPlanInput(BaseModel):
@@ -27,7 +29,7 @@ class WorkflowPlanInput(BaseModel):
     level: str
     preferredStyle: str | None = None
     resourceMode: str
-    resources: list[dict[str, Any]] = []
+    resources: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class WorkflowRequestContext(BaseModel):
@@ -44,7 +46,7 @@ class QuickActionContext(BaseModel):
     taskTitle: str
     taskDescription: str
     goalTitle: str | None = None
-    resources: list[dict[str, Any]] = []
+    resources: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class QuickActionInput(BaseModel):
@@ -70,6 +72,50 @@ def mcp_base_url() -> str:
     return os.environ.get("MCP_BASE_URL", "http://127.0.0.1:3101")
 
 
+def internal_service_token() -> str:
+    token = os.environ.get("INTERNAL_SERVICE_TOKEN", "").strip()
+    if not token:
+        raise HTTPException(status_code=503, detail="INTERNAL_SERVICE_TOKEN is not configured.")
+    return token
+
+
+@app.middleware("http")
+async def require_internal_service_auth(request: Request, call_next):
+    if request.url.path == "/healthz":
+        return await call_next(request)
+
+    expected_token = os.environ.get("INTERNAL_SERVICE_TOKEN", "").strip()
+    if not expected_token:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "INTERNAL_SERVICE_TOKEN is not configured."},
+        )
+
+    token = request.headers.get("x-internal-service-token", "").strip()
+    if token != expected_token:
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Internal service authentication failed."},
+        )
+
+    return await call_next(request)
+
+
+def parse_streamable_http_payload(raw_text: str) -> dict[str, Any]:
+    data_lines: list[str] = []
+    for line in raw_text.splitlines():
+        if line.startswith("data: "):
+            data_lines.append(line[6:])
+
+    for line in reversed(data_lines):
+        try:
+            return json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+    raise HTTPException(status_code=502, detail="MCP returned an unreadable event stream response.")
+
+
 async def call_mcp_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     # This is a lightweight MCP-over-HTTP bridge for the internal tool layer.
     # It is intentionally simple for v1 so the Express app remains the trusted
@@ -85,12 +131,37 @@ async def call_mcp_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(f"{mcp_base_url()}/mcp", json=payload)
+        response = await client.post(
+            f"{mcp_base_url()}/mcp",
+            json=payload,
+            headers={
+                "Accept": "application/json, text/event-stream",
+                "x-internal-service-token": internal_service_token(),
+            },
+        )
         response.raise_for_status()
-        data = response.json()
+        if "text/event-stream" in response.headers.get("content-type", ""):
+            data = parse_streamable_http_payload(response.text)
+        else:
+            data = response.json()
         if "error" in data:
-          raise HTTPException(status_code=502, detail=f"MCP tool call failed: {data['error']}")
+            raise HTTPException(status_code=502, detail=f"MCP tool call failed: {data['error']}")
         return data
+
+
+def parse_mcp_payload(result: dict[str, Any]) -> Any:
+    content = result.get("result", {}).get("content", [])
+    if not content:
+        return None
+
+    text = content[0].get("text")
+    if text is None:
+        return None
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return text
 
 
 def fallback_workflow_plan(request: WorkflowPlanRequest) -> list[WorkflowTaskPayload]:
@@ -126,6 +197,57 @@ def fallback_quick_action(request: QuickActionRequest) -> str:
     return f"{task_title} is the concept for this step. Its purpose is to help the learner understand what problem this task solves and why it matters."
 
 
+async def enrich_workflow_references(tasks: list[WorkflowTaskPayload]) -> list[WorkflowTaskPayload]:
+    enriched: list[WorkflowTaskPayload] = []
+    for task in tasks:
+        references: list[ReferencePayload] = []
+        try:
+            result = await call_mcp_tool(
+                "search_learning_resources",
+                {"query": task.searchQuery, "maxResults": 3},
+            )
+            payload = parse_mcp_payload(result) or []
+            references = [ReferencePayload(**item) for item in payload]
+        except Exception:
+            references = []
+
+        enriched.append(
+            WorkflowTaskPayload(
+                title=task.title,
+                description=task.description,
+                searchQuery=task.searchQuery,
+                references=references,
+            )
+        )
+
+    return enriched
+
+
+def merge_quick_action_context(
+    request: QuickActionRequest,
+    task_context_payload: dict[str, Any] | None,
+) -> QuickActionRequest:
+    if not task_context_payload:
+        return request
+
+    task = task_context_payload.get("task") or {}
+    goal = task_context_payload.get("goal") or {}
+    resources = task_context_payload.get("resources") or []
+
+    return QuickActionRequest(
+        input=QuickActionInput(
+            action=request.input.action,
+            context=QuickActionContext(
+                taskTitle=task.get("title") or request.input.context.taskTitle,
+                taskDescription=task.get("description") or request.input.context.taskDescription,
+                goalTitle=goal.get("title") or request.input.context.goalTitle,
+                resources=resources if isinstance(resources, list) else request.input.context.resources,
+            ),
+        ),
+        context=request.context,
+    )
+
+
 @app.get("/healthz")
 async def healthcheck():
     return {"ok": True}
@@ -133,12 +255,55 @@ async def healthcheck():
 
 @app.post("/workflow/plan")
 async def workflow_plan(request: WorkflowPlanRequest):
-    # The Python ADK service is scaffolded as the future reasoning layer.
-    # In this repo version we keep a deterministic fallback so the endpoint
-    # remains usable even before full ADK orchestration is wired.
-    return fallback_workflow_plan(request)
+    tasks = fallback_workflow_plan(request)
+    return await enrich_workflow_references(tasks)
 
 
 @app.post("/study-coach/quick-action")
 async def study_coach_quick_action(request: QuickActionRequest):
-    return {"content": fallback_quick_action(request)}
+    cached_result = await call_mcp_tool(
+        "get_cached_quick_action",
+        {
+            "userId": request.context.user["id"],
+            "taskId": request.context.task["id"],
+            "action": request.input.action,
+        },
+    )
+    cached_payload = parse_mcp_payload(cached_result) or {}
+    cached_quick_action = cached_payload.get("quickAction")
+    if cached_quick_action:
+        return {
+            "content": cached_quick_action["content"],
+            "source": "cache",
+            "updatedAt": cached_quick_action.get("updated_at"),
+            "persisted": True,
+        }
+
+    task_context_result = await call_mcp_tool(
+        "get_task_context",
+        {
+            "userId": request.context.user["id"],
+            "taskId": request.context.task["id"],
+        },
+    )
+    task_context_payload = parse_mcp_payload(task_context_result)
+    hydrated_request = merge_quick_action_context(request, task_context_payload)
+
+    content = fallback_quick_action(hydrated_request)
+
+    saved_result = await call_mcp_tool(
+        "save_quick_action",
+        {
+            "userId": request.context.user["id"],
+            "taskId": request.context.task["id"],
+            "action": request.input.action,
+            "content": content,
+        },
+    )
+    saved_payload = parse_mcp_payload(saved_result) or {}
+    return {
+        "content": content,
+        "source": "generated",
+        "updatedAt": saved_payload.get("updated_at"),
+        "persisted": True,
+    }

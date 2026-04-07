@@ -1,4 +1,4 @@
-import { requireAdkServiceUrl } from '../../config/env.ts';
+import { getInternalServiceHeaders, requireAdkServiceUrl } from '../../config/env.ts';
 import type { WorkflowPlanner } from '../../repositories/types.ts';
 
 export const adkWorkflowPlanner: WorkflowPlanner = {
@@ -7,6 +7,7 @@ export const adkWorkflowPlanner: WorkflowPlanner = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getInternalServiceHeaders(),
       },
       body: JSON.stringify({
         input,

@@ -7,6 +7,7 @@ import { authRouter } from './routes/auth.ts';
 import { dataRouter } from './routes/data.ts';
 import { workflowRouter } from './routes/workflow.ts';
 import { tasksRouter } from './routes/tasks.ts';
+import { internalMcpRouter } from './routes/internalMcp.ts';
 
 export async function startServer() {
   await initializeAppContext();
@@ -14,10 +15,15 @@ export async function startServer() {
   const app = express();
   app.use(express.json());
 
+  app.get('/healthz', (_req, res) => {
+    res.json({ ok: true });
+  });
+
   app.use('/api/auth', authRouter);
   app.use('/api/data', dataRouter);
   app.use('/api/agent/workflow', workflowRouter);
   app.use('/api/tasks', tasksRouter);
+  app.use('/internal/mcp', internalMcpRouter);
 
   if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
     const vite = await createViteServer({

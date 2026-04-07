@@ -107,6 +107,8 @@ npm run build
 
 ## Deploy to Google Cloud Run
 
+For the current three-service demo rollout (`web -> ADK -> MCP`) with SQLite still in place, use [docs/cloud-run-demo-production.md](/Users/fadly.zaki/Downloads/learning-progress-architect/docs/cloud-run-demo-production.md).
+
 ### Prerequisites
 
 - [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) (`gcloud`) installed and authenticated
@@ -159,9 +161,17 @@ export TAG=v2                  # optional, defaults to latest
 |---|---|
 | `make run` | Start the app locally (`npm run dev`) |
 | `make build` | Build the image in Cloud Build and push it to Artifact Registry |
+| `make build-mcp` | Build the MCP image in Cloud Build |
+| `make build-adk` | Build the ADK image in Cloud Build |
 | `make push` | Alias for `make build` |
 | `make build-push` | Alias for `make build` |
 | `make deploy` | Deploy the Artifact Registry image to Cloud Run |
+| `make deploy-mcp` | Deploy the MCP image to Cloud Run |
+| `make deploy-adk` | Deploy the ADK image to Cloud Run |
+| `make deploy-demo-web` | Deploy the public web app in SQLite demo mode |
+| `make deploy-demo-mcp` | Deploy the internal MCP service for the demo stack |
+| `make deploy-demo-adk` | Deploy the internal ADK service for the demo stack |
+| `make deploy-demo-web-adk` | Switch the public app from legacy mode to ADK mode |
 | `make docker-build-local` | Build the production Docker image locally |
 | `make docker-run-local` | Build and run the production Docker image locally on port 3000 |
 
@@ -172,10 +182,13 @@ If `.env.local` exists, `make docker-run-local` passes it to the container autom
 ### Required for AI generation
 
 - `GEMINI_API_KEY`: used for Gemini syllabus generation
+- `INTERNAL_SERVICE_TOKEN`: shared token for `web -> ADK -> MCP -> web internal routes`
 
 ### Current behavior if missing
 
 If `GEMINI_API_KEY` is not set, the server still works and falls back to a local syllabus generator so onboarding can continue without the external AI dependency.
+
+If `INTERNAL_SERVICE_TOKEN` is not set, the MCP-backed production path cannot authenticate service-to-service requests.
 
 ## Repo Structure
 
@@ -196,10 +209,9 @@ If `GEMINI_API_KEY` is not set, the server still works and falls back to a local
 ## Current Limitations
 
 - Authentication is implemented with local session token storage in the browser
-- SQLite is used for local persistence and has not been replaced with a production database yet
+- SQLite is still the temporary demo persistence layer and is not durable on Cloud Run
 - Error handling is functional but still lightweight in several flows
-- There is no automated test suite yet
-- There is no production cloud deployment implementation yet
+- The MCP + ADK Cloud Run demo path is available, but AlloyDB is still the next step for durable multi-user storage
 
 ## Development Notes
 

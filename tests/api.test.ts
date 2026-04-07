@@ -11,6 +11,11 @@ type TestServer = {
   stop: () => Promise<void>;
 };
 
+type BackgroundProcess = {
+  baseUrl: string;
+  stop: () => Promise<void>;
+};
+
 const cleanupTasks: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
@@ -248,6 +253,122 @@ test('workflow falls back to the legacy planner when AGENT_PROVIDER=adk is enabl
   );
 });
 
+test('internal MCP app routes require the shared service token', async () => {
+  const server = await startServer({
+    INTERNAL_SERVICE_TOKEN: 'shared-secret',
+  });
+  cleanupTasks.push(server.stop);
+
+  const token = await signupAndGetToken(server.baseUrl, 'internal-auth@example.com');
+  const data = await getData(server.baseUrl, token);
+
+  const missingTokenResponse = await fetch(`${server.baseUrl}/internal/mcp/workspace`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      userId: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      createdAt: data.user.created_at,
+    }),
+  });
+  assert.equal(missingTokenResponse.status, 401);
+  assert.deepEqual(await missingTokenResponse.json(), {
+    error: 'Internal service authentication failed.',
+    code: 'INTERNAL_SERVICE_AUTH_FAILED',
+  });
+
+  const validTokenResponse = await fetch(`${server.baseUrl}/internal/mcp/workspace`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-service-token': 'shared-secret',
+    },
+    body: JSON.stringify({
+      userId: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      createdAt: data.user.created_at,
+    }),
+  });
+  assert.equal(validTokenResponse.status, 200);
+  const workspace = await validTokenResponse.json() as { user: { id: string } };
+  assert.equal(workspace.user.id, data.user.id);
+});
+
+test('MCP server proxies app-owned quick action reads and writes through internal routes', async () => {
+  const sharedToken = 'shared-secret';
+  const server = await startServer({
+    INTERNAL_SERVICE_TOKEN: sharedToken,
+  });
+  cleanupTasks.push(server.stop);
+
+  const token = await signupAndGetToken(server.baseUrl, 'mcp-proxy@example.com');
+  const workflow = await request(
+    server.baseUrl,
+    '/api/agent/workflow',
+    {
+      goal: 'Learn TypeScript architecture',
+      level: 'Intermediate',
+      hours: 4,
+      preferredStyle: 'Mixed',
+      resourceMode: 'needs_plan',
+      resources: [],
+    },
+    token,
+  );
+  assert.equal(workflow.status, 201);
+
+  const data = await getData(server.baseUrl, token);
+  const firstTask = data.tasks[0];
+  const mcp = await startMcp({
+    APP_BASE_URL: server.baseUrl,
+    INTERNAL_SERVICE_TOKEN: sharedToken,
+  });
+  cleanupTasks.push(mcp.stop);
+
+  const unauthorized = await fetch(`${mcp.baseUrl}/mcp`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json, text/event-stream',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'unauthorized',
+      method: 'tools/call',
+      params: {
+        name: 'get_cached_quick_action',
+        arguments: {
+          userId: data.user.id,
+          taskId: firstTask.id,
+          action: 'explain',
+        },
+      },
+    }),
+  });
+  assert.equal(unauthorized.status, 401);
+
+  const savedQuickAction = await callMcpTool(mcp.baseUrl, sharedToken, 'save_quick_action', {
+    userId: data.user.id,
+    taskId: firstTask.id,
+    action: 'explain',
+    content: 'A saved explanation from MCP.',
+  }) as { content: string; action: string };
+  assert.equal(savedQuickAction.action, 'explain');
+  assert.equal(savedQuickAction.content, 'A saved explanation from MCP.');
+
+  const cachedQuickActionPayload = await callMcpTool(mcp.baseUrl, sharedToken, 'get_cached_quick_action', {
+    userId: data.user.id,
+    taskId: firstTask.id,
+    action: 'explain',
+  }) as { quickAction: { content: string; action: string } | null };
+  assert.equal(cachedQuickActionPayload.quickAction?.action, 'explain');
+  assert.equal(cachedQuickActionPayload.quickAction?.content, 'A saved explanation from MCP.');
+});
+
 async function signupAndGetToken(baseUrl: string, email: string) {
   const signup = await request(baseUrl, '/api/auth/signup', {
     name: 'Test User',
@@ -311,15 +432,103 @@ async function startServer(extraEnv: Record<string, string> = {}): Promise<TestS
   };
 }
 
+async function startMcp(extraEnv: Record<string, string> = {}): Promise<BackgroundProcess> {
+  const port = await getFreePort();
+  const child = spawn('npm', ['run', 'mcp:dev'], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      MCP_PORT: String(port),
+      ...extraEnv,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  await waitForOutput(child, `Internal MCP server listening on port ${port}`, 15000);
+
+  return {
+    baseUrl: `http://127.0.0.1:${port}`,
+    stop: async () => {
+      if (!child.killed) {
+        child.kill('SIGTERM');
+      }
+
+      await onceExit(child);
+    },
+  };
+}
+
+async function callMcpTool(baseUrl: string, token: string, name: string, argumentsPayload: Record<string, unknown>) {
+  const response = await fetch(`${baseUrl}/mcp`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json, text/event-stream',
+      'Content-Type': 'application/json',
+      'x-internal-service-token': token,
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: `${name}-call`,
+      method: 'tools/call',
+      params: {
+        name,
+        arguments: argumentsPayload,
+      },
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  const rawBody = await response.text();
+  const payload = parseMcpResponse(rawBody) as {
+    error?: unknown;
+    result?: {
+      content?: Array<{
+        text?: string;
+      }>;
+    };
+  };
+  assert.equal(payload.error, undefined);
+  const text = payload.result?.content?.[0]?.text;
+  assert.ok(text);
+  return JSON.parse(text);
+}
+
+function parseMcpResponse(rawBody: string) {
+  const trimmed = rawBody.trim();
+  if (trimmed.startsWith('{')) {
+    return JSON.parse(trimmed);
+  }
+
+  const dataLines = trimmed
+    .split('\n')
+    .filter((line) => line.startsWith('data: '))
+    .map((line) => line.slice(6));
+
+  for (let index = dataLines.length - 1; index >= 0; index -= 1) {
+    try {
+      return JSON.parse(dataLines[index]);
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error(`Unable to parse MCP response: ${rawBody}`);
+}
+
 function waitForServer(child: ChildProcessWithoutNullStreams, port: number) {
+  return waitForOutput(child, `Server running on port ${port}`, 15000);
+}
+
+function waitForOutput(child: ChildProcessWithoutNullStreams, expectedText: string, timeoutMs: number) {
   return new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error(`Timed out waiting for test server on port ${port}.`));
-    }, 15000);
+      reject(new Error(`Timed out waiting for process output: ${expectedText}`));
+    }, timeoutMs);
 
     const handleOutput = (chunk: Buffer) => {
       const text = chunk.toString();
-      if (text.includes(`Server running on port ${port}`)) {
+      if (text.includes(expectedText)) {
         clearTimeout(timer);
         child.stdout.off('data', handleOutput);
         child.stderr.off('data', handleOutput);

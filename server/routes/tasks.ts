@@ -153,7 +153,7 @@ tasksRouter.post('/:taskId/quick-action', async (req, res) => {
 
     const goal = await goals.getByIdForUser(task.goal_id, user.id);
     const taskResources = await resources.getTaskResources(taskId, user.id);
-    const content = await appContext.agents.generateQuickAction({
+    const quickActionResult = await appContext.agents.generateQuickAction({
       action,
       context: {
         taskTitle: task.title,
@@ -167,36 +167,42 @@ tasksRouter.post('/:taskId/quick-action', async (req, res) => {
       requestId: createRequestId(),
     });
 
-    const timestamp = nowIso();
-    const storedRow = await quickActions.save({
-      userId: user.id,
-      taskId,
-      action,
-      content,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
+    let updatedAt = quickActionResult.updatedAt;
 
-    await retrieval.saveSource({
-      id: crypto.randomUUID(),
-      userId: user.id,
-      sourceType: 'quick_action',
-      sourceId: String(storedRow.id),
-      content,
-      metadataJson: JSON.stringify({
+    if (!quickActionResult.persisted) {
+      const timestamp = nowIso();
+      const storedRow = await quickActions.save({
+        userId: user.id,
         taskId,
         action,
-        goalId: task.goal_id,
-      }),
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
+        content: quickActionResult.content,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+
+      await retrieval.saveSource({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        sourceType: 'quick_action',
+        sourceId: String(storedRow.id),
+        content: quickActionResult.content,
+        metadataJson: JSON.stringify({
+          taskId,
+          action,
+          goalId: task.goal_id,
+        }),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+
+      updatedAt = storedRow.updated_at;
+    }
 
     res.json({
       action,
-      content,
-      source: 'generated',
-      updatedAt: storedRow.updated_at,
+      content: quickActionResult.content,
+      source: quickActionResult.source,
+      updatedAt,
     });
   } catch (error) {
     if (error instanceof QuickActionGenerationError) {

@@ -22,6 +22,11 @@ export const env = {
   databaseUrl: process.env.DATABASE_URL ?? '',
   agentProvider: normalizeAgentProvider(process.env.AGENT_PROVIDER),
   adkServiceUrl: process.env.ADK_SERVICE_URL ?? '',
+  appBaseUrl:
+    process.env.APP_BASE_URL ||
+    process.env.APP_URL ||
+    `http://127.0.0.1:${readNumber(process.env.PORT, 3000)}`,
+  internalServiceToken: process.env.INTERNAL_SERVICE_TOKEN ?? '',
   mcpBaseUrl:
     process.env.MCP_BASE_URL ||
     `http://127.0.0.1:${readNumber(process.env.MCP_PORT, 3101)}`,
@@ -46,4 +51,26 @@ export function requireAdkServiceUrl() {
   }
 
   return env.adkServiceUrl;
+}
+
+export function requireAppBaseUrl() {
+  if (!env.appBaseUrl) {
+    throw new Error('APP_BASE_URL is required for internal service communication.');
+  }
+
+  return env.appBaseUrl;
+}
+
+export function requireInternalServiceToken() {
+  if (!env.internalServiceToken) {
+    throw new Error('INTERNAL_SERVICE_TOKEN is required for internal service communication.');
+  }
+
+  return env.internalServiceToken;
+}
+
+export function getInternalServiceHeaders() {
+  return {
+    'x-internal-service-token': requireInternalServiceToken(),
+  };
 }

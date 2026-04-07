@@ -4,6 +4,7 @@ import { nowIso } from '../utils/date.ts';
 import type {
   AppRepositories,
   StudyCoach,
+  StudyCoachQuickActionResult,
   WorkflowPlanner,
   WorkflowPlannerInput,
 } from '../repositories/types.ts';
@@ -115,9 +116,9 @@ export function createAgentRuntime(repositories: AppRepositories) {
       });
 
       try {
-        let content;
+        let result: StudyCoachQuickActionResult;
         try {
-          content = await selectStudyCoach(provider).generateQuickAction(input, context);
+          result = await selectStudyCoach(provider).generateQuickAction(input, context);
         } catch (error) {
           if (provider !== 'adk') {
             throw error;
@@ -131,14 +132,14 @@ export function createAgentRuntime(repositories: AppRepositories) {
             payloadJson: JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
             createdAt: nowIso(),
           });
-          content = await legacyStudyCoach.generateQuickAction(input, context);
+          result = await legacyStudyCoach.generateQuickAction(input, context);
         }
         await repositories.agentRuns.appendEvent({
           id: crypto.randomUUID(),
           runId,
           level: 'info',
           message: 'Study coach generated quick action content.',
-          payloadJson: JSON.stringify({ length: content.length }),
+          payloadJson: JSON.stringify({ length: result.content.length, source: result.source }),
           createdAt: nowIso(),
         });
         await repositories.agentRuns.updateRunStatus({
@@ -146,7 +147,7 @@ export function createAgentRuntime(repositories: AppRepositories) {
           status: 'completed',
           updatedAt: nowIso(),
         });
-        return content;
+        return result;
       } catch (error) {
         await repositories.agentRuns.appendEvent({
           id: crypto.randomUUID(),

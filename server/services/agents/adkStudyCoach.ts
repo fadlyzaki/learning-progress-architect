@@ -1,4 +1,4 @@
-import { requireAdkServiceUrl } from '../../config/env.ts';
+import { getInternalServiceHeaders, requireAdkServiceUrl } from '../../config/env.ts';
 import type { StudyCoach } from '../../repositories/types.ts';
 
 export const adkStudyCoach: StudyCoach = {
@@ -7,6 +7,7 @@ export const adkStudyCoach: StudyCoach = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getInternalServiceHeaders(),
       },
       body: JSON.stringify({
         input,
@@ -22,7 +23,17 @@ export const adkStudyCoach: StudyCoach = {
       throw new Error(`ADK study coach returned ${response.status}.`);
     }
 
-    const payload = await response.json() as { content: string };
-    return payload.content;
+    const payload = await response.json() as {
+      content: string;
+      source?: 'generated' | 'cache';
+      updatedAt?: string | null;
+      persisted?: boolean;
+    };
+    return {
+      content: payload.content,
+      source: payload.source ?? 'generated',
+      updatedAt: payload.updatedAt ?? null,
+      persisted: payload.persisted ?? false,
+    };
   },
 };

@@ -1,13 +1,18 @@
-import crypto from 'crypto';
 import * as z from 'zod/v4';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { env } from '../config/env.ts';
-import { getAppContext, initializeAppContext } from '../appContext.ts';
-import { buildEventSchedule, buildPlanSummary, buildResourceNote } from '../services/syllabusService.ts';
 import { searchLearningResources } from '../services/searchService.ts';
-import { addDays, nowIso } from '../utils/date.ts';
+import {
+  fetchCachedQuickAction,
+  fetchTaskContext,
+  fetchWorkspaceSnapshot,
+  isInternalServiceRequestAuthorized,
+  persistQuickAction,
+  persistWorkflowRecords,
+  scheduleReview,
+} from './appApiClient.ts';
 
 function toTextContent(payload: unknown) {
   return {
@@ -35,12 +40,7 @@ function createServer() {
       createdAt: z.string(),
     },
   }, async ({ userId, name, email, createdAt }) => {
-    const snapshot = await getAppContext().repositories.workspace.getWorkspaceData({
-      id: userId,
-      name,
-      email,
-      created_at: createdAt,
-    });
+    const snapshot = await fetchWorkspaceSnapshot({ userId, name, email, createdAt });
     return toTextContent(snapshot);
   });
 
@@ -51,26 +51,7 @@ function createServer() {
       taskId: z.number(),
     },
   }, async ({ userId, taskId }) => {
-    const { tasks, goals, resources, quickActions } = getAppContext().repositories;
-    const task = await tasks.findByIdForUser(taskId, userId);
-    if (!task) {
-      throw new Error('Task not found.');
-    }
-
-    const goal = await goals.getByIdForUser(task.goal_id, userId);
-    const taskResources = await resources.getTaskResources(taskId, userId);
-    const cachedQuickActions = await Promise.all(
-      ['explain', 'example', 'analogy', 'confused'].map((action) =>
-        quickActions.findByTaskAndAction(taskId, userId, action as 'explain' | 'example' | 'analogy' | 'confused'),
-      ),
-    );
-
-    return toTextContent({
-      task,
-      goal,
-      resources: taskResources,
-      quickActions: cachedQuickActions.filter(Boolean),
-    });
+    return toTextContent(await fetchTaskContext({ userId, taskId }));
   });
 
   server.registerTool('search_learning_resources', {
@@ -112,9 +93,7 @@ function createServer() {
       })).min(1),
     },
   }, async ({ userId, goal, level, hours, targetDate, preferredStyle, resourceMode, resources, tasks }) => {
-    const createdAt = nowIso();
-    const scheduledEvents = buildEventSchedule(tasks.length, hours);
-    const workflow = await getAppContext().repositories.workflow.persistGeneratedWorkflow({
+    const workflow = await persistWorkflowRecords({
       userId,
       goal,
       level,
@@ -124,13 +103,6 @@ function createServer() {
       resourceMode,
       resources,
       tasks,
-      scheduledEvents,
-      createdAt,
-      planSummary: buildPlanSummary(goal, level, hours, tasks.map((task) => ({
-        ...task,
-        searchQuery: `${goal} ${task.title} tutorial documentation`,
-      })), resourceMode, resources),
-      resourceNote: buildResourceNote(goal, resourceMode, resources),
     });
     return toTextContent(workflow);
   });
@@ -143,8 +115,7 @@ function createServer() {
       action: z.enum(['explain', 'example', 'analogy', 'confused']),
     },
   }, async ({ userId, taskId, action }) => {
-    const row = await getAppContext().repositories.quickActions.findByTaskAndAction(taskId, userId, action);
-    return toTextContent({ quickAction: row });
+    return toTextContent(await fetchCachedQuickAction({ userId, taskId, action }));
   });
 
   server.registerTool('save_quick_action', {
@@ -156,26 +127,7 @@ function createServer() {
       content: z.string(),
     },
   }, async ({ userId, taskId, action, content }) => {
-    const timestamp = nowIso();
-    const row = await getAppContext().repositories.quickActions.save({
-      userId,
-      taskId,
-      action,
-      content,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
-    await getAppContext().repositories.retrieval.saveSource({
-      id: crypto.randomUUID(),
-      userId,
-      sourceType: 'quick_action',
-      sourceId: String(row.id),
-      content,
-      metadataJson: JSON.stringify({ taskId, action }),
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
-    return toTextContent(row);
+    return toTextContent(await persistQuickAction({ userId, taskId, action, content }));
   });
 
   server.registerTool('schedule_review', {
@@ -187,37 +139,32 @@ function createServer() {
       daysUntilReview: z.number().int().nonnegative(),
     },
   }, async ({ userId, taskId, priority, daysUntilReview }) => {
-    const dueDate = addDays(new Date(), daysUntilReview).toISOString();
-    const existingReview = await getAppContext().repositories.reviews.findLatestForTask(taskId, userId);
-    if (existingReview) {
-      await getAppContext().repositories.reviews.updateById(existingReview.id, {
-        userId,
-        taskId,
-        dueDate,
-        priority,
-        status: 'pending',
-      });
-      return toTextContent({ status: 'updated', dueDate });
-    }
-
-    await getAppContext().repositories.reviews.create({
-      userId,
-      taskId,
-      dueDate,
-      priority,
-      status: 'pending',
-    });
-    return toTextContent({ status: 'created', dueDate });
+    return toTextContent(await scheduleReview({ userId, taskId, priority, daysUntilReview }));
   });
 
   return server;
 }
 
 async function startMcpServer() {
-  await initializeAppContext();
   const app = createMcpExpressApp();
 
+  app.get('/healthz', (_req, res) => {
+    res.json({ ok: true });
+  });
+
   app.post('/mcp', async (req, res) => {
+    if (!isInternalServiceRequestAuthorized(String(req.header('x-internal-service-token') ?? '').trim())) {
+      res.status(401).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32001,
+          message: 'Internal service authentication failed.',
+        },
+        id: req.body?.id ?? null,
+      });
+      return;
+    }
+
     const server = createServer();
 
     try {
