@@ -56,26 +56,29 @@ export function OnboardingPage() {
   const weeklyHours = Number.parseInt(hours, 10) || 0;
   const previewSessions = weeklyHours >= 8 ? 4 : weeklyHours >= 5 ? 3 : 2;
   const previewMinutes = weeklyHours >= 8 ? 75 : weeklyHours >= 5 ? 60 : 45;
-  const reviewPreview =
-    level === 'Beginner'
-      ? t('onboarding.previewReviewSoon')
-      : level === 'Intermediate'
-        ? t('onboarding.previewReviewSteady')
-        : t('onboarding.previewReviewSpaced');
-  const resourcePreview =
+  const materialsSummary =
     resourceMode === 'has_materials'
       ? t('onboarding.previewResourcesAttached', { count: activeResources.length })
       : t('onboarding.previewResourcesPlan');
-  const goalPreview = goal.trim() || t('onboarding.previewGoalEmpty');
-  const roadmapPreview = `${t(`option.level.${level}`)} · ${t(`option.style.${preferredStyle}`)}`;
-  const rhythmPreview = `${previewSessions} x ${previewMinutes} ${t('common.minutes', { count: previewMinutes })}`;
-  const previewPrimary = step === 2
-    ? { label: t('onboarding.previewRhythmLabel'), value: rhythmPreview }
-    : step === 3
-      ? { label: t('onboarding.previewRoadmapLabel'), value: roadmapPreview }
-      : step === 4
-        ? { label: t('onboarding.previewResourcesLabel'), value: resourcePreview }
-        : { label: t('onboarding.previewRoadmapLabel'), value: roadmapPreview };
+  const stepSummary = step === 1
+    ? {
+        label: t('onboarding.previewGoalLabel'),
+        value: goal.trim() || t('onboarding.previewGoalEmpty'),
+      }
+    : step === 2
+      ? {
+          label: t('onboarding.previewRhythmLabel'),
+          value: `${previewSessions} x ${previewMinutes} ${t('common.minutes', { count: previewMinutes })}`,
+        }
+      : step === 3
+        ? {
+            label: t('onboarding.previewRoadmapLabel'),
+            value: `${t(`option.level.${level}`)} · ${t(`option.style.${preferredStyle}`)}`,
+          }
+        : {
+            label: t('onboarding.previewResourcesLabel'),
+            value: materialsSummary,
+          };
 
   const handleNext = async () => {
     setError(null);
@@ -170,59 +173,17 @@ export function OnboardingPage() {
                 {step === 3 && t('onboarding.step3Body')}
                 {step === 4 && t('onboarding.resourcesBody')}
               </p>
-              <div className="mt-8 space-y-3">
-                <MiniSignal
-                  label={t('onboarding.signalClarity')}
-                  value={
-                    step === 1
-                      ? t('onboarding.signalStep1Clarity')
-                      : step === 2
-                        ? t('onboarding.signalStep2Clarity')
-                        : step === 3
-                          ? t('onboarding.signalStep3Clarity')
-                          : resourceMode === 'has_materials'
-                            ? t('onboarding.resourceMode.has_materials')
-                            : t('onboarding.resourceMode.needs_plan')
-                  }
-                />
-                <MiniSignal
-                  label={t('onboarding.signalOutcome')}
-                  value={
-                    step === 1
-                      ? t('onboarding.signalStep1Outcome')
-                      : step === 2
-                        ? t('onboarding.signalStep2Outcome')
-                        : step === 3
-                          ? t('onboarding.signalStep3Outcome')
-                          : resourceMode === 'has_materials'
-                            ? `${activeResources.length} ${t('goals.resources', { count: activeResources.length }).replace(`${activeResources.length} `, '')}`
-                            : t('onboarding.generate')
-                  }
-                />
-              </div>
-              <div className="mt-8 rounded-2xl border border-[var(--border-color)]/70 bg-[var(--bg-card)]/48 p-4">
+              <div className="mt-8 rounded-2xl border border-[var(--border-color)]/70 bg-[var(--bg-card)]/42 p-4">
                 <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-[var(--text-muted)]">
-                  {t('onboarding.previewTitle')}
+                  {t('onboarding.summaryTitle')}
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
-                  {t('onboarding.previewBody')}
-                </p>
-                <div className="mt-4 space-y-2.5">
-                  <PreviewRow
-                    label={t('onboarding.previewGoalLabel')}
-                    value={goalPreview}
-                  />
-                  <PreviewRow
-                    label={previewPrimary.label}
-                    value={previewPrimary.value}
-                    body={step === 2 ? t('onboarding.previewRhythmBody') : step === 3 ? t('onboarding.previewNextSessionBody') : undefined}
-                  />
-                  <PreviewRow
-                    label={t('onboarding.previewAgentLabel')}
-                    value={t('onboarding.previewAgentValue')}
-                    body={t('onboarding.previewAgentBody')}
-                    quiet
-                  />
+                <div className="mt-3">
+                  <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-[var(--text-muted)]">
+                    {stepSummary.label}
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--text-primary)]">
+                    {stepSummary.value}
+                  </p>
                 </div>
               </div>
             </div>
@@ -513,42 +474,6 @@ export function OnboardingPage() {
           </div>
         </Card>
       </div>
-    </div>
-  );
-}
-
-function MiniSignal({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-soft)] px-4 py-3">
-      <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-[var(--text-muted)]">{label}</div>
-      <div className="mt-2 text-sm text-[var(--text-primary)]">{value}</div>
-    </div>
-  );
-}
-
-function PreviewRow({
-  label,
-  value,
-  body,
-  quiet = false,
-}: {
-  label: string;
-  value: string;
-  body?: string;
-  quiet?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        'rounded-2xl border px-4 py-3 transition-colors',
-        quiet
-          ? 'border-[var(--border-color)]/55 bg-[var(--bg-soft)]/46'
-          : 'border-[var(--border-color)]/80 bg-[var(--bg-soft)]/70',
-      )}
-    >
-      <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-[var(--text-muted)]">{label}</div>
-      <div className="mt-2 text-sm font-medium text-[var(--text-primary)]">{value}</div>
-      {body ? <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{body}</p> : null}
     </div>
   );
 }

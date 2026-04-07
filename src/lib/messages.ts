@@ -209,29 +209,14 @@ const messages: Record<Locale, MessageMap> = {
     'onboarding.resourcesSection': 'Learning resources',
     'onboarding.resourcesHint':
       'Add the materials you already trust. Lightweight references are enough for this phase.',
-    'onboarding.previewTitle': 'Plan taking shape',
-    'onboarding.previewBody':
-      'A compact summary of the study system the workflow is preparing for you.',
+    'onboarding.summaryTitle': 'Current input',
     'onboarding.previewGoalLabel': 'Focus',
     'onboarding.previewGoalEmpty': 'Your roadmap focus will appear here.',
     'onboarding.previewRoadmapLabel': 'Roadmap shape',
     'onboarding.previewRhythmLabel': 'Weekly rhythm',
-    'onboarding.previewReviewLabel': 'Review rhythm',
     'onboarding.previewResourcesLabel': 'Materials',
-    'onboarding.previewNextSessionLabel': 'First session feel',
-    'onboarding.previewAgentLabel': 'AI agent layer',
-    'onboarding.previewRhythmBody':
-      'The system will bias toward a pace that feels sustainable instead of aspirational.',
-    'onboarding.previewReviewSoon': 'Faster reinforcement while the concept is still fragile.',
-    'onboarding.previewReviewSteady': 'A steady review loop once the plan is in motion.',
-    'onboarding.previewReviewSpaced': 'More space between reviews when you already have depth.',
     'onboarding.previewResourcesPlan': 'The agent will suggest starter materials and sequence them for you.',
     'onboarding.previewResourcesAttached': '{count} existing materials will anchor the roadmap.',
-    'onboarding.previewNextSessionBody':
-      'Expect one runnable task with a clear study objective instead of the whole goal at once.',
-    'onboarding.previewAgentValue': 'AI planning support',
-    'onboarding.previewAgentBody':
-      'AI agents organize the roadmap and resource guidance quietly in the background.',
     'onboarding.addResource': 'Add Resource',
     'onboarding.removeResource': 'Remove',
     'onboarding.resourceTitle': 'Title',
@@ -692,29 +677,14 @@ const messages: Record<Locale, MessageMap> = {
     'onboarding.resourcesSection': 'Materi belajar',
     'onboarding.resourcesHint':
       'Tambahkan materi yang sudah kamu percaya. Referensi ringan saja sudah cukup untuk fase ini.',
-    'onboarding.previewTitle': 'Rencana yang mulai terbentuk',
-    'onboarding.previewBody':
-      'Ringkasan singkat dari sistem belajar yang sedang disiapkan workflow untukmu.',
+    'onboarding.summaryTitle': 'Input saat ini',
     'onboarding.previewGoalLabel': 'Fokus',
     'onboarding.previewGoalEmpty': 'Fokus roadmap-mu akan muncul di sini.',
     'onboarding.previewRoadmapLabel': 'Bentuk roadmap',
     'onboarding.previewRhythmLabel': 'Ritme mingguan',
-    'onboarding.previewReviewLabel': 'Ritme review',
     'onboarding.previewResourcesLabel': 'Materi',
-    'onboarding.previewNextSessionLabel': 'Rasa sesi pertama',
-    'onboarding.previewAgentLabel': 'Lapisan AI agent',
-    'onboarding.previewRhythmBody':
-      'Sistem akan condong ke ritme yang terasa berkelanjutan, bukan sekadar ambisius.',
-    'onboarding.previewReviewSoon': 'Penguatan lebih cepat saat konsepnya masih rapuh.',
-    'onboarding.previewReviewSteady': 'Loop review yang stabil saat rencana mulai berjalan.',
-    'onboarding.previewReviewSpaced': 'Jarak review lebih lega saat kamu sudah punya dasar kuat.',
     'onboarding.previewResourcesPlan': 'Agent akan menyarankan materi awal dan mengurutkannya untukmu.',
     'onboarding.previewResourcesAttached': '{count} materi yang sudah ada akan menjadi jangkar roadmap.',
-    'onboarding.previewNextSessionBody':
-      'Harapkan satu task yang benar-benar bisa dijalankan dengan tujuan belajar yang jelas, bukan seluruh goal sekaligus.',
-    'onboarding.previewAgentValue': 'Dukungan perencanaan AI',
-    'onboarding.previewAgentBody':
-      'AI agent menyusun roadmap dan panduan materi secara tenang di belakang layar.',
     'onboarding.addResource': 'Tambah Materi',
     'onboarding.removeResource': 'Hapus',
     'onboarding.resourceTitle': 'Judul',
