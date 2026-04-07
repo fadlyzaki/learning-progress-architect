@@ -1,0 +1,26 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#050505"/>
+  <rect x="40" y="40" width="1120" height="550" rx="36" fill="#111111" stroke="#27272A"/>
+  <path d="M0 0H1200V630H0V0Z" fill="url(#grid)" fill-opacity="0.32"/>
+  <circle cx="170" cy="120" r="230" fill="#F59E0B" fill-opacity="0.12"/>
+  <circle cx="1030" cy="120" r="190" fill="#3B82F6" fill-opacity="0.12"/>
+  <rect x="96" y="108" width="180" height="40" rx="20" fill="#F59E0B" fill-opacity="0.14" stroke="#F59E0B" stroke-opacity="0.32"/>
+  <text x="126" y="133" fill="#F59E0B" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="0.2em">CALMER LEARNING</text>
+  <text x="96" y="220" fill="#F59E0B" font-family="'Space Grotesk', Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="0.26em">THE AUTODIDACT PROJECT</text>
+  <text x="96" y="308" fill="#F3F4F6" font-family="'Space Grotesk', Arial, sans-serif" font-size="60" font-weight="700">Learning Progress</text>
+  <text x="96" y="376" fill="#F3F4F6" font-family="'Space Grotesk', Arial, sans-serif" font-size="60" font-weight="700">Architect</text>
+  <text x="96" y="452" fill="#9CA3AF" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="500">
+    A calmer learning workspace for roadmaps,
+  </text>
+  <text x="96" y="492" fill="#9CA3AF" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="500">
+    focused sessions, reviews, and reflection.
+  </text>
+  <rect x="96" y="520" width="348" height="48" rx="24" fill="#1A1A1A" stroke="#27272A"/>
+  <circle cx="128" cy="544" r="7" fill="#10B981"/>
+  <text x="148" y="551" fill="#F3F4F6" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600">Structured roadmaps that stay legible</text>
+  <defs>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V56" stroke="white" stroke-opacity="0.05"/>
+    </pattern>
+  </defs>
+</svg>

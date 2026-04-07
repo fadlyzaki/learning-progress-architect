@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -17,6 +18,12 @@ export function ComprehensionPage() {
   const { t } = usePreferences();
   const taskId = Number(id);
   const task = data?.tasks.find((item) => item.id === taskId) ?? null;
+  useAppMeta({
+    title: t('comprehension.badge'),
+    description: task?.title
+      ? `${task.title}. ${t('comprehension.subtitle')}`
+      : t('comprehension.subtitle'),
+  });
   const [step, setStep] = useState(1);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [explanation, setExplanation] = useState('');

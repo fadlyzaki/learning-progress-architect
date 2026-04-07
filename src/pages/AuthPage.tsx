@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAppMeta } from '../components/AppMeta';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
@@ -15,6 +16,10 @@ import { usePreferences } from '../lib/preferences';
 export function AuthPage({ type }: { type: 'login' | 'signup' }) {
   const navigate = useNavigate();
   const { t } = usePreferences();
+  useAppMeta({
+    title: type === 'login' ? t('auth.signIn') : t('auth.signUp'),
+    description: type === 'login' ? t('auth.login.subtitle') : t('auth.signup.subtitle'),
+  });
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

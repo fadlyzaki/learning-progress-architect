@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, CheckCircle2, Play, RefreshCw, Sparkles } from 'lucide-react';
+import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -11,6 +12,10 @@ import { usePreferences } from '../lib/preferences';
 export function ReviewsPage() {
   const { data, loading, error, refetch } = useAppData();
   const { formatDate, t } = usePreferences();
+  useAppMeta({
+    title: t('reviews.title'),
+    description: t('reviews.subtitle'),
+  });
 
   if (loading) {
     return <PageLoadingState rows={3} />;

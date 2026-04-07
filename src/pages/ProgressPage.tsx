@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Activity, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
+import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
@@ -43,6 +44,10 @@ function calculateStreak(sessionDates: string[]) {
 export function ProgressPage() {
   const { data, loading, error, refetch } = useAppData();
   const { formatDate, t } = usePreferences();
+  useAppMeta({
+    title: t('progress.title'),
+    description: t('progress.subtitle'),
+  });
 
   if (loading) {
     return <PageLoadingState stats={4} rows={2} />;

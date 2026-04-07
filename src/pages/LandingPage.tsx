@@ -2,12 +2,18 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Layers, RefreshCw, Target } from 'lucide-react';
 import { AppFooter } from '../components/AppFooter';
+import { useAppMeta } from '../components/AppMeta';
 import { Button } from '../components/ui/Button';
 import { PreferenceControls } from '../components/PreferenceControls';
 import { usePreferences } from '../lib/preferences';
 
 export function LandingPage() {
   const { t } = usePreferences();
+  useAppMeta({
+    title: 'Learning Progress Architect',
+    description:
+      'A calmer learning workspace that turns complex goals into structured roadmaps, focused study sessions, reviews, and reflection.',
+  });
 
   return (
     <div className="app-shell min-h-screen font-sans selection:bg-amber-500/30">
@@ -17,7 +23,7 @@ export function LandingPage() {
             {t('brand.name')}
           </span>
           <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
-            Learning Progress Architect
+            {t('brand.product')}
           </span>
         </div>
         <div className="flex flex-col gap-4 lg:items-end">

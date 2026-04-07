@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Circle, Play, Sparkles } from 'lucide-react';
+import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -12,6 +13,12 @@ import { usePreferences } from '../lib/preferences';
 export function RoadmapPage() {
   const { data, loading, error, refetch } = useAppData();
   const { t } = usePreferences();
+  useAppMeta({
+    title: t('roadmap.title'),
+    description: data?.goals[0]
+      ? t('roadmap.subtitle', { goal: data.goals[0].title })
+      : t('roadmap.empty'),
+  });
 
   if (loading) {
     return <PageLoadingState rows={3} />;

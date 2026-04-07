@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Clock, Plus, Target } from 'lucide-react';
+import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -13,6 +14,10 @@ import type { AppDataPayload, GoalRecord } from '../types';
 export function GoalsPage() {
   const { data, loading, error, refetch } = useAppData();
   const { t } = usePreferences();
+  useAppMeta({
+    title: t('goals.title'),
+    description: t('goals.subtitle'),
+  });
 
   if (loading) {
     return <PageLoadingState rows={2} />;

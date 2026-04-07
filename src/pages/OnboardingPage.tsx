@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { useAppMeta } from '../components/AppMeta';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
@@ -34,6 +35,10 @@ const emptyResource = (): LearningResourceInput => ({
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { t } = usePreferences();
+  useAppMeta({
+    title: t('onboarding.setup'),
+    description: t('onboarding.step1Body'),
+  });
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);

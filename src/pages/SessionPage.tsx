@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play } from 'lucide-react';
+import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -17,6 +18,10 @@ export function SessionPage() {
   const { t } = usePreferences();
   const taskId = Number(id);
   const task = data?.tasks.find((item) => item.id === taskId) ?? null;
+  useAppMeta({
+    title: task?.title ?? t('common.session'),
+    description: task?.description ?? t('session.completeHint'),
+  });
   const goal = task ? data?.goals.find((item) => item.id === task.goal_id) ?? null : null;
   const taskResourceLinks = task ? data?.task_resources.filter((item) => item.task_id === task.id) ?? [] : [];
   const taskResources = taskResourceLinks

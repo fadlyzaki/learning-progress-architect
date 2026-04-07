@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Clock, Layers3, Play, Sparkles, Target } from 'lucide-react';
+import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -21,6 +22,10 @@ function truncate(text: string, maxLength: number) {
 export function DashboardPage() {
   const { data, loading, error, refetch } = useAppData();
   const { t } = usePreferences();
+  useAppMeta({
+    title: t('nav.today'),
+    description: t('dashboard.body'),
+  });
 
   if (loading) {
     return <PageLoadingState stats={3} rows={2} />;

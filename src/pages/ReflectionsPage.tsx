@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { AlertCircle, ArrowRight, BookOpen } from 'lucide-react';
+import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { PageLoadingState, PageMessageState } from '../components/PageStates';
@@ -9,6 +10,10 @@ import { usePreferences } from '../lib/preferences';
 export function ReflectionsPage() {
   const { data, loading, error, refetch } = useAppData();
   const { formatDate, t } = usePreferences();
+  useAppMeta({
+    title: t('reflections.title'),
+    description: t('reflections.subtitle'),
+  });
 
   if (loading) {
     return <PageLoadingState rows={3} />;
