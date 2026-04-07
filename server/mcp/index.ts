@@ -146,7 +146,9 @@ function createServer() {
 }
 
 async function startMcpServer() {
-  const app = createMcpExpressApp();
+  const app = createMcpExpressApp({
+    host: '0.0.0.0',
+  });
 
   app.get('/healthz', (_req, res) => {
     res.json({ ok: true });
