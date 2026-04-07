@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+import re
 from typing import Any
 
 import httpx
@@ -139,6 +140,21 @@ def normalize_model_text(text: str) -> str:
         .removesuffix("```")
         .strip()
     )
+
+
+def humanize_level(level: str) -> str:
+    normalized = level.strip().lower()
+    if normalized in {"beginner", "intro"}:
+        return "beginner"
+    if normalized in {"advanced", "expert"}:
+        return "advanced"
+    return "intermediate"
+
+
+def style_hint(preferred_style: str | None) -> str:
+    if not preferred_style:
+        return "Use a balanced mix of explanation and application."
+    return f"Lean into this study preference: {preferred_style.strip()}."
 
 
 async def call_mcp_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -301,8 +317,31 @@ Instructions:
 Output rules:
 - Return plain study-ready text only.
 - Be specific and useful, not generic.
-- Keep it concise but meaningful.
+- Write 2 short paragraphs or 3 short bullet points.
+- Aim for roughly 120 to 220 words.
+- Finish the explanation completely and end on a full sentence.
+- Include at least one concrete detail tied to the task, goal, or resource context.
 - Do not use markdown code fences or JSON.
+""".strip()
+
+
+def build_quick_action_repair_prompt(request: QuickActionRequest, previous_content: str) -> str:
+    return f"""
+Rewrite the study-coach response below because it is too short, incomplete, or too generic.
+
+Current weak draft:
+{previous_content}
+
+Task context:
+{build_quick_action_prompt(request)}
+
+Rewrite requirements:
+- Return plain study-ready text only.
+- Write 2 short paragraphs or 3 short bullet points.
+- Use 120 to 220 words.
+- Fully answer the learner's action request.
+- End with a complete sentence.
+- Avoid generic filler and avoid repeating the task title without explanation.
 """.strip()
 
 
@@ -311,39 +350,42 @@ async def generate_workflow_plan_with_gemini(request: WorkflowPlanRequest) -> li
     if client is None:
         return None
 
-    response = await client.aio.models.generate_content(
-        model=DEFAULT_GEMINI_MODEL,
-        contents=build_workflow_prompt(request),
-        config={
-            "response_mime_type": "application/json",
-            "temperature": 0.7,
-        },
-    )
-
-    payload = json.loads(normalize_model_text(response.text or "[]"))
-    if not isinstance(payload, list) or len(payload) < 3:
-        return None
-
-    tasks: list[WorkflowTaskPayload] = []
-    for item in payload[:3]:
-        if not isinstance(item, dict):
-            return None
-
-        title = str(item.get("title", "")).strip()
-        description = str(item.get("description", "")).strip()
-        search_query = str(item.get("searchQuery", "")).strip()
-        if not title or not description or not search_query:
-            return None
-
-        tasks.append(
-            WorkflowTaskPayload(
-                title=title,
-                description=description,
-                searchQuery=search_query,
-            )
+    try:
+        response = await client.aio.models.generate_content(
+            model=DEFAULT_GEMINI_MODEL,
+            contents=build_workflow_prompt(request),
+            config={
+                "response_mime_type": "application/json",
+                "temperature": 0.7,
+            },
         )
 
-    return tasks
+        payload = json.loads(normalize_model_text(response.text or "[]"))
+        if not isinstance(payload, list) or len(payload) < 3:
+            return None
+
+        tasks: list[WorkflowTaskPayload] = []
+        for item in payload[:3]:
+            if not isinstance(item, dict):
+                return None
+
+            title = str(item.get("title", "")).strip()
+            description = str(item.get("description", "")).strip()
+            search_query = str(item.get("searchQuery", "")).strip()
+            if not title or not description or not search_query:
+                return None
+
+            tasks.append(
+                WorkflowTaskPayload(
+                    title=title,
+                    description=description,
+                    searchQuery=search_query,
+                )
+            )
+
+        return tasks
+    except Exception:
+        return None
 
 
 async def generate_quick_action_with_gemini(request: QuickActionRequest) -> str | None:
@@ -351,49 +393,99 @@ async def generate_quick_action_with_gemini(request: QuickActionRequest) -> str 
     if client is None:
         return None
 
-    response = await client.aio.models.generate_content(
-        model=DEFAULT_GEMINI_MODEL,
-        contents=build_quick_action_prompt(request),
-        config={
-            "temperature": 0.7,
-            "max_output_tokens": 350,
-        },
-    )
-    content = normalize_model_text(response.text or "")
-    return content or None
+    async def generate(prompt: str) -> str | None:
+        try:
+            response = await client.aio.models.generate_content(
+                model=DEFAULT_GEMINI_MODEL,
+                contents=prompt,
+                config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 500,
+                },
+            )
+            content = normalize_model_text(response.text or "")
+            return content or None
+        except Exception:
+            return None
+
+    content = await generate(build_quick_action_prompt(request))
+    if content is None:
+        return None
+
+    if is_low_quality_quick_action(content, request.input.context.taskTitle):
+        repaired = await generate(build_quick_action_repair_prompt(request, content))
+        if repaired:
+            return repaired
+        return None
+
+    return content
 
 
 def fallback_workflow_plan(request: WorkflowPlanRequest) -> list[WorkflowTaskPayload]:
     goal = request.input.goal
+    level = humanize_level(request.input.level)
+    style = style_hint(request.input.preferredStyle)
     return [
         WorkflowTaskPayload(
-            title=f"Foundations of {goal}",
-            description=f"Build the core mental model, vocabulary, and first principles for {goal}.",
-            searchQuery=f"{goal} fundamentals documentation tutorial",
+            title=f"Map the core ideas behind {goal}",
+            description=(
+                f"Build a reliable mental model for {goal} at a {level} level. "
+                f"Focus on the key vocabulary, the main workflow, and the problem this skill solves in practice. "
+                f"{style}"
+            ),
+            searchQuery=f"{goal} fundamentals official guide tutorial",
         ),
         WorkflowTaskPayload(
-            title=f"Guided practice for {goal}",
-            description=f"Use focused exercises to turn the core ideas of {goal} into repeatable habits.",
-            searchQuery=f"{goal} exercises documentation example",
+            title=f"Practice {goal} on one realistic working example",
+            description=(
+                f"Apply the fundamentals through one concrete scenario tied to real work. "
+                f"Turn the theory of {goal} into a repeatable step-by-step method you can explain and reuse."
+            ),
+            searchQuery=f"{goal} example walkthrough best practices",
         ),
         WorkflowTaskPayload(
-            title=f"Applied project for {goal}",
-            description=f"Create one practical outcome that proves you can apply {goal} beyond passive study.",
-            searchQuery=f"{goal} project example tutorial",
+            title=f"Create a reusable output that proves you can use {goal}",
+            description=(
+                f"Synthesize what you learned into a small but real deliverable, such as a checklist, playbook, template, "
+                f"or mini project. The goal is to leave this phase with something practical you can use again."
+            ),
+            searchQuery=f"{goal} project template case study",
         ),
     ]
 
 
 def fallback_quick_action(request: QuickActionRequest) -> str:
-    task_title = request.input.context.taskTitle
+    context = request.input.context
+    task_title = context.taskTitle
+    goal_title = context.goalTitle or "your broader learning goal"
+    task_description = context.taskDescription.strip() or "This task is meant to move you from theory into practical understanding."
     action = request.input.action
     if action == "example":
-        return f"A practical example of {task_title}: imagine a real team using it in production to make work more reliable and easier to scale."
+        return (
+            f"A practical example of {task_title} would be a product team using it while preparing a new feature launch. "
+            f"They would use the task to turn a vague goal into a repeatable workflow, test whether the output is actually useful, "
+            f"and refine the result until it becomes something the team can reuse. In your case, the point is not just to understand the idea once, "
+            f"but to see how it supports {goal_title} through a concrete, repeatable working example."
+        )
     if action == "analogy":
-        return f"Think of {task_title} like a well-organized kitchen: the structure helps you find the right tool quickly and repeat the same recipe with less confusion."
+        return (
+            f"Think of {task_title} like setting up a reliable recipe card in a kitchen. The first time you cook, you are still figuring out the ingredients, "
+            f"timing, and order. Once the recipe is clear, you stop improvising every step and start producing a better result more consistently. "
+            f"That is the role of this task inside {goal_title}: it gives you a structure you can reuse instead of starting from scratch every time."
+        )
     if action == "confused":
-        return f"First, {task_title} is the main idea you are learning. Then, it helps you do one job more clearly. Finally, you use it again and again until it feels natural."
-    return f"{task_title} is the concept for this step. Its purpose is to help the learner understand what problem this task solves and why it matters."
+        return (
+            f"First, this task is helping you understand one important part of {goal_title}. "
+            f"Then, you use that part on a small real example so it stops feeling abstract. "
+            f"Finally, you turn that example into a simple method you can repeat. "
+            f"If the title feels big, focus on the task description: {task_description}"
+        )
+    return (
+        f"This task is really about understanding what {task_title} means in practice, not just memorizing the term. "
+        f"The important question is: what job does this help you do better while working toward {goal_title}? "
+        f"In this step, you are building the mental model behind the task, learning where it fits in a real workflow, "
+        f"and making the idea concrete enough that you can recognize when to use it again. {task_description}"
+    )
 
 
 def is_low_quality_quick_action(content: str, task_title: str) -> bool:
@@ -405,7 +497,13 @@ def is_low_quality_quick_action(content: str, task_title: str) -> bool:
         f"first, {task_title.lower()} is the main idea you are learning",
     ]
 
-    return len(normalized) < 140 or any(pattern in normalized for pattern in known_weak_patterns)
+    has_terminal_punctuation = bool(re.search(r'[.!?]["\']?$', normalized))
+
+    return (
+        len(normalized) < 140
+        or not has_terminal_punctuation
+        or any(pattern in normalized for pattern in known_weak_patterns)
+    )
 
 
 async def enrich_workflow_references(tasks: list[WorkflowTaskPayload]) -> list[WorkflowTaskPayload]:
