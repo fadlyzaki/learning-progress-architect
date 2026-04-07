@@ -58,7 +58,7 @@ test('auth flow protects private data and returns structured auth errors', async
   });
 });
 
-test('workflow supports no-resource planning mode and returns starter guidance notes', async () => {
+test('workflow supports no-resource planning mode and persists starter materials when search output is unavailable', async () => {
   const server = await startServer();
   cleanupTasks.push(server.stop);
   const token = await signupAndGetToken(server.baseUrl, 'starter@example.com');
@@ -82,9 +82,26 @@ test('workflow supports no-resource planning mode and returns starter guidance n
   const data = await getData(server.baseUrl, token);
   assert.equal(data.goals.length, 1);
   assert.equal(data.tasks.length, 3);
-  assert.equal(data.resources.length, 0);
-  assert.equal(data.task_resources.length, 0);
+  assert.equal(data.resources.length, 9);
+  assert.equal(data.task_resources.length, 9);
   assert.deepEqual(data.quick_actions, []);
+  assert.ok(
+    data.resources.every((resource: { source_kind: string; reference: string | null }) =>
+      resource.source_kind === 'system_suggested'
+      && typeof resource.reference === 'string'
+      && resource.reference.includes('google.com/search?q='),
+    ),
+  );
+  assert.ok(
+    data.resources.some((resource: { notes: string | null }) =>
+      typeof resource.notes === 'string' && resource.notes.includes('Focus on this task goal:'),
+    ),
+  );
+  assert.ok(
+    data.resources.some((resource: { notes: string | null }) =>
+      typeof resource.notes === 'string' && resource.notes.includes('Source: google search'),
+    ),
+  );
   assert.ok(
     data.notes.some((note: { content: string }) =>
       note.content.includes('Planning mode: generated starting plan'),

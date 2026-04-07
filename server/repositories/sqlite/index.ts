@@ -308,7 +308,7 @@ export function createSQLiteRepositories(db: Database.Database): AppRepositories
         const insertSystemResource = db.prepare(
           `
             INSERT INTO resources (user_id, goal_id, title, type, reference, notes, source_kind, created_at)
-            VALUES (?, ?, ?, 'link', ?, NULL, 'system_suggested', ?)
+            VALUES (?, ?, ?, 'link', ?, ?, 'system_suggested', ?)
           `,
         );
         const insertTaskResource = db.prepare(
@@ -373,11 +373,15 @@ export function createSQLiteRepositories(db: Database.Database): AppRepositories
             }
 
             for (const link of task.references) {
+              const note = [link.snippet ?? null, link.source ? `Source: ${link.source}` : null]
+                .filter(Boolean)
+                .join(' — ') || null;
               const sysInsert = insertSystemResource.run(
                 input.userId,
                 goalId,
                 link.title,
                 link.url,
+                note,
                 input.createdAt,
               );
               const sysResourceId = Number(sysInsert.lastInsertRowid);
