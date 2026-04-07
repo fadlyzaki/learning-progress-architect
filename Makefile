@@ -28,10 +28,10 @@ build:
 	gcloud builds submit --tag $(IMAGE) .
 
 build-mcp:
-	gcloud builds submit --tag $(MCP_IMAGE) -f Dockerfile.mcp .
+	gcloud builds submit --tag $(MCP_IMAGE) --file Dockerfile.mcp .
 
 build-adk:
-	gcloud builds submit --tag $(ADK_IMAGE) -f adk_service/Dockerfile .
+	gcloud builds submit --tag $(ADK_IMAGE) --file adk_service/Dockerfile .
 
 push:
 	$(MAKE) build PROJECT_ID=$(PROJECT_ID) REGION=$(REGION) SERVICE=$(SERVICE) REPOSITORY=$(REPOSITORY) IMAGE_NAME=$(IMAGE_NAME) TAG=$(TAG)
