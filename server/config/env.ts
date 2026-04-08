@@ -35,6 +35,10 @@ export const env = {
   alloydbInstance: process.env.ALLOYDB_INSTANCE ?? '',
   alloydbDatabase: process.env.ALLOYDB_DATABASE ?? '',
   alloydbUser: process.env.ALLOYDB_USER ?? '',
+  logLevel: process.env.LOG_LEVEL ?? 'info',
+  logPretty: process.env.LOG_PRETTY
+    ? process.env.LOG_PRETTY === 'true'
+    : (process.env.NODE_ENV ?? 'development') !== 'production',
 } as const;
 
 export function requireDatabaseUrl() {

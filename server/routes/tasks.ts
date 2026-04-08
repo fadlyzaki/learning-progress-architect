@@ -3,12 +3,15 @@ import crypto from 'crypto';
 import { getAppContext } from '../appContext.ts';
 import { requireUser } from '../middleware/auth.ts';
 import { jsonError } from '../utils/http.ts';
+import { logger } from '../utils/logger.ts';
 import { nowIso, addDays } from '../utils/date.ts';
 import { getReviewSchedule } from '../services/reviewService.ts';
 import { QuickActionGenerationError, isQuickActionKind } from '../services/quickActionService.ts';
 import { createRequestId } from '../services/agentRuntime.ts';
 
 export const tasksRouter = Router();
+
+const tasksLogger = logger.child({ scope: 'tasks-route' });
 
 tasksRouter.post('/:taskId/start', async (req, res) => {
   const user = await requireUser(req, res);
@@ -210,7 +213,16 @@ tasksRouter.post('/:taskId/quick-action', async (req, res) => {
       return;
     }
 
-    console.error('Quick action request failed.', error);
+    tasksLogger.error(
+      {
+        err: error,
+        requestId: res.locals.requestId,
+        userId: user.id,
+        taskId,
+        action,
+      },
+      'Quick action request failed',
+    );
     jsonError(res, 500, 'Something went wrong while preparing your quick action.', 'QUICK_ACTION_FAILED');
   }
 });
