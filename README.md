@@ -352,5 +352,11 @@ That is the role of this system.
 
 ---
 
+## License
+
+This project is licensed under the MIT License. See [LICENSE](/Users/fadly.zaki/Downloads/learning-progress-architect/LICENSE) for the full text.
+
+---
+
 **Engineered by:** Fadly Uzzaki and Vedo Alfarizi  
 *Learning is human. The system should behave accordingly.*
