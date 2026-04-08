@@ -1,6 +1,9 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { addDays } from '../utils/date.ts';
+import { logger } from '../utils/logger.ts';
 import type { PlannedTask, ResourceMode, LearningResourceInput } from '../types.ts';
+
+const syllabusLogger = logger.child({ scope: 'syllabus-service' });
 
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
@@ -109,7 +112,16 @@ export async function planSyllabusTasks(
       return parsed.slice(0, 3);
     }
   } catch (error) {
-    console.error('Falling back to local syllabus generation.', error);
+    syllabusLogger.warn(
+      {
+        err: error,
+        goal,
+        level,
+        preferredStyle: preferredStyle ?? null,
+        resourceMode,
+      },
+      'Falling back to local syllabus generation',
+    );
   }
 
   return buildFallbackPlan(goal, level, preferredStyle, resources, resourceMode);

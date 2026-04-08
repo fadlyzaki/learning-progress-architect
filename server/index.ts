@@ -3,16 +3,26 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { env } from './config/env.ts';
 import { initializeAppContext } from './appContext.ts';
+import { errorHandler } from './middleware/errorHandler.ts';
+import { attachRequestContext } from './middleware/requestContext.ts';
+import { httpLogger } from './middleware/httpLogger.ts';
 import { authRouter } from './routes/auth.ts';
 import { dataRouter } from './routes/data.ts';
 import { workflowRouter } from './routes/workflow.ts';
 import { tasksRouter } from './routes/tasks.ts';
 import { internalMcpRouter } from './routes/internalMcp.ts';
+import { logger } from './utils/logger.ts';
+
+const serverLogger = logger.child({ scope: 'server' });
 
 export async function startServer() {
+  serverLogger.info({ port: env.port, nodeEnv: env.nodeEnv }, 'Starting backend server');
   await initializeAppContext();
+  serverLogger.info('App context initialized');
 
   const app = express();
+  app.use(attachRequestContext);
+  app.use(httpLogger);
   app.use(express.json());
 
   app.get('/healthz', (_req, res) => {
@@ -25,7 +35,7 @@ export async function startServer() {
   app.use('/api/tasks', tasksRouter);
   app.use('/internal/mcp', internalMcpRouter);
 
-  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+  if (env.nodeEnv !== 'production' && env.nodeEnv !== 'test') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -38,7 +48,9 @@ export async function startServer() {
     });
   }
 
+  app.use(errorHandler);
+
   app.listen(env.port, '0.0.0.0', () => {
-    console.log(`Server running on port ${env.port}`);
+    serverLogger.info({ port: env.port }, 'Server listening');
   });
 }

@@ -2,10 +2,13 @@ import { Router } from 'express';
 import { getAppContext } from '../appContext.ts';
 import { requireUser } from '../middleware/auth.ts';
 import { jsonError } from '../utils/http.ts';
+import { logger } from '../utils/logger.ts';
 import { normalizeResourceMode, sanitizeResourceInput } from '../utils/validation.ts';
 import { runWorkflow } from '../services/workflowService.ts';
 
 export const workflowRouter = Router();
+
+const workflowLogger = logger.child({ scope: 'workflow-route' });
 
 workflowRouter.post('/', async (req, res) => {
   const user = await requireUser(req, res);
@@ -50,7 +53,14 @@ workflowRouter.post('/', async (req, res) => {
 
     res.status(201).json({ success: true, goalId });
   } catch (error) {
-    console.error(error);
+    workflowLogger.error(
+      {
+        err: error,
+        requestId: res.locals.requestId,
+        userId: user.id,
+      },
+      'Workflow generation failed',
+    );
     jsonError(res, 500, 'Failed to generate a learning roadmap.', 'WORKFLOW_GENERATION_FAILED');
   }
 });
