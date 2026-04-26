@@ -146,7 +146,7 @@ tasksRouter.post('/:taskId/materials/generate', async (req, res) => {
     res.json({ success: true, count: searchLinks.length });
   } catch (error) {
     console.error('Material generation failed.', error);
-    jsonError(res, 500, 'Failed to generate materials.', 'MATERIAL_GENERATION_FAILED');
+    jsonError(res, 500, 'Our AI assistant encountered an issue while finding materials. Please try again.', 'MATERIAL_GENERATION_FAILED');
   }
 });
 
@@ -270,6 +270,6 @@ tasksRouter.post('/:taskId/quick-action', async (req, res) => {
     }
 
     console.error('Quick action request failed.', error);
-    jsonError(res, 500, 'Something went wrong while preparing your quick action.', 'QUICK_ACTION_FAILED');
+    jsonError(res, 500, 'Our AI assistant encountered an unexpected issue while preparing your quick action. Please try again.', 'QUICK_ACTION_FAILED');
   }
 });

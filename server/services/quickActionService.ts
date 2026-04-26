@@ -34,7 +34,7 @@ export const QUICK_ACTION_PROMPTS: Record<QuickActionKind, string> = {
 };
 
 export class QuickActionGenerationError extends Error {
-  constructor(message = 'Quick action generation is unavailable.') {
+  constructor(message = 'Our AI assistant is temporarily unavailable to generate quick actions. Please try again in a moment.') {
     super(message);
     this.name = 'QuickActionGenerationError';
   }
@@ -130,7 +130,7 @@ export async function generateQuickActionContent(input: {
   context: QuickActionContext;
 }): Promise<string> {
   if (!ai) {
-    throw new QuickActionGenerationError('Gemini is not configured for quick action generation.');
+    throw new QuickActionGenerationError('The AI assistant is not fully configured for this feature yet. Please check your setup or try again later.');
   }
 
   try {
@@ -142,7 +142,7 @@ export async function generateQuickActionContent(input: {
     const content = normalizeQuickActionContent(response.text || '');
 
     if (!content) {
-      throw new QuickActionGenerationError('Gemini returned an empty quick action response.');
+      throw new QuickActionGenerationError('The AI assistant returned an empty response. Please try clicking generate again.');
     }
 
     return content;
@@ -151,6 +151,6 @@ export async function generateQuickActionContent(input: {
       throw error;
     }
 
-    throw new QuickActionGenerationError('Quick action generation failed.');
+    throw new QuickActionGenerationError('Our AI assistant encountered an unexpected issue while preparing your quick action. Please try again.');
   }
 }
