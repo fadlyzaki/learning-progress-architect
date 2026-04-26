@@ -77,7 +77,7 @@ export function RoadmapPage() {
               <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
                 {t('roadmap.progress')}
               </div>
-              <CardTitle className="text-xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
+              <CardTitle className="break-words text-xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 {t('dashboard.tasksCount', { completed: completedTasks, total: tasks.length })}
               </CardDescription>
@@ -112,11 +112,20 @@ export function RoadmapPage() {
               </Link>
             </>
           ) : (
-            <Link to="/app/reviews" className="w-full sm:w-auto">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                {t('nav.reviews')}
-              </Button>
-            </Link>
+            <>
+              <Link to="/app/reviews" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                  {t('nav.reviews')}
+                </Button>
+              </Link>
+              {activeGoal.status === 'completed' && activeGoal.level !== 'Advanced' && (
+                <Link to={`/onboarding?goal=${encodeURIComponent(activeGoal.title)}&level=${activeGoal.level === 'Beginner' ? 'Intermediate' : 'Advanced'}`} className="w-full sm:w-auto">
+                  <Button variant="accent" size="lg" className="w-full sm:w-auto">
+                    {t('roadmap.continueLevel', { level: activeGoal.level === 'Beginner' ? 'Intermediate' : 'Advanced' })}
+                  </Button>
+                </Link>
+              )}
+            </>
           )
         }
       />
@@ -129,7 +138,7 @@ export function RoadmapPage() {
                 <Sparkles className="h-4 w-4" />
                 {t('roadmap.timelineTitle')}
               </div>
-              <CardTitle className="mt-3 text-2xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
+              <CardTitle className="mt-3 break-words text-2xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
               <CardDescription className="mt-2 max-w-2xl text-base leading-relaxed">
                 {t('roadmap.timelineBody')}
               </CardDescription>
@@ -170,12 +179,12 @@ export function RoadmapPage() {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-medium text-[var(--text-primary)]">{task.title}</h3>
+                          <h3 className="break-words text-lg font-medium text-[var(--text-primary)]">{task.title}</h3>
                           {isRecommended && <Badge variant="warning">{t('roadmap.recommended')}</Badge>}
                           {task.status === 'in_progress' && <Badge variant="info">{t('roadmap.inProgress')}</Badge>}
                           {isDone && <Badge variant="success">{t('status.completed')}</Badge>}
                         </div>
-                        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
+                        <p className="mt-3 break-words max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
                           {task.description}
                         </p>
                         {resourceCount > 0 && (

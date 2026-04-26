@@ -99,7 +99,7 @@ export function DashboardPage() {
           <div className="mb-3 text-[11px] font-mono font-semibold uppercase tracking-[0.24em] text-[var(--accent-amber)]">
             {t('dashboard.kicker')}
           </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
+          <h1 className="break-words text-4xl font-semibold tracking-tight text-[var(--text-primary)]">
             {t('dashboard.title', { name: data.user.name })}
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
@@ -112,7 +112,7 @@ export function DashboardPage() {
             <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
               {t('dashboard.currentFocus')}
             </div>
-            <CardTitle className="text-xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
+            <CardTitle className="break-words text-xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
             <CardDescription className="text-sm leading-relaxed">
               {t('dashboard.currentFocusBody')}
             </CardDescription>
@@ -158,18 +158,29 @@ export function DashboardPage() {
                 </Button>
               </Link>
             ) : (
+              <>
+                <Link to="/app/roadmap" className="w-full sm:w-auto">
+                  <Button variant="accent" size="lg" className="w-full sm:w-auto">
+                    {t('dashboard.openRoadmap')}
+                  </Button>
+                </Link>
+                {activeGoal.status === 'completed' && activeGoal.level !== 'Advanced' && (
+                  <Link to={`/onboarding?goal=${encodeURIComponent(activeGoal.title)}&level=${activeGoal.level === 'Beginner' ? 'Intermediate' : 'Advanced'}`} className="w-full sm:w-auto">
+                    <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                      {t('roadmap.continueLevel', { level: activeGoal.level === 'Beginner' ? 'Intermediate' : 'Advanced' })}
+                    </Button>
+                  </Link>
+                )}
+              </>
+            )}
+
+            {nextTask && (
               <Link to="/app/roadmap" className="w-full sm:w-auto">
-                <Button variant="accent" size="lg" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto">
                   {t('dashboard.openRoadmap')}
                 </Button>
               </Link>
             )}
-
-            <Link to="/app/roadmap" className="w-full sm:w-auto">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                {t('dashboard.openRoadmap')}
-              </Button>
-            </Link>
           </>
         }
       />
@@ -182,7 +193,7 @@ export function DashboardPage() {
                 <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
                   {t('dashboard.currentRoadmap')}
                 </div>
-                <CardTitle className="mt-3 text-2xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
+                <CardTitle className="mt-3 break-words text-2xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
                 <CardDescription className="mt-2 text-base leading-relaxed">
                   {t('dashboard.tasksCount', { completed: completedTasks, total: tasks.length })}
                 </CardDescription>
@@ -204,8 +215,8 @@ export function DashboardPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-base font-medium text-[var(--text-primary)]">{task.title}</p>
-                    <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+                    <p className="break-words text-base font-medium text-[var(--text-primary)]">{task.title}</p>
+                    <p className="mt-2 break-words text-sm leading-relaxed text-[var(--text-secondary)]">
                       {task.description}
                     </p>
                   </div>

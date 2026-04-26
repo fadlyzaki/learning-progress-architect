@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Button } from '../components/ui/Button';
@@ -42,11 +42,18 @@ export function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [goal, setGoal] = useState('');
-  const [level, setLevel] = useState<(typeof levels)[number]>('Intermediate');
+  const [searchParams] = useSearchParams();
+  const [goal, setGoal] = useState(searchParams.get('goal') ?? '');
+  const initialLevel = searchParams.get('level') as (typeof levels)[number] | null;
+  const [level, setLevel] = useState<(typeof levels)[number]>(
+    initialLevel && levels.includes(initialLevel) ? initialLevel : 'Intermediate'
+  );
   const [hours, setHours] = useState('10');
   const [targetDate, setTargetDate] = useState('');
-  const [preferredStyle, setPreferredStyle] = useState<(typeof styles)[number]>('Practice-Heavy');
+  const initialStyle = searchParams.get('style') as (typeof styles)[number] | null;
+  const [preferredStyle, setPreferredStyle] = useState<(typeof styles)[number]>(
+    initialStyle && styles.includes(initialStyle) ? initialStyle : 'Practice-Heavy'
+  );
   const [resourceMode, setResourceMode] = useState<ResourceMode>('needs_plan');
   const [resources, setResources] = useState<LearningResourceInput[]>([emptyResource()]);
 

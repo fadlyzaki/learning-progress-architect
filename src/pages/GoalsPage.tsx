@@ -99,7 +99,7 @@ function GoalCard({
             <Badge variant={goal.status === 'completed' ? 'success' : isPrimary ? 'warning' : 'outline'}>
               {t(`status.${goal.status}`)}
             </Badge>
-            <CardTitle className="mt-4 text-2xl text-[var(--text-primary)]">{goal.title}</CardTitle>
+            <CardTitle className="mt-4 break-words text-2xl text-[var(--text-primary)]">{goal.title}</CardTitle>
             <CardDescription className="mt-2 text-base leading-relaxed">
               {t(`option.level.${goal.level}`)}
               {goal.target_date ? ` · ${goal.target_date}` : ''}
@@ -134,9 +134,9 @@ function GoalCard({
 
 function GoalSignal({ icon, label }: { icon?: ReactNode; label: string }) {
   return (
-    <div className="app-list-row-quiet flex items-center gap-2 rounded-2xl px-4 py-3 text-sm text-[var(--text-secondary)]">
-      {icon}
-      <span>{label}</span>
+    <div className="app-list-row-quiet flex min-w-0 items-center gap-2 rounded-2xl px-4 py-3 text-sm text-[var(--text-secondary)]">
+      {icon && <div className="shrink-0">{icon}</div>}
+      <span className="truncate">{label}</span>
     </div>
   );
 }
