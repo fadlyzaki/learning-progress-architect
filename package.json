@@ -13,7 +13,7 @@
     "lint": "tsc --noEmit",
     "test": "node --test --import tsx tests/**/*.test.ts",
     "mcp:dev": "tsx server/mcp/index.ts",
-    "db:migrate:alloydb": "node-pg-migrate up --config-file node-pg-migrate.config.cjs",
+    "db:migrate:alloydb": "node-pg-migrate up --migrations-dir migrations --migrations-table pgmigrations --tsx --verbose --reject-unauthorized false",
     "db:import:sqlite": "tsx server/scripts/importSqliteToPostgres.ts"
   },
   "dependencies": {

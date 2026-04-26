@@ -1,6 +1,5 @@
-import { Pool } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
 import { env, requireDatabaseUrl } from './config/env.ts';
-import { db, migrateDatabase } from './db.ts';
 import { createPostgresRepositories } from './repositories/postgres/index.ts';
 import { createSQLiteRepositories } from './repositories/sqlite/index.ts';
 import { createAgentRuntime } from './services/agentRuntime.ts';
@@ -14,16 +13,30 @@ type AppContext = {
 
 let appContext: AppContext | null = null;
 
+function shouldUseSsl(connectionString: string) {
+  try {
+    const url = new URL(connectionString);
+    return url.searchParams.get('sslmode') !== 'disable';
+  } catch {
+    return true;
+  }
+}
+
+function createAlloyDbPoolConfig(connectionString: string): PoolConfig {
+  return {
+    connectionString,
+    max: 10,
+    ssl: shouldUseSsl(connectionString) ? { rejectUnauthorized: false } : undefined,
+  };
+}
+
 export async function initializeAppContext() {
   if (appContext) {
     return appContext;
   }
 
   if (env.databaseProvider === 'alloydb') {
-    const pool = new Pool({
-      connectionString: requireDatabaseUrl(),
-      max: 10,
-    });
+    const pool = new Pool(createAlloyDbPoolConfig(requireDatabaseUrl()));
     await pool.query('SELECT 1');
     const repositories = createPostgresRepositories(pool);
     appContext = {
@@ -34,6 +47,7 @@ export async function initializeAppContext() {
     return appContext;
   }
 
+  const { db, migrateDatabase } = await import('./db.ts');
   migrateDatabase();
   const repositories = createSQLiteRepositories(db);
   appContext = {

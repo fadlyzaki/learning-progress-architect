@@ -19,8 +19,9 @@ ADK_SERVICE_URL ?=
 MCP_BASE_URL ?=
 GEMINI_API_KEY ?=
 GEMINI_SECRET ?=
+DATABASE_SECRET ?= alloydb-database-url
 
-.PHONY: run build build-mcp build-adk push build-push deploy deploy-mcp deploy-adk deploy-demo-web deploy-demo-web-adk deploy-demo-mcp deploy-demo-adk docker-build-local docker-run-local
+.PHONY: run build build-mcp build-adk push build-push deploy deploy-mcp deploy-adk deploy-demo-web deploy-demo-web-adk deploy-alloydb-web deploy-demo-mcp deploy-demo-adk docker-build-local docker-run-local
 
 run:
 	npm run dev
@@ -86,6 +87,14 @@ deploy-demo-web-adk:
 	gcloud run services update $(SERVICE) \
 		--region $(REGION) \
 		--set-env-vars NODE_ENV=production,DB_PROVIDER=sqlite,AGENT_PROVIDER=adk,DATABASE_FILE=/tmp/app.db,ADK_SERVICE_URL=$(ADK_SERVICE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
+		$(SET_GEMINI_SECRET)
+
+deploy-alloydb-web:
+	gcloud run services update $(SERVICE) \
+		--region $(REGION) \
+		--remove-env-vars DATABASE_FILE \
+		--set-env-vars NODE_ENV=production,DB_PROVIDER=alloydb,AGENT_PROVIDER=adk,ADK_SERVICE_URL=$(ADK_SERVICE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
+		--set-secrets DATABASE_URL=$(DATABASE_SECRET):latest \
 		$(SET_GEMINI_SECRET)
 
 deploy-demo-mcp:
