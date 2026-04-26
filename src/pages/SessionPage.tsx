@@ -772,17 +772,17 @@ function QuickActionModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-8 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8 backdrop-blur-sm sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-action-title"
       onClick={onClose}
     >
       <div
-        className="app-card-primary max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-[1.75rem] p-6 md:p-8"
+        className="app-card-primary flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.75rem] p-6 md:p-8"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--border-color)] pb-5">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--border-color)] pb-5">
           <div>
             <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--accent-amber)]">
               {kicker}
@@ -801,11 +801,11 @@ function QuickActionModal({
           </button>
         </div>
 
-        <div className="mt-6 max-h-[calc(88vh-9rem)] overflow-y-auto pr-1">
+        <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
           <MarkdownContent content={content} className="text-sm md:text-base" />
         </div>
 
-        <div className="mt-6 flex justify-end border-t border-[var(--border-color)] pt-5">
+        <div className="mt-6 flex shrink-0 justify-end border-t border-[var(--border-color)] pt-5">
           <Button variant="outline" onClick={onClose}>
             {closeLabel}
           </Button>
