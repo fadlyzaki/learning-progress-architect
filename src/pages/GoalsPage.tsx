@@ -99,7 +99,7 @@ function GoalCard({
             <Badge variant={goal.status === 'completed' ? 'success' : isPrimary ? 'warning' : 'outline'}>
               {t(`status.${goal.status}`)}
             </Badge>
-            <CardTitle className="mt-4 break-words text-2xl text-[var(--text-primary)]">{goal.title}</CardTitle>
+            <CardTitle className="mt-4 line-clamp-2 text-2xl text-[var(--text-primary)]">{goal.title}</CardTitle>
             <CardDescription className="mt-2 text-base leading-relaxed">
               {t(`option.level.${goal.level}`)}
               {goal.target_date ? ` · ${goal.target_date}` : ''}
