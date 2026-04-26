@@ -5,6 +5,7 @@ import { requireUser } from '../middleware/auth.ts';
 import { jsonError } from '../utils/http.ts';
 import { nowIso, addDays } from '../utils/date.ts';
 import { getReviewSchedule } from '../services/reviewService.ts';
+import { searchLearningResources } from '../services/searchService.ts';
 import { QuickActionGenerationError, isIncompleteQuickActionContent, isQuickActionKind } from '../services/quickActionService.ts';
 import { createRequestId } from '../services/agentRuntime.ts';
 
@@ -110,6 +111,64 @@ tasksRouter.post('/:taskId/complete', async (req, res) => {
     });
   }
 
+  res.json({ success: true });
+});
+
+tasksRouter.post('/:taskId/materials/generate', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const taskId = Number(req.params.taskId);
+  const appContext = getAppContext();
+  const { tasks, resources } = appContext.repositories;
+  
+  const task = await tasks.findByIdForUser(taskId, user.id);
+  if (!task) {
+    jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
+    return;
+  }
+
+  try {
+    const searchLinks = await searchLearningResources({
+      query: `${task.title} tutorial documentation guide`,
+      maxResults: 3,
+    });
+
+    const timestamp = nowIso();
+    for (const link of searchLinks) {
+      await resources.addSystemResource(taskId, task.goal_id, user.id, {
+        title: link.title,
+        url: link.url,
+        createdAt: timestamp,
+      });
+    }
+
+    res.json({ success: true, count: searchLinks.length });
+  } catch (error) {
+    console.error('Material generation failed.', error);
+    jsonError(res, 500, 'Failed to generate materials.', 'MATERIAL_GENERATION_FAILED');
+  }
+});
+
+tasksRouter.post('/:taskId/relearn', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const taskId = Number(req.params.taskId);
+  const { tasks } = getAppContext().repositories;
+  
+  const task = await tasks.findByIdForUser(taskId, user.id);
+  if (!task) {
+    jsonError(res, 404, 'Task not found.', 'TASK_NOT_FOUND');
+    return;
+  }
+
+  if (task.status !== 'completed') {
+    jsonError(res, 400, 'Task must be completed to relearn.', 'TASK_NOT_COMPLETED');
+    return;
+  }
+
+  await tasks.resetToInProgress(taskId, user.id);
   res.json({ success: true });
 });
 

@@ -96,6 +96,12 @@ export function createPostgresRepositories(pool: Pool): AppRepositories {
           ['completed', completedAt, taskId, userId],
         );
       },
+      async resetToInProgress(taskId, userId) {
+        await pool.query(
+          'UPDATE tasks SET status = $1, completed_at = NULL WHERE id = $2 AND user_id = $3',
+          ['in_progress', taskId, userId],
+        );
+      },
     },
     sessions: {
       async findOpenByTask(taskId, userId) {
@@ -212,6 +218,23 @@ export function createPostgresRepositories(pool: Pool): AppRepositories {
           [taskId, userId],
         );
         return result.rows;
+      },
+      async addSystemResource(taskId, goalId, userId, input) {
+        await withTransaction(pool, async (client) => {
+          const result = await client.query<{ id: number }>(
+            `
+              INSERT INTO resources (user_id, goal_id, title, type, reference, notes, source_kind, created_at)
+              VALUES ($1, $2, $3, 'link', $4, NULL, 'system_suggested', $5)
+              RETURNING id
+            `,
+            [userId, goalId, input.title, input.url, input.createdAt],
+          );
+          
+          await client.query(
+            'INSERT INTO task_resources (user_id, task_id, resource_id, relevance_note) VALUES ($1, $2, $3, $4)',
+            [userId, taskId, result.rows[0].id, 'System-suggested learning resource'],
+          );
+        });
       },
     },
     quickActions: {

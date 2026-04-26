@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Circle, Play, Sparkles } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
@@ -9,10 +10,13 @@ import { PageIntro, PageLoadingState, PageMessageState } from '../components/Pag
 import { PrimaryActionPanel } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
+import { apiFetch } from '../lib/api';
 
 export function RoadmapPage() {
   const { data, loading, error, refetch } = useAppData();
   const { t } = usePreferences();
+  const navigate = useNavigate();
+  const [relearningTask, setRelearningTask] = useState<number | null>(null);
   useAppMeta({
     title: t('roadmap.title'),
     description: data?.goals[0]
@@ -46,6 +50,20 @@ export function RoadmapPage() {
   const nextTask = tasks.find((task) => task.status !== 'completed') ?? null;
   const completedTasks = tasks.filter((task) => task.status === 'completed').length;
   const progressPercentage = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+  const handleRelearn = async (taskId: number) => {
+    if (relearningTask) return;
+    setRelearningTask(taskId);
+    try {
+      await apiFetch(`/api/tasks/${taskId}/relearn`, { method: 'POST' });
+      await refetch();
+      navigate(`/app/session/${taskId}`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRelearningTask(null);
+    }
+  };
 
   return (
     <div className="space-y-8 font-sans">
@@ -167,7 +185,7 @@ export function RoadmapPage() {
                         )}
                       </div>
 
-                      {!isDone && (
+                      {!isDone ? (
                         <Link to={`/app/session/${task.id}`} className="w-full sm:w-auto">
                           <Button
                             size="sm"
@@ -178,6 +196,16 @@ export function RoadmapPage() {
                             {t('common.start')}
                           </Button>
                         </Link>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full sm:w-auto text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                          disabled={relearningTask === task.id}
+                          onClick={() => void handleRelearn(task.id)}
+                        >
+                          {relearningTask === task.id ? t('auth.working') : t('common.relearn')}
+                        </Button>
                       )}
                     </div>
                   </div>

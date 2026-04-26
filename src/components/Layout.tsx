@@ -116,11 +116,23 @@ export function Layout() {
         </div>
 
         <div className="space-y-4 border-b border-[var(--border-color)] px-6 py-5">
-          <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[var(--text-muted)]">
-            {t('brand.tagline')}
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[var(--text-muted)]">
+                {t('brand.tagline')}
+              </div>
+              <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">{session?.user.name}</div>
+              <div className="text-xs text-[var(--text-muted)]">{session?.user.email}</div>
+            </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              title={t('auth.signOut')}
+              className="mt-1 text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
-          <div className="text-sm text-[var(--text-primary)]">{session?.user.name}</div>
-          <div className="text-xs text-[var(--text-muted)]">{session?.user.email}</div>
           <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
             {t('layout.summary')}
           </p>
@@ -149,16 +161,7 @@ export function Layout() {
           })}
         </nav>
 
-        <div className="border-t border-[var(--border-color)] p-4">
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-xl border border-transparent px-3.5 py-3 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--border-color)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)]"
-          >
-            <LogOut className="w-4 h-4" />
-            {t('auth.signOut')}
-          </button>
-        </div>
+
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">

@@ -83,6 +83,7 @@ export interface TaskRepository {
   findByIdForUser(taskId: number, userId: string): Promise<TaskRow | null>;
   markInProgress(taskId: number, userId: string): Promise<void>;
   markCompleted(taskId: number, userId: string, completedAt: string): Promise<void>;
+  resetToInProgress(taskId: number, userId: string): Promise<void>;
 }
 
 export interface StudySessionRepository {
@@ -100,6 +101,7 @@ export interface ReviewRepository {
 
 export interface ResourceRepository {
   getTaskResources(taskId: number, userId: string): Promise<QuickActionResource[]>;
+  addSystemResource(taskId: number, goalId: number, userId: string, input: { title: string; url: string; createdAt: string }): Promise<void>;
 }
 
 export interface QuickActionRepository {

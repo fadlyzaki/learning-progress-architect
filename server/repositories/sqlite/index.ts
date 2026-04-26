@@ -82,6 +82,10 @@ export function createSQLiteRepositories(db: Database.Database): AppRepositories
         db.prepare('UPDATE tasks SET status = ?, completed_at = ? WHERE id = ? AND user_id = ?')
           .run('completed', completedAt, taskId, userId);
       },
+      async resetToInProgress(taskId, userId) {
+        db.prepare('UPDATE tasks SET status = ?, completed_at = NULL WHERE id = ? AND user_id = ?')
+          .run('in_progress', taskId, userId);
+      },
     },
     sessions: {
       async findOpenByTask(taskId, userId) {
@@ -202,6 +206,23 @@ export function createSQLiteRepositories(db: Database.Database): AppRepositories
             `,
           )
           .all(taskId, userId) as QuickActionResource[];
+      },
+      async addSystemResource(taskId, goalId, userId, input) {
+        const tx = db.transaction(() => {
+          const insertResource = db.prepare(
+            `
+              INSERT INTO resources (user_id, goal_id, title, type, reference, notes, source_kind, created_at)
+              VALUES (?, ?, ?, 'link', ?, NULL, 'system_suggested', ?)
+            `,
+          );
+          const result = insertResource.run(userId, goalId, input.title, input.url, input.createdAt);
+          const resourceId = Number(result.lastInsertRowid);
+
+          db.prepare(
+            'INSERT INTO task_resources (user_id, task_id, resource_id, relevance_note) VALUES (?, ?, ?, ?)'
+          ).run(userId, taskId, resourceId, 'System-suggested learning resource');
+        });
+        tx();
       },
     },
     quickActions: {

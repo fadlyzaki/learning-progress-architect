@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play, X } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play, Sparkles, X } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -52,7 +52,7 @@ const SESSION_QUICK_ACTIONS: SessionQuickAction[] = [
 export function SessionPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data, loading, error } = useAppData();
+  const { data, loading, error, refetch } = useAppData();
   const { t } = usePreferences();
   const taskId = Number(id);
   const task = data?.tasks.find((item) => item.id === taskId) ?? null;
@@ -87,6 +87,7 @@ export function SessionPage() {
   });
   const [quickActionError, setQuickActionError] = useState<string | null>(null);
   const [selectedQuickAction, setSelectedQuickAction] = useState<QuickActionRecord | null>(null);
+  const [generatingMaterials, setGeneratingMaterials] = useState(false);
 
   useEffect(() => {
     setTime(openSession?.duration_seconds ?? 0);
@@ -223,6 +224,21 @@ export function SessionPage() {
         ...current,
         [action]: false,
       }));
+    }
+  };
+
+  const handleGenerateMaterials = async () => {
+    if (!task || generatingMaterials) return;
+    setGeneratingMaterials(true);
+    setErrorMessage(null);
+    try {
+      await apiFetch(`/api/tasks/${task.id}/materials/generate`, { method: 'POST' });
+      await refetch();
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err instanceof ApiError ? err.message : t('session.generateMaterialsFailed'));
+    } finally {
+      setGeneratingMaterials(false);
     }
   };
 
@@ -377,8 +393,8 @@ export function SessionPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,39rem)_minmax(18rem,19rem)] xl:items-start xl:justify-between">
-        <div className="space-y-4 xl:max-w-[39rem]">
+      <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+        <div className="space-y-6 lg:col-span-2">
           <Card className="app-card-supporting">
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -388,7 +404,20 @@ export function SessionPage() {
                     {primarySupportBody}
                   </CardDescription>
                 </div>
-                {taskResources.length > 0 ? <Badge variant="outline">{t('session.materialsCount', { count: taskResources.length })}</Badge> : null}
+                {taskResources.length > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{t('session.materialsCount', { count: taskResources.length })}</Badge>
+                    <Button variant="ghost" size="sm" onClick={() => void handleGenerateMaterials()} disabled={generatingMaterials}>
+                       {generatingMaterials ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                       <span className="sr-only">{t('session.generateMaterials')}</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={() => void handleGenerateMaterials()} disabled={generatingMaterials}>
+                    {generatingMaterials ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                    {t('session.generateMaterials')}
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
@@ -469,7 +498,7 @@ export function SessionPage() {
           </Card>
         </div>
 
-        <div className="space-y-4 xl:max-w-[19rem]">
+        <div className="space-y-6 lg:col-span-1">
           <Card className="app-card-muted">
             <CardHeader className="pb-3">
               <CardTitle className="text-xl text-[var(--text-primary)]">{t('session.quickActions')}</CardTitle>
@@ -603,26 +632,31 @@ function StudyMaterialCard({
   const referenceLabel = formatReferenceLabel(resource.reference);
 
   return (
-    <div className="app-list-row rounded-2xl p-3">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 text-[var(--accent-amber)]">
-          <BookOpen className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-base font-medium text-[var(--text-primary)]">{resource.title}</div>
-            <Badge variant="outline">{t(`resourceType.${resource.type}`)}</Badge>
+    <div className="group relative overflow-hidden rounded-[1.25rem] border border-[var(--border-color)] bg-[var(--bg-card)]/40 p-4 transition-all hover:bg-[var(--bg-card)]/80 hover:shadow-[0_4px_24px_-8px_var(--glow-amber)]">
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-amber)]/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="relative flex flex-col gap-3">
+        <div className="flex items-start gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--accent-amber)] transition-colors group-hover:border-[var(--accent-amber)]/30 group-hover:bg-[var(--accent-amber)]/10 shadow-inner">
+            <BookOpen className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1 pt-0.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">{resource.title}</h3>
+              <Badge variant="outline" className="text-[var(--text-secondary)] group-hover:border-[var(--accent-amber)]/20 group-hover:text-[var(--accent-amber)]/80 transition-colors">{t(`resourceType.${resource.type}`)}</Badge>
+            </div>
           </div>
         </div>
-      </div>
-      {resource.reference ? (
-        <div className="mt-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-3 py-2.5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+        {resource.notes ? (
+          <div className="ml-14">
+            <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{resource.notes}</p>
+          </div>
+        ) : null}
+
+        {resource.reference ? (
+          <div className="mt-2 ml-14 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] px-3 py-2.5 transition-colors group-hover:border-[var(--accent-amber)]/30">
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                {t('session.materialSource')}
-              </div>
-              <div className="mt-1 break-words text-sm text-[var(--text-primary)] sm:truncate">
+              <div className="truncate text-xs font-medium text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
                 {referenceLabel}
               </div>
             </div>
@@ -631,25 +665,17 @@ function StudyMaterialCard({
                 href={referenceUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-surface)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--accent-blue)] hover:text-[var(--accent-blue)]"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 text-xs font-medium text-[var(--accent-blue)] transition-colors hover:text-blue-400"
               >
                 {t('session.openMaterial')}
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="h-3.5 w-3.5" />
               </a>
             ) : (
-              <span className="text-sm text-[var(--text-secondary)]">{t('session.referenceUnavailable')}</span>
+              <span className="text-xs text-[var(--text-secondary)]">{t('session.referenceUnavailable')}</span>
             )}
           </div>
-        </div>
-      ) : null}
-      {resource.notes ? (
-        <div className="mt-2 rounded-2xl border border-[var(--border-color)]/70 bg-[var(--bg-soft)]/48 px-3 py-2.5">
-          <div className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-            {t('session.materialNotes')}
-          </div>
-          <div className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{resource.notes}</div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
-import { Activity, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
+import { Activity, CheckCircle2, Clock, Download, TrendingUp } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
 import { Progress } from '../components/ui/Progress';
 import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
+import { exportDataToMarkdown, downloadMarkdown } from '../lib/export';
 
 function calculateStreak(sessionDates: string[]) {
   const uniqueDates = [...new Set(sessionDates.map((value) => value.slice(0, 10)))].sort().reverse();
@@ -89,9 +91,25 @@ export function ProgressPage() {
     ? (activeGoalTasks.filter((task) => task.status === 'completed').length / activeGoalTasks.length) * 100
     : 0;
 
+  const handleExportMarkdown = () => {
+    if (!data) return;
+    const md = exportDataToMarkdown(data);
+    const filename = `learning-progress-export-${new Date().toISOString().slice(0, 10)}.md`;
+    downloadMarkdown(md, filename);
+  };
+
   return (
     <div className="space-y-8 font-sans">
-      <PageIntro title={t('progress.title')} body={t('progress.subtitle')} />
+      <PageIntro 
+        title={t('progress.title')} 
+        body={t('progress.subtitle')} 
+        actions={
+          <Button variant="outline" onClick={handleExportMarkdown} className="gap-2">
+            <Download className="h-4 w-4" />
+            {t('progress.exportData')}
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard title={t('progress.totalStudyTime')} value={`${totalStudyMinutes}m`} body={t('progress.totalStudyTimeBody')} accent="text-green-500" icon={<TrendingUp className="h-4 w-4" />} />
