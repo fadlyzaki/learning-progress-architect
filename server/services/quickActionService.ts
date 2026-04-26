@@ -18,6 +18,8 @@ const QUICK_ACTION_OUTPUT_INSTRUCTION = [
   'Do not output JSON, XML, markdown code fences, or role labels.',
 ].join(' ');
 
+const MIN_COMPLETE_QUICK_ACTION_WORDS = 55;
+
 export const QUICK_ACTION_KINDS = ['explain', 'example', 'analogy', 'confused'] as const;
 
 export const QUICK_ACTION_PROMPTS: Record<QuickActionKind, string> = {
@@ -99,6 +101,28 @@ export function normalizeQuickActionContent(content: string): string {
     .replace(/^```[\w-]*\n?/g, '')
     .replace(/\n?```$/g, '')
     .trim();
+}
+
+export function isIncompleteQuickActionContent(content: string, taskTitle?: string): boolean {
+  const trimmed = content.trim();
+  const normalized = trimmed.toLowerCase();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  const knownWeakPatterns = [
+    taskTitle ? `${taskTitle.toLowerCase()} is the concept for this step` : null,
+    'imagine a real team using it in production',
+    'well-organized kitchen',
+    taskTitle ? `first, ${taskTitle.toLowerCase()} is the main idea you are learning` : null,
+  ].filter((pattern): pattern is string => Boolean(pattern));
+
+  const hasTerminalPunctuation = /[.!?]["']?$/.test(trimmed);
+  const endsLikeFragment = /(?:[,;:]|(?:\s|^)(and|or|but|because|so|then|with|for|to|of|in|on|at|from|as|that|which|where|when|while|like|into|through|by|about|the|a|an))$/i.test(trimmed);
+
+  return (
+    words.length < MIN_COMPLETE_QUICK_ACTION_WORDS
+    || !hasTerminalPunctuation
+    || endsLikeFragment
+    || knownWeakPatterns.some((pattern) => normalized.includes(pattern))
+  );
 }
 
 export async function generateQuickActionContent(input: {

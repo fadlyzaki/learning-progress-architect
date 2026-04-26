@@ -377,10 +377,10 @@ export function SessionPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,39rem)_minmax(18rem,19rem)] xl:items-start xl:justify-between">
-        <div className="space-y-6 xl:max-w-[39rem]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,39rem)_minmax(18rem,19rem)] xl:items-start xl:justify-between">
+        <div className="space-y-4 xl:max-w-[39rem]">
           <Card className="app-card-supporting">
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <CardTitle className="text-xl text-[var(--text-primary)]">{primarySupportTitle}</CardTitle>
@@ -391,9 +391,9 @@ export function SessionPage() {
                 {taskResources.length > 0 ? <Badge variant="outline">{t('session.materialsCount', { count: taskResources.length })}</Badge> : null}
               </div>
             </CardHeader>
-            <CardContent className="space-y-4 pt-0">
+            <CardContent className="space-y-3 pt-0">
               {taskResources.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {taskResources.map((resource) => (
                     <div key={resource.id}>
                       <StudyMaterialCard resource={resource} />
@@ -415,7 +415,7 @@ export function SessionPage() {
                   <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)]">
                     {t('session.objectives')}
                   </div>
-                  <ul className="mt-3 space-y-2 text-sm text-[var(--text-secondary)]">
+                  <ul className="mt-2 space-y-2 text-sm text-[var(--text-secondary)]">
                     {sessionObjectives.map((objective) => (
                       <li key={objective} className="app-list-row-quiet rounded-xl px-3 py-2">
                         {objective}
@@ -469,9 +469,9 @@ export function SessionPage() {
           </Card>
         </div>
 
-        <div className="space-y-6 xl:max-w-[19rem]">
+        <div className="space-y-4 xl:max-w-[19rem]">
           <Card className="app-card-muted">
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3">
               <CardTitle className="text-xl text-[var(--text-primary)]">{t('session.quickActions')}</CardTitle>
               <CardDescription className="text-base leading-relaxed">
                 {t('session.quickActionsBody')}
@@ -480,7 +480,7 @@ export function SessionPage() {
                 {t('session.quickActionsHelper')}
               </p>
             </CardHeader>
-            <CardContent className="space-y-3 pt-0">
+            <CardContent className="space-y-2 pt-0">
               {SESSION_QUICK_ACTIONS.map((action) => (
                 <div key={action.kind}>
                   <QuickActionRow
@@ -603,9 +603,9 @@ function StudyMaterialCard({
   const referenceLabel = formatReferenceLabel(resource.reference);
 
   return (
-    <div className="app-list-row rounded-2xl p-4">
+    <div className="app-list-row rounded-2xl p-3">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 text-[var(--accent-amber)]">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 text-[var(--accent-amber)]">
           <BookOpen className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
@@ -616,7 +616,7 @@ function StudyMaterialCard({
         </div>
       </div>
       {resource.reference ? (
-        <div className="mt-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-4 py-3">
+        <div className="mt-3 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-3 py-2.5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
               <div className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
@@ -643,7 +643,7 @@ function StudyMaterialCard({
         </div>
       ) : null}
       {resource.notes ? (
-        <div className="mt-3 rounded-2xl border border-[var(--border-color)]/70 bg-[var(--bg-soft)]/48 px-4 py-3">
+        <div className="mt-2 rounded-2xl border border-[var(--border-color)]/70 bg-[var(--bg-soft)]/48 px-3 py-2.5">
           <div className="text-[10px] font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
             {t('session.materialNotes')}
           </div>
@@ -672,7 +672,7 @@ function QuickActionRow({
   return (
     <div
       aria-disabled="true"
-      className="app-list-row-quiet flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left opacity-76"
+      className="app-list-row-quiet flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left opacity-76"
     >
       <div className="flex min-w-0 items-center gap-3 text-sm text-[var(--text-primary)]">
         <div className="shrink-0">{icon}</div>

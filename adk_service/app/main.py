@@ -400,7 +400,7 @@ async def generate_quick_action_with_gemini(request: QuickActionRequest) -> str 
                 contents=prompt,
                 config={
                     "temperature": 0.7,
-                    "max_output_tokens": 500,
+                    "max_output_tokens": 1200,
                 },
             )
             content = normalize_model_text(response.text or "")
@@ -489,7 +489,9 @@ def fallback_quick_action(request: QuickActionRequest) -> str:
 
 
 def is_low_quality_quick_action(content: str, task_title: str) -> bool:
-    normalized = content.strip().lower()
+    trimmed = content.strip()
+    normalized = trimmed.lower()
+    words = re.findall(r"\S+", trimmed)
     known_weak_patterns = [
         f"{task_title.lower()} is the concept for this step",
         "imagine a real team using it in production",
@@ -497,11 +499,19 @@ def is_low_quality_quick_action(content: str, task_title: str) -> bool:
         f"first, {task_title.lower()} is the main idea you are learning",
     ]
 
-    has_terminal_punctuation = bool(re.search(r'[.!?]["\']?$', normalized))
+    has_terminal_punctuation = bool(re.search(r'[.!?]["\']?$', trimmed))
+    ends_like_fragment = bool(
+        re.search(
+            r'(?:[,;:]|(?:\s|^)(and|or|but|because|so|then|with|for|to|of|in|on|at|from|as|that|which|where|when|while|like|into|through|by|about|the|a|an))$',
+            trimmed,
+            re.IGNORECASE,
+        )
+    )
 
     return (
-        len(normalized) < 140
+        len(words) < 55
         or not has_terminal_punctuation
+        or ends_like_fragment
         or any(pattern in normalized for pattern in known_weak_patterns)
     )
 

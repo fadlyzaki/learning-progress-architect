@@ -237,6 +237,62 @@ test('quick action endpoint validates action type and returns a service-unavaila
   });
 });
 
+test('stale quick action cache entries are hidden from app data and not returned as cached answers', async () => {
+  const sharedToken = 'shared-secret';
+  const server = await startServer({
+    INTERNAL_SERVICE_TOKEN: sharedToken,
+  });
+  cleanupTasks.push(server.stop);
+  const token = await signupAndGetToken(server.baseUrl, 'stale-quick-actions@example.com');
+
+  const workflow = await request(
+    server.baseUrl,
+    '/api/agent/workflow',
+    {
+      goal: 'Learn React state management',
+      level: 'Beginner',
+      hours: 4,
+      preferredStyle: 'Mixed',
+      resourceMode: 'needs_plan',
+      resources: [],
+    },
+    token,
+  );
+  assert.equal(workflow.status, 201);
+
+  let data = await getData(server.baseUrl, token);
+  const firstTask = data.tasks[0];
+  const staleSave = await fetch(`${server.baseUrl}/internal/mcp/quick-action/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-service-token': sharedToken,
+    },
+    body: JSON.stringify({
+      userId: data.user.id,
+      taskId: firstTask.id,
+      action: 'explain',
+      content: 'This answer starts clearly, but it stops before finishing the actual explanation because',
+    }),
+  });
+  assert.equal(staleSave.status, 200);
+
+  data = await getData(server.baseUrl, token);
+  assert.deepEqual(data.quick_actions, []);
+
+  const quickAction = await request(
+    server.baseUrl,
+    `/api/tasks/${firstTask.id}/quick-action`,
+    { action: 'explain' },
+    token,
+  );
+  assert.equal(quickAction.status, 503);
+  assert.deepEqual(await quickAction.json(), {
+    error: 'Gemini is not configured for quick action generation.',
+    code: 'QUICK_ACTION_UNAVAILABLE',
+  });
+});
+
 test('workflow falls back to the legacy planner when AGENT_PROVIDER=adk is enabled but the ADK service is unavailable', async () => {
   const server = await startServer({
     AGENT_PROVIDER: 'adk',

@@ -5,7 +5,7 @@ import { requireUser } from '../middleware/auth.ts';
 import { jsonError } from '../utils/http.ts';
 import { nowIso, addDays } from '../utils/date.ts';
 import { getReviewSchedule } from '../services/reviewService.ts';
-import { QuickActionGenerationError, isQuickActionKind } from '../services/quickActionService.ts';
+import { QuickActionGenerationError, isIncompleteQuickActionContent, isQuickActionKind } from '../services/quickActionService.ts';
 import { createRequestId } from '../services/agentRuntime.ts';
 
 export const tasksRouter = Router();
@@ -141,7 +141,7 @@ tasksRouter.post('/:taskId/quick-action', async (req, res) => {
     }
 
     const cachedRow = await quickActions.findByTaskAndAction(taskId, user.id, action);
-    if (cachedRow) {
+    if (cachedRow && !isIncompleteQuickActionContent(cachedRow.content, task.title)) {
       res.json({
         action: cachedRow.action,
         content: cachedRow.content,
