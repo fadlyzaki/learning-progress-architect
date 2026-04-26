@@ -827,8 +827,10 @@ function QuickActionModal({
           </button>
         </div>
 
-        <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
-          <MarkdownContent content={content} className="text-sm md:text-base" />
+        <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-2">
+          <div className="rounded-[1.25rem] border border-[var(--border-color)]/70 bg-[var(--bg-surface)] p-5 shadow-sm md:p-6">
+            <MarkdownContent content={content} className="text-[15px] leading-relaxed text-[var(--text-secondary)] md:text-[16px] md:leading-[1.75]" />
+          </div>
         </div>
 
         <div className="mt-6 flex shrink-0 justify-end border-t border-[var(--border-color)] pt-5">

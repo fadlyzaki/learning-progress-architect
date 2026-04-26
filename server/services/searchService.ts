@@ -34,7 +34,7 @@ export async function searchLearningResources(input: SearchRequest): Promise<Sea
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.0-flash',
       contents: `Find authoritative learning resources for: ${input.query}`,
       config: {
         tools: [{ googleSearch: {} }],
