@@ -1,194 +1,168 @@
-# Learning Progress Architect: System Architecture
+# Learning Progress Architect: System Architecture v1.0
 
-> **Product Philosophy:** *"Learning breaks down not because people lack ambition, but because the system around the ambition is unstable. This project is not just a planner or a chatbot. It is an operational layer for self-directed learning, where algorithmic structure meets human cognitive limits with as little friction as possible."*
+> **Engineering Philosophy:** *"Learning breaks down not because people lack ambition, but because the system around the ambition is unstable. We do not build a planner or a chatbot. We engineer a resilient operational layer for self-directed learning — where algorithmic structure meets human cognitive limits with zero friction and zero excuses. Learning, by design."*
 
-Welcome to the source system of **Learning Progress Architect**: an AI-guided learning workspace that transforms a vague learning goal into a structured roadmap, focused study sessions, contextual assistance, and adaptive review loops.
+Welcome to the source matrix of **Learning Progress Architect** — a production-grade AI-guided learning workspace that compiles a vague learning goal into a structured roadmap, focused study sessions, contextual AI coaching, and adaptive review loops.
 
-This repository is not organized as a generic CRUD app. It is a workflow system designed around one core constraint: when people are learning something difficult, they should not also have to manually design, maintain, and debug their own study process.
+This repository is not organized as a generic CRUD application. It is a **workflow-native system** engineered around one core constraint: when people are learning something difficult, they must not also have to design, maintain, and debug their own study process. The architecture shoulders that operational weight so the learner does not have to.
 
-[![Status](https://img.shields.io/badge/SYSTEM-DEMO%20LIVE-green?style=flat-square&logo=googlecloud)](https://cloud.google.com/run)
-[![Runtime](https://img.shields.io/badge/ARCHITECTURE-WEB%20%E2%86%92%20ADK%20%E2%86%92%20MCP-blue?style=flat-square)](#architectural-topography--core-runtime)
-[![Persistence](https://img.shields.io/badge/STORAGE-SQLite-orange?style=flat-square)](#current-system-boundaries)
-[![Stack](https://img.shields.io/badge/STACK-React%20%2B%20Express%20%2B%20TypeScript-black?style=flat-square&logo=react)](#architectural-topography--core-runtime)
-
----
-
-## Architectural Topography & Core Runtime
-
-The current system is built as a workflow-native learning product with a public web layer, an orchestration layer, and an internal tool layer.
-
-* **The Interface**: **React 19 + React Router 7 + Vite**  
-  A multi-surface SPA covering onboarding, dashboard, roadmap, sessions, reviews, progress, and reflections.
-
-* **The Public Runtime**: **Express + TypeScript**  
-  The Node service remains the only user-facing backend. It owns auth, workspace reads, route orchestration, review scheduling, and the trusted application contract.
-
-* **The Agent Layer**: **Python ADK Service**  
-  Handles workflow planning and study-coach orchestration without changing the public app API.
-
-* **The Tool Layer**: **Internal MCP Service**  
-  Exposes trusted workspace operations such as task-context lookup, cached quick-action reads, quick-action persistence, workflow record creation, and resource search.
-
-* **The Persistence Layer**: **SQLite via `better-sqlite3`**  
-  Keeps the prototype lightweight and locally runnable, while the architecture prepares for AlloyDB-based durability later.
-
-* **The Deployment Substrate**: **Cloud Run + Cloud Build**  
-  The repo supports a deployed three-service demo topology: `web -> ADK -> MCP`.
+[![Status](https://img.shields.io/badge/SYSTEM-DEMO%20LIVE-brightgreen?style=flat-square&logo=googlecloud)](https://cloud.google.com/run)
+[![Runtime](https://img.shields.io/badge/ARCHITECTURE-Web%20→%20ADK%20→%20MCP-blue?style=flat-square)](#-architectural-topography--core-runtime)
+[![Stack](https://img.shields.io/badge/STACK-React%2019%20%2B%20Express%20%2B%20TypeScript-black?style=flat-square&logo=react)](#-architectural-topography--core-runtime)
+[![Persistence](https://img.shields.io/badge/STORAGE-SQLite%20%2F%20AlloyDB-orange?style=flat-square)](#-environment-topology)
+[![License](https://img.shields.io/badge/LICENSE-MIT-white?style=flat-square)](./LICENSE)
 
 ---
 
-## The Learning Loop
+## 🏗 Architectural Topography & Core Runtime
 
-Learning Progress Architect is designed around one continuous loop rather than isolated productivity features:
+A resilient system is measured by its fault tolerance, layered degradation, and capacity to preserve the user contract under infrastructure pressure. The stack is a strict three-tier orchestration model: a public web contract, an intelligent agent layer, and an internal tool boundary.
 
-1. A learner defines a goal, current level, weekly pace, and study style.
-2. The system generates a three-step roadmap and schedules initial work.
+- **The Interface — React 19 + React Router 7 + Vite**
+  A multi-surface SPA spanning 11 learner-facing product screens. Vite powers fast HMR and aggressive tree-shaking. React Router 7 handles client-side navigation across the full learning lifecycle.
+
+- **The Public Runtime — Express + TypeScript**
+  The Node service is the sole user-facing backend. It owns authentication, workspace reads, route orchestration, review scheduling, and the trusted application contract. The public API surface is intentionally stable so the frontend does not care whether the intelligence path is legacy, ADK-backed, or retrieval-enriched.
+
+- **The Agent Layer — Python ADK Service**
+  Handles workflow planning and study-coach orchestration via Google's Agent Development Kit (ADK). Isolated from the public runtime so intelligence upgrades do not touch the public API.
+
+- **The Tool Layer — Internal MCP Service**
+  Exposes trusted workspace operations via Model Context Protocol (MCP): task-context lookup, cached quick-action reads, quick-action persistence, workflow record creation, and resource search. Acts as the hardened boundary between AI reasoning and system-owned data mutations.
+
+- **The Persistence Layer — SQLite via `better-sqlite3`**
+  Keeps the current demo lightweight and locally runnable. The architecture is already shaped for AlloyDB-based durability at the next stage without changing the public API contract.
+
+- **The Deployment Substrate — Cloud Run + Cloud Build**
+  Three-service demo topology: `web → ADK → MCP`. CI pipelines defined in `cloudbuild.adk.yaml` and `cloudbuild.mcp.yaml`.
+
+---
+
+## ⚡ The Learning Loop
+
+Learning Progress Architect is designed around one continuous operational loop rather than isolated productivity features:
+
+1. A learner defines a goal, current level, weekly pace, target date, and preferred study style.
+2. The system generates a structured roadmap and schedules initial work.
 3. Each task is paired with learner-provided or system-suggested resources.
-4. The learner enters a focused study session with a timer and task objective.
-5. During the session, the learner can request contextual help through quick actions like `explain`, `example`, `analogy`, and `confused`.
-6. After the session, the learner records reflection, blockers, and confidence.
-7. The system schedules the next review based on learning strength.
+4. The learner enters a focused study session with a timer and a single task objective.
+5. During the session, contextual AI coaching is available through four discrete **quick actions**: `explain`, `example`, `analogy`, `confused`.
+6. After the session, the learner records reflections, blockers, and a confidence rating.
+7. The system schedules the next review based on declared learning strength.
 
-This means the product does not merely answer questions. It holds the operational shape of the study process itself.
-
----
-
-## Sub-Systems & Product Surfaces
-
-### 1. Guided Onboarding Engine
-Captures the learner's goal, level, time budget, target date, preferred study style, and resource mode. This becomes the planning substrate for the first roadmap.
-
-### 2. Workflow Planning Runtime
-The public app calls an internal planner abstraction. In ADK mode, the request is routed to the Python service. In constrained environments, the system can still fall back to deterministic, context-aware planning so the learner is not blocked.
-
-### 3. Session-Scoped Study Coach
-The session page is not a generic note area. It is a constrained environment built around one task, one objective, and one active study state.
-
-### 4. Quick Action Intelligence
-In-session AI support is exposed as discrete actions rather than an open-ended chat box:
-- `explain`
-- `example`
-- `analogy`
-- `confused`
-
-This keeps support tightly aligned to the current learning context instead of inviting unbounded conversational drift.
-
-### 5. MCP Workspace Boundary
-The MCP service acts as the trusted boundary for tool-based access to the learner workspace. It separates reasoning from system-owned reads and writes.
-
-### 6. Reflection & Confidence Capture
-Every finished session records what the learner understood, where they got stuck, and how confident they feel. Reflection is not treated as journaling fluff; it is operational input for retention.
-
-### 7. Adaptive Review Scheduler
-The review system converts confidence into timing. Topics with low confidence come back sooner. Stronger topics are spaced farther out.
-
-### 8. Progress & Reflection Visibility
-The learner can inspect task completion, study time, confidence trend, pending reviews, and past reflections through a single workspace payload.
+The system does not merely answer questions. It holds the **operational shape** of the study process itself.
 
 ---
 
-## System Behavior Under Constraint
+## 🧬 Sub-Systems & Architectural Highlights
 
-A resilient learning system should not collapse the moment an external model becomes constrained.
+### 1. Guided Onboarding Engine (`OnboardingPage.tsx`)
+Captures the learner's goal, experience level, time budget, target date, preferred study style, and resource mode. Every input becomes the planning substrate for the first roadmap generation. The onboarding flow is the system's primary data intake mechanism — designed to collect exactly the context the agent layer needs, nothing more.
 
-The current runtime is explicitly designed to degrade in layers:
+### 2. Workflow Planning Runtime (`workflowService.ts`, `workflowAgentService.ts`)
+The public app calls an internal planner abstraction. In ADK mode, requests route to the Python ADK service. In constrained environments (quota pressure, ADK unavailability), the system falls back to deterministic, context-aware planning via the `planners/` layer so the learner is never blocked. Provider switching is controlled by the `AGENT_PROVIDER` environment variable.
 
-- If ADK is unavailable, the public app can fall back to legacy in-process behavior.
-- If Gemini quota is constrained, the system can still generate deterministic, context-aware fallback roadmap and quick-action content.
-- Cached quick-action outputs are reused when appropriate to reduce repeated work and preserve continuity.
+### 3. Session-Scoped Study Coach (`SessionPage.tsx`)
+The session page is not a generic note area. It is a constrained environment built around one task, one objective, and one active study state. Timer, task objective, quick-action interface, and reflection capture are all co-located in a single focused surface.
 
-This matters because educational trust is not only about output quality. It is also about behavioral consistency when infrastructure is imperfect.
+### 4. Quick Action Intelligence (`quickActionService.ts`)
+In-session AI support is exposed as four discrete actions rather than an open-ended chat interface:
+- `explain` — plain-language breakdown of the current concept
+- `example` — concrete real-world illustration
+- `analogy` — cross-domain mental model transfer
+- `confused` — step back and reframe from first principles
+
+This keeps support tightly aligned to the current learning context and prevents unbounded conversational drift. Cached outputs are reused when appropriate to reduce repeated model calls and preserve response continuity.
+
+### 5. MCP Workspace Boundary (`server/mcp/`)
+The MCP service acts as the trusted boundary for tool-based access to the learner workspace. It separates AI reasoning from system-owned reads and writes. Operations exposed to the agent layer are enumerated and bounded — the agent cannot perform arbitrary data mutations.
+
+### 6. Agent Runtime & Planner Abstraction (`agentRuntime.ts`, `agents/`, `planners/`)
+A provider-agnostic agent runtime that routes to the correct backend based on configuration. The `agents/` layer contains ADK-backed orchestration logic. The `planners/` layer contains deterministic fallback implementations. Both satisfy the same internal contract.
+
+### 7. Syllabus Intelligence (`syllabusService.ts`)
+Generates and manages the structured learning roadmap from onboarding inputs. Responsible for roadmap initialization, task sequencing, and the mapping of learner context to a three-step learning arc.
+
+### 8. Adaptive Review Scheduler (`reviewService.ts`)
+Converts session confidence scores into review timing. Low-confidence topics return sooner. High-confidence topics are spaced further out. Review scheduling is the system's primary retention mechanism.
+
+### 9. Semantic Resource Search (`searchService.ts`, `retrieval/`)
+Supports resource discovery aligned to the learner's current task context. The `retrieval/` layer is architected for future enrichment with AlloyDB AI vector search, without breaking the current service interface.
+
+### 10. Reflection & Confidence Capture (`ReflectionsPage.tsx`, `ComprehensionPage.tsx`)
+Every finished session records what the learner understood, where they got stuck, and how confident they feel. Reflection is not journaling fluff — it is operational input for review scheduling and longitudinal progress visibility.
+
+### 11. Progress & Workspace Visibility (`ProgressPage.tsx`, `DashboardPage.tsx`)
+A single workspace payload exposes task completion, cumulative study time, confidence trends, pending reviews, and past reflections. The dashboard is the learner's operational control surface — not a vanity metrics screen.
+
+### 12. Resilient Agent Routing (`agentRuntime.ts`)
+The runtime is explicitly designed to degrade in layers. If ADK is unavailable, the public app falls back to the `legacy` provider path. If Gemini quota is constrained, the system returns deterministic, context-aware fallback content rather than failing immediately. Cached quick-action outputs are reused when available.
+
+### 13. Layered Authentication (`authService.ts`, `server/middleware/`)
+Standard auth layer protecting the learner workspace. Internal service-to-service communication is secured via a shared `INTERNAL_SERVICE_TOKEN` propagated across the `web → ADK → MCP` call chain. Token-based auth is the current model; the evolution path moves toward IAM-based identity.
+
+### 14. Goals Management (`GoalsPage.tsx`)
+Allows learners to inspect, update, and reflect on their declared learning goals. Goals are the root node of the entire system — they anchor roadmap generation, session context, and review prioritization.
 
 ---
 
-## Architectural Topology
+## 📂 System Topography
 
-```text
-User
-  -> React Frontend
-    -> Express Web App
-      -> SQLite
-      -> ADK Service
-         -> MCP Service
-            -> Internal app-owned workspace operations
-```
-
-The public contract remains stable even as the internals evolve:
-
-- `POST /api/agent/workflow`
-- `POST /api/tasks/:taskId/quick-action`
-- `GET /api/data`
-
-That stability is intentional. The frontend should not need to care whether the intelligence path is legacy, ADK-backed, or eventually retrieval-enriched.
-
----
-
-## Repo Topography
+The architecture follows a strict decoupled multi-layer pattern:
 
 ```text
 .
-├── server.ts
+├── server.ts                    # Application entrypoint
 ├── server/
-│   ├── routes/
-│   ├── services/
-│   ├── repositories/
-│   ├── middleware/
-│   └── mcp/
+│   ├── routes/                  # Public and internal HTTP boundaries
+│   ├── services/                # Orchestration, planning, quick-action, review, search
+│   │   ├── agents/              # ADK-backed agent orchestration
+│   │   ├── planners/            # Deterministic fallback planners
+│   │   └── retrieval/           # Resource search and future vector enrichment
+│   ├── repositories/            # Data access layer
+│   ├── middleware/              # Auth, error handling
+│   ├── mcp/                     # MCP server and app-backed tool bridge
+│   ├── config/                  # Runtime configuration
+│   ├── utils/                   # Shared utilities
+│   └── scripts/                 # Migration and import tooling
 ├── adk_service/
-│   └── app/
+│   └── app/                     # Python ADK runtime (main.py)
 ├── src/
-│   ├── components/
-│   ├── hooks/
-│   ├── lib/
-│   └── pages/
-├── docs/
-├── tests/
+│   ├── components/              # Layout, UI system, shared surfaces
+│   ├── hooks/                   # useAppData
+│   ├── lib/                     # Shared client utilities
+│   ├── data/                    # Client-side data definitions
+│   └── pages/                   # 11 learner-facing product surfaces
+├── docs/                        # Architecture and deployment documentation
+├── tests/                       # Node test suite
+├── migrations/                  # Database migration scripts
+├── Makefile                     # Deployment and build helpers
 ├── package.json
-├── Makefile
-└── vite.config.ts
+├── vite.config.ts
+└── tsconfig.json
 ```
 
-Important surfaces:
+**Layer model:**
 
-- [`server.ts`](/Users/fadly.zaki/Downloads/learning-progress-architect/server.ts): application entrypoint
-- [`server/routes`](/Users/fadly.zaki/Downloads/learning-progress-architect/server/routes): public and internal HTTP boundaries
-- [`server/services`](/Users/fadly.zaki/Downloads/learning-progress-architect/server/services): orchestration, agent runtime, planning, quick-action logic
-- [`server/mcp`](/Users/fadly.zaki/Downloads/learning-progress-architect/server/mcp): MCP server and app-backed tool bridge
-- [`adk_service/app/main.py`](/Users/fadly.zaki/Downloads/learning-progress-architect/adk_service/app/main.py): Python ADK runtime
-- [`src/pages`](/Users/fadly.zaki/Downloads/learning-progress-architect/src/pages): learner-facing product surfaces
-
----
-
-## Product Surfaces
-
-Current user-facing screens include:
-
-- Landing page
-- Login / signup
-- Onboarding
-- Dashboard
-- Roadmap
-- Session
-- Comprehension
-- Reviews
-- Progress
-- Reflections
-- Goals
-
-The system is intentionally shaped like a guided workspace, not a feature buffet.
+- **View Layer** — 11 product screens across the full learning lifecycle, from onboarding to reflections.
+- **State Layer** — App data managed via `useAppData` hook and server-owned workspace payload.
+- **Orchestration Layer** — Provider-agnostic agent runtime with ADK and legacy fallback paths.
+- **Tool Boundary** — MCP service as the hardened interface between AI reasoning and workspace data.
+- **Persistence Layer** — SQLite for local and demo runtime; AlloyDB-ready at the next migration step.
 
 ---
 
-## Local Ignition Protocol
+## 🚀 Local Ignition Protocol
 
 ### Prerequisites
 
 - Node.js 18+
 - npm
+- Python 3.11+ (for ADK service, optional in local mode)
 
 ### Setup
 
-1. Install dependencies.
+1. Provision dependencies.
 
    ```bash
    npm install
@@ -200,163 +174,156 @@ The system is intentionally shaped like a guided workspace, not a feature buffet
    cp .env.example .env.local
    ```
 
-3. Add the environment values you need. At minimum:
+3. Provision the required environment values. At minimum:
    - `GEMINI_API_KEY`
    - `INTERNAL_SERVICE_TOKEN`
 
-4. Start the local app.
+4. Ignite the development runtime.
 
    ```bash
    npm run dev
    ```
 
-The development server runs the Express app, which also serves the Vite-powered frontend.
+The development server runs the Express app, which also serves the Vite-powered frontend. The system operates in `legacy` agent mode by default unless `AGENT_PROVIDER=adk` is set and a running ADK service is reachable.
 
 ---
 
-## Runtime Commands
+## ⚙️ Runtime Commands
 
 ```bash
-npm run dev
-npm run build
-npm run start
-npm run lint
-npm run test
-npm run mcp:start
-npm run mcp:dev
-npm run db:migrate:alloydb
-npm run db:import:sqlite
+npm run dev              # Boot local Express + Vite frontend runtime
+npm run build            # Compile frontend production bundle
+npm run start            # Run production Node server locally
+npm run lint             # TypeScript integrity check (tsc --noEmit)
+npm run test             # Execute Node test suite
+npm run mcp:start        # Run MCP server in production mode
+npm run mcp:dev          # Run MCP server in development mode
+npm run db:migrate:alloydb   # Run Postgres migrations via node-pg-migrate
+npm run db:import:sqlite     # Import SQLite dataset into Postgres
 ```
-
-Command map:
-
-- `npm run dev`: start the local Express + frontend runtime
-- `npm run build`: build the frontend bundle
-- `npm run start`: run the production Node server locally
-- `npm run lint`: run TypeScript checking
-- `npm run test`: execute the Node test suite
-- `npm run mcp:start`: run the MCP server in production mode
-- `npm run mcp:dev`: run the MCP server in development mode
-- `npm run db:migrate:alloydb`: run Postgres migrations
-- `npm run db:import:sqlite`: import SQLite data into Postgres
 
 ---
 
-## Deployment Protocol & Cloud Run Demo Stack
+## 🌐 Deployment Protocol & Cloud Run Demo Stack
 
 The repo supports a three-service Cloud Run demo rollout:
 
-- public web app
-- internal MCP service
-- internal ADK service
+- `web` — public Express + React application
+- `mcp` — internal MCP tool server
+- `adk` — internal Python ADK agent service
 
-### Default deployment helpers
+### Deployment helpers via Makefile
 
 ```bash
-make build
-make build-mcp
-make build-adk
-make deploy
-make deploy-mcp
-make deploy-adk
-make deploy-demo-web
-make deploy-demo-mcp
-make deploy-demo-adk
-make deploy-demo-web-adk
+make build               # Build web Docker image
+make build-mcp           # Build MCP Docker image
+make build-adk           # Build ADK Docker image
+make deploy              # Deploy web service to Cloud Run
+make deploy-mcp          # Deploy MCP service to Cloud Run
+make deploy-adk          # Deploy ADK service to Cloud Run
+make deploy-demo-web     # Deploy web (demo configuration)
+make deploy-demo-mcp     # Deploy MCP (demo configuration)
+make deploy-demo-adk     # Deploy ADK (demo configuration)
+make deploy-demo-web-adk # Deploy web wired to ADK (demo configuration)
 ```
 
-Important `Makefile` variables:
+**Key Makefile variables:**
 
-- `PROJECT_ID`
-- `REGION`
-- `TAG`
-- `INTERNAL_SERVICE_TOKEN`
-- `APP_BASE_URL`
-- `ADK_SERVICE_URL`
-- `MCP_BASE_URL`
-- `GEMINI_SECRET`
+| Variable | Purpose |
+|---|---|
+| `PROJECT_ID` | GCP project identifier |
+| `REGION` | Cloud Run deployment region |
+| `TAG` | Docker image tag |
+| `INTERNAL_SERVICE_TOKEN` | Shared auth token across service chain |
+| `APP_BASE_URL` | Public web service URL |
+| `ADK_SERVICE_URL` | Internal ADK service URL |
+| `MCP_BASE_URL` | Internal MCP service URL |
+| `GEMINI_SECRET` | GCP Secret Manager reference for Gemini key |
 
-For the current demo rollout guide, see [docs/cloud-run-demo-production.md](/Users/fadly.zaki/Downloads/learning-progress-architect/docs/cloud-run-demo-production.md).
-
----
-
-## Environment Topology
-
-### Core variables
-
-- `GEMINI_API_KEY`  
-  Used for Gemini-backed roadmap and quick-action generation.
-
-- `INTERNAL_SERVICE_TOKEN`  
-  Shared token used for `web -> ADK -> MCP -> internal app routes`.
-
-- `DB_PROVIDER`  
-  Current options include `sqlite` and `alloydb`.
-
-- `DATABASE_FILE`  
-  SQLite file path for local or demo runtime.
-
-- `DATABASE_URL`  
-  Postgres connection string for AlloyDB/Postgres-backed operation.
-
-- `AGENT_PROVIDER`  
-  Current options include `legacy` and `adk`.
-
-- `ADK_SERVICE_URL`
-- `APP_BASE_URL`
-- `MCP_BASE_URL`
-
-### Behavioral notes
-
-- If `GEMINI_API_KEY` is missing or quota is constrained, the system still attempts to return useful fallback content rather than failing immediately.
-- If `INTERNAL_SERVICE_TOKEN` is missing, the MCP-backed path cannot authenticate internal requests.
-- If `DB_PROVIDER=sqlite`, the app remains lightweight but not durable for multi-instance cloud persistence.
+For the full deployment runbook, see [`docs/cloud-run-demo-production.md`](./docs/cloud-run-demo-production.md).
 
 ---
 
-## Current System Boundaries
+## 🔑 Environment Topology
 
-This project is live and operational as a demo stack, but it is important to describe the boundaries honestly:
+### Core Variables
 
-- `SQLite` is still the current persistence layer
-- SQLite on Cloud Run is not true durable multi-user storage
-- `ADK` and `MCP` are already implemented in the demo architecture
-- `AlloyDB` and `AlloyDB AI` are the next infrastructure step, not the current production data layer
-- the system now degrades more gracefully under Gemini quota pressure, but quality still depends on external model availability when generation is requested
+| Variable | Purpose |
+|---|---|
+| `GEMINI_API_KEY` | Gemini-backed roadmap and quick-action generation |
+| `INTERNAL_SERVICE_TOKEN` | Shared token for `web → ADK → MCP → internal app` auth chain |
+| `DB_PROVIDER` | `sqlite` (default) or `alloydb` |
+| `DATABASE_FILE` | SQLite file path for local or demo runtime |
+| `DATABASE_URL` | Postgres connection string for AlloyDB-backed operation |
+| `AGENT_PROVIDER` | `legacy` (default) or `adk` |
+| `ADK_SERVICE_URL` | Internal ADK service endpoint |
+| `APP_BASE_URL` | Public web service base URL |
+| `MCP_BASE_URL` | Internal MCP service base URL |
 
-This is a meaningful difference between a cloud-hosted demo and a production-hardened platform.
+### Behavioral Contract
 
----
-
-## Near-Term Evolution Path
-
-The architecture is already shaped for the next migration:
-
-- move persistence from SQLite to AlloyDB
-- preserve the current public API surface
-- enrich retrieval and memory with AlloyDB AI
-- strengthen service-to-service identity from shared tokens toward IAM-based auth
-- improve agent reliability and richer roadmap depth
-
-The important part is that these upgrades do not require changing the product philosophy. They are infrastructure upgrades to support the same workflow model at higher scale and durability.
+- If `GEMINI_API_KEY` is missing or quota is constrained, the system attempts to return deterministic fallback content rather than failing immediately.
+- If `INTERNAL_SERVICE_TOKEN` is absent, the MCP-backed path cannot authenticate internal requests and will reject all tool calls.
+- If `DB_PROVIDER=sqlite`, the app is lightweight and locally runnable but not durable for multi-instance cloud persistence.
+- If `AGENT_PROVIDER=legacy`, the Python ADK service is bypassed entirely — the system runs in-process.
 
 ---
 
-## System Intent
+## 🚧 Current System Boundaries
 
-Learning Progress Architect is built on a simple thesis:
+This system is live and operational as a demo stack. These boundaries are stated honestly:
 
-People should spend their cognitive energy learning the subject, not maintaining the machinery around the learning.
+- **SQLite** is the current persistence layer — lightweight and locally runnable, but not durable across multi-instance Cloud Run replicas.
+- **ADK and MCP** are fully implemented in the demo topology and operational under the right environment configuration.
+- **AlloyDB and AlloyDB AI** are the next infrastructure migration — not the current production data layer.
+- **Gemini quota pressure** is handled via graceful degradation, but output quality still depends on external model availability when generation is actively requested.
+- **Service-to-service identity** currently relies on a shared token — IAM-based identity is the planned evolution.
 
-That is the role of this system.
+This is a meaningful distinction between a cloud-hosted proof of concept and a production-hardened platform.
+
+---
+
+## 🔭 Near-Term Evolution Path
+
+The architecture is already shaped for the next migration. No product philosophy changes are required — only infrastructure upgrades:
+
+- Migrate persistence from SQLite to **AlloyDB** — durable, scalable, multi-instance.
+- Enrich retrieval and memory with **AlloyDB AI** vector search — semantically-aware resource discovery.
+- Strengthen service-to-service identity from shared tokens toward **IAM-based auth**.
+- Improve agent reliability and expand roadmap depth within the existing ADK orchestration layer.
+- Raise review scheduling intelligence with longer-horizon confidence modeling.
+
+The public API contract (`POST /api/agent/workflow`, `POST /api/tasks/:taskId/quick-action`, `GET /api/data`) remains stable across all of these upgrades. The frontend does not need to care about what changes behind it.
+
+---
+
+## 🗺 Architectural Topology
+
+```text
+User
+  → React 19 + React Router 7 (Vite SPA)
+    → Express + TypeScript (Public App)
+      → SQLite / AlloyDB (Persistence)
+      → ADK Service (Python Agent Runtime)
+         → MCP Service (Internal Tool Boundary)
+            → App-Backed Workspace Operations
+```
+
+The public contract is intentionally stable:
+
+- `POST /api/agent/workflow` — roadmap and workflow generation
+- `POST /api/tasks/:taskId/quick-action` — in-session AI coaching
+- `GET /api/data` — full workspace payload
+
+That stability is the system's architectural commitment. Intelligence paths evolve behind it; the learner surface does not.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](/Users/fadly.zaki/Downloads/learning-progress-architect/LICENSE) for the full text.
+This project is licensed under the MIT License. See [`LICENSE`](./LICENSE) for the full text.
 
 ---
 
 **Engineered by:** Fadly Uzzaki and Vedo Alfarizi  
-*Learning is human. The system should behave accordingly.*
+*Learning is a system problem. The architecture is the answer. © 2025–2026. All Rights Reserved.*
