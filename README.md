@@ -104,6 +104,9 @@ Standard auth layer protecting the learner workspace. Internal service-to-servic
 ### 14. Goals Management (`GoalsPage.tsx`)
 Allows learners to inspect, update, and reflect on their declared learning goals. Goals are the root node of the entire system — they anchor roadmap generation, session context, and review prioritization.
 
+### 15. Client-Side Explicit Google Calendar Integration (`calendar.ts`)
+Zero-friction, user-controlled calendar scheduling. Rather than requesting invasive OAuth scopes and maintaining automated sync loops, the system generates stateless Google Calendar templates. Learners click "Add to Calendar" on any generated study task, and the system intelligently pre-fills the task title, context, and AI-calculated duration directly into their own calendar interface.
+
 ---
 
 ## 📂 System Topography
