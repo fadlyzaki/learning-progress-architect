@@ -18,6 +18,8 @@ const messages: Record<Locale, MessageMap> = {
     'layout.summary':
       'A calmer learning system that turns complexity into a sequence you can trust.',
     'footer.copyright': 'Copyright © 2026 The Autodidact Project',
+    'footer.privacyPolicy': 'Privacy Policy',
+    'footer.termsOfService': 'Terms of Service',
     'footer.openCredits': 'Meet the team',
     'footer.teamKicker': 'Project Credits',
     'footer.modalTitle': 'The Autodidact Project',
@@ -512,6 +514,8 @@ const messages: Record<Locale, MessageMap> = {
     'layout.summary':
       'Sistem belajar yang lebih tenang untuk mengubah kompleksitas menjadi urutan yang bisa kamu percaya.',
     'footer.copyright': 'Hak Cipta © 2026 The Autodidact Project',
+    'footer.privacyPolicy': 'Kebijakan Privasi',
+    'footer.termsOfService': 'Syarat dan Ketentuan',
     'footer.openCredits': 'Lihat tim',
     'footer.teamKicker': 'Kredit Proyek',
     'footer.modalTitle': 'The Autodidact Project',
