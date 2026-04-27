@@ -133,7 +133,7 @@ The architecture follows a strict decoupled multi-layer pattern:
 │   ├── lib/                     # Shared client utilities
 │   ├── data/                    # Client-side data definitions
 │   └── pages/                   # 11 learner-facing product surfaces
-├── docs/                        # Architecture and deployment documentation
+├── docs-private/                # Architecture and deployment documentation
 ├── tests/                       # Node test suite
 ├── migrations/                  # Database migration scripts
 ├── Makefile                     # Deployment and build helpers
@@ -240,7 +240,7 @@ make deploy-demo-web-adk # Deploy web wired to ADK (demo configuration)
 | `MCP_BASE_URL` | Internal MCP service URL |
 | `GEMINI_SECRET` | GCP Secret Manager reference for Gemini key |
 
-For the full deployment runbook, see [`docs/cloud-run-demo-production.md`](./docs/cloud-run-demo-production.md).
+For the full deployment runbook, see [`docs-private/cloud-run-demo-production.md`](./docs-private/cloud-run-demo-production.md).
 
 ---
 
