@@ -92,7 +92,8 @@ deploy-demo-web-adk:
 deploy-alloydb-web:
 	gcloud run services update $(SERVICE) \
 		--region $(REGION) \
-		--set-env-vars NODE_ENV=production,DB_PROVIDER=alloydb,AGENT_PROVIDER=adk,ADK_SERVICE_URL=$(ADK_SERVICE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
+		--image $(IMAGE) \
+		--set-env-vars NODE_ENV=production,DB_PROVIDER=alloydb,AGENT_PROVIDER=adk,ADK_SERVICE_URL=$(ADK_SERVICE_URL),APP_BASE_URL=$(APP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
 		--update-secrets DATABASE_URL=$(DATABASE_SECRET):latest \
 		$(SET_GEMINI_SECRET)
 
