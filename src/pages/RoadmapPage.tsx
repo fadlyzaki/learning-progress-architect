@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Circle, Play, Sparkles } from 'lucide-react';
+import { ArrowRight, CalendarPlus, CheckCircle2, Circle, Play, Sparkles } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -11,6 +11,7 @@ import { PrimaryActionPanel } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
 import { apiFetch } from '../lib/api';
+import { getGoogleCalendarUrl } from '../lib/calendar';
 
 export function RoadmapPage() {
   const { data, loading, error, refetch } = useAppData();
@@ -165,6 +166,8 @@ export function RoadmapPage() {
             const resourceCount = data.task_resources.filter((item) => item.task_id === task.id).length;
             const isRecommended = nextTask?.id === task.id;
             const isDone = task.status === 'completed';
+            const calendarEvent = data.events.find((e) => e.task_id === task.id);
+            const defaultDurationMinutes = calendarEvent?.duration ?? 60;
 
             return (
               <div
@@ -206,26 +209,54 @@ export function RoadmapPage() {
                       </div>
 
                       {!isDone ? (
-                        <Link to={`/app/session/${task.id}`} className="w-full sm:w-auto">
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                          <a
+                            href={getGoogleCalendarUrl(task.title, task.description, defaultDurationMinutes)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full sm:w-auto"
+                            title={t('session.addToCalendar')}
+                          >
+                            <Button size="sm" variant="outline" className="w-full gap-2 sm:w-auto text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                              <CalendarPlus className="h-3.5 w-3.5" />
+                              <span className="sr-only lg:not-sr-only">{t('session.addToCalendar')}</span>
+                            </Button>
+                          </a>
+                          <Link to={`/app/session/${task.id}`} className="w-full sm:w-auto">
+                            <Button
+                              size="sm"
+                              variant={isRecommended ? 'accent' : 'outline'}
+                              className="w-full gap-2 sm:w-auto"
+                            >
+                              <Play className="h-3.5 w-3.5 fill-current" />
+                              {t('common.start')}
+                            </Button>
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                          <a
+                            href={getGoogleCalendarUrl(task.title, task.description, defaultDurationMinutes)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full sm:w-auto"
+                            title={t('session.addToCalendar')}
+                          >
+                            <Button size="sm" variant="outline" className="w-full gap-2 sm:w-auto text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+                              <CalendarPlus className="h-3.5 w-3.5" />
+                              <span className="sr-only lg:not-sr-only">{t('session.addToCalendar')}</span>
+                            </Button>
+                          </a>
                           <Button
                             size="sm"
-                            variant={isRecommended ? 'accent' : 'outline'}
-                            className="w-full gap-2 sm:w-auto"
+                            variant="outline"
+                            className="w-full sm:w-auto text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                            disabled={relearningTask === task.id}
+                            onClick={() => void handleRelearn(task.id)}
                           >
-                            <Play className="h-3.5 w-3.5 fill-current" />
-                            {t('common.start')}
+                            {relearningTask === task.id ? t('auth.working') : t('common.relearn')}
                           </Button>
-                        </Link>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full sm:w-auto text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-                          disabled={relearningTask === task.id}
-                          onClick={() => void handleRelearn(task.id)}
-                        >
-                          {relearningTask === task.id ? t('auth.working') : t('common.relearn')}
-                        </Button>
+                        </div>
                       )}
                     </div>
                   </div>

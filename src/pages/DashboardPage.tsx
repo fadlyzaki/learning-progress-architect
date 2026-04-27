@@ -11,11 +11,6 @@ import { PrimaryActionPanel, SecondaryActionHint } from '../components/PrimaryAc
 import { useAppData } from '../hooks/useAppData';
 import {
   ApiError,
-  connectGoogleCalendar,
-  disconnectGoogleCalendar,
-  getGoogleCalendarStatus,
-  syncGoogleCalendar,
-  type GoogleCalendarStatusResponse,
 } from '../lib/api';
 import { usePreferences } from '../lib/preferences';
 
@@ -30,11 +25,6 @@ function truncate(text: string, maxLength: number) {
 export function DashboardPage() {
   const { data, loading, error, refetch } = useAppData();
   const { t } = usePreferences();
-  const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarStatusResponse | null>(null);
-  const [calendarLoading, setCalendarLoading] = useState(false);
-  const [calendarAction, setCalendarAction] = useState<'connect' | 'sync' | 'disconnect' | null>(null);
-  const [calendarError, setCalendarError] = useState<string | null>(null);
-  const [calendarSuccess, setCalendarSuccess] = useState<string | null>(null);
   useAppMeta({
     title: t('nav.today'),
     description: t('dashboard.body'),
@@ -45,28 +35,8 @@ export function DashboardPage() {
       return;
     }
 
-    let isMounted = true;
-    setCalendarLoading(true);
-    setCalendarError(null);
-    void getGoogleCalendarStatus()
-      .then((status) => {
-        if (isMounted) {
-          setCalendarStatus(status);
-        }
-      })
-      .catch((statusError) => {
-        if (isMounted) {
-          setCalendarError(statusError instanceof ApiError ? statusError.message : t('dashboard.calendarStatusFailed'));
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setCalendarLoading(false);
-        }
-      });
-
     return () => {
-      isMounted = false;
+      // isMounted = false;
     };
   }, [data, t]);
 
@@ -134,58 +104,6 @@ export function DashboardPage() {
       )
     : 0;
   const latestNote = data.notes[0] ?? null;
-
-  async function refreshCalendarStatus() {
-    const status = await getGoogleCalendarStatus();
-    setCalendarStatus(status);
-    return status;
-  }
-
-  async function handleCalendarConnect() {
-    setCalendarAction('connect');
-    setCalendarError(null);
-    try {
-      const { authUrl } = await connectGoogleCalendar();
-      window.location.href = authUrl;
-    } catch (connectError) {
-      setCalendarError(connectError instanceof ApiError ? connectError.message : t('dashboard.calendarConnectFailed'));
-      setCalendarAction(null);
-    }
-  }
-
-  async function handleCalendarSync() {
-    setCalendarAction('sync');
-    setCalendarError(null);
-    setCalendarSuccess(null);
-    try {
-      const result = await syncGoogleCalendar();
-      await refreshCalendarStatus();
-      setCalendarSuccess(t('dashboard.calendarSyncSuccess', { synced: result.synced }));
-      setTimeout(() => setCalendarSuccess(null), 5000);
-    } catch (syncError) {
-      setCalendarError(syncError instanceof ApiError ? syncError.message : t('dashboard.calendarSyncFailed'));
-      await refreshCalendarStatus().catch(() => undefined);
-    } finally {
-      setCalendarAction(null);
-    }
-  }
-
-  async function handleCalendarDisconnect() {
-    if (!window.confirm(t('dashboard.calendarDisconnectConfirm'))) {
-      return;
-    }
-    setCalendarAction('disconnect');
-    setCalendarError(null);
-    setCalendarSuccess(null);
-    try {
-      await disconnectGoogleCalendar();
-      await refreshCalendarStatus();
-    } catch (disconnectError) {
-      setCalendarError(disconnectError instanceof ApiError ? disconnectError.message : t('dashboard.calendarDisconnectFailed'));
-    } finally {
-      setCalendarAction(null);
-    }
-  }
 
   return (
     <div className="space-y-8 font-sans">
@@ -350,18 +268,6 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          <GoogleCalendarPanel
-            status={calendarStatus}
-            loading={calendarLoading}
-            action={calendarAction}
-            error={calendarError}
-            success={calendarSuccess}
-            onConnect={() => void handleCalendarConnect()}
-            onSync={() => void handleCalendarSync()}
-            onDisconnect={() => void handleCalendarDisconnect()}
-            t={t}
-          />
-
           <Card className="app-card-muted">
             <CardHeader className="pb-4">
               <div className="inline-flex items-center gap-2 text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
@@ -422,113 +328,3 @@ function SignalRow({
   );
 }
 
-function GoogleCalendarPanel({
-  status,
-  loading,
-  action,
-  error,
-  success,
-  onConnect,
-  onSync,
-  onDisconnect,
-  t,
-}: {
-  status: GoogleCalendarStatusResponse | null;
-  loading: boolean;
-  action: 'connect' | 'sync' | 'disconnect' | null;
-  error: string | null;
-  success: string | null;
-  onConnect: () => void;
-  onSync: () => void;
-  onDisconnect: () => void;
-  t: (key: string, params?: Record<string, string | number>) => string;
-}) {
-  const isDisabled = loading || action !== null;
-  const isConnected = Boolean(status?.connected);
-  const hasFailure = Boolean(error || status?.lastError || (status?.summary.failed ?? 0) > 0);
-  const lastSynced = status?.lastSyncedAt ? new Date(status.lastSyncedAt).toLocaleString() : null;
-  const primaryLabel = !status?.configured
-    ? t('dashboard.calendarDisabled')
-    : isConnected
-      ? t('dashboard.calendarSync')
-      : status?.status === 'error' || status?.status === 'expired'
-        ? t('dashboard.calendarReconnect')
-        : t('dashboard.calendarConnect');
-
-  return (
-    <Card className="app-card-muted">
-      <CardHeader className="pb-4">
-        <div className="inline-flex items-center gap-2 text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-          <CalendarDays className="h-4 w-4" />
-          {t('dashboard.calendarKicker')}
-        </div>
-        <CardTitle className="mt-3 text-xl text-[var(--text-primary)]">{t('dashboard.calendarTitle')}</CardTitle>
-        <CardDescription className="text-sm leading-relaxed">
-          {t('dashboard.calendarBody')}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4 pt-0">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <CalendarStat label={t('dashboard.calendarTotal')} value={String(status?.summary.total ?? 0)} />
-          <CalendarStat label={t('dashboard.calendarSynced')} value={String(status?.summary.synced ?? 0)} />
-          <CalendarStat label={t('dashboard.calendarPending')} value={String(status?.summary.pending ?? 0)} />
-          <CalendarStat label={t('dashboard.calendarFailed')} value={String(status?.summary.failed ?? 0)} />
-        </div>
-
-        {lastSynced && (
-          <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-            {t('dashboard.calendarLastSynced', { date: lastSynced })}
-          </p>
-        )}
-
-        {success && (
-          <div role="status" className="rounded-2xl border border-green-500/25 bg-green-500/10 px-4 py-3 text-sm leading-relaxed text-green-700 dark:text-green-100">
-            {success}
-          </div>
-        )}
-
-        {hasFailure && (
-          <div role="alert" className="rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm leading-relaxed text-red-700 dark:text-red-100">
-            {error ?? status?.lastError ?? t('dashboard.calendarFailedBody')}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            type="button"
-            variant={isConnected ? 'outline' : 'accent'}
-            className="w-full gap-2 sm:w-auto"
-            disabled={isDisabled || !status?.configured}
-            onClick={isConnected ? onSync : onConnect}
-            aria-label={primaryLabel}
-          >
-            {action === 'sync' ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
-            {action === 'connect' || action === 'sync' ? t('common.saving') : primaryLabel}
-          </Button>
-
-          {isConnected && (
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full sm:w-auto"
-              disabled={isDisabled}
-              onClick={onDisconnect}
-              aria-label={t('dashboard.calendarDisconnect')}
-            >
-              {action === 'disconnect' ? t('common.saving') : t('dashboard.calendarDisconnect')}
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function CalendarStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)]/72 px-3 py-3">
-      <div className="text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-muted)]">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-[var(--text-primary)]">{value}</div>
-    </div>
-  );
-}
