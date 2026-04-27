@@ -1,6 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Layers, RefreshCw, Target } from 'lucide-react';
+import { 
+  Activity, 
+  Layers, 
+  RefreshCw, 
+  Target, 
+  Brain, 
+  Layout, 
+  HeartHandshake, 
+  Compass, 
+  Zap, 
+  TrendingUp, 
+  GraduationCap, 
+  User, 
+  Briefcase,
+  Quote,
+  FileText,
+  CheckSquare,
+  BarChart,
+  Bot
+} from 'lucide-react';
 import { AppFooter } from '../components/AppFooter';
 import { DeveloperBrand } from '../components/DeveloperBrand';
 import { useAppMeta } from '../components/AppMeta';
@@ -79,16 +98,19 @@ export function LandingPage() {
               </div>
               <div className="mt-12 grid sm:grid-cols-3 gap-4 w-full max-w-3xl">
                 <SignalCard
+                  icon={<Compass className="w-4 h-4 text-blue-400" />}
                   label={t('landing.signal.goal.label')}
                   value={t('landing.signal.goal.value')}
                   note={t('landing.signal.goal.note')}
                 />
                 <SignalCard
+                  icon={<Zap className="w-4 h-4 text-amber-400" />}
                   label={t('landing.signal.session.label')}
                   value={t('landing.signal.session.value')}
                   note={t('landing.signal.session.note')}
                 />
                 <SignalCard
+                  icon={<TrendingUp className="w-4 h-4 text-green-400" />}
                   label={t('landing.signal.confidence.label')}
                   value={t('landing.signal.confidence.value')}
                   note={t('landing.signal.confidence.note')}
@@ -114,19 +136,23 @@ export function LandingPage() {
                     {t('landing.valueBody')}
                   </p>
                 </div>
-                <SystemRow
+                 <SystemRow
+                  icon={<FileText className="w-4 h-4 text-blue-400" />}
                   title={t('landing.system.1.title')}
                   body={t('landing.system.1.body')}
                 />
                 <SystemRow
+                  icon={<CheckSquare className="w-4 h-4 text-amber-400" />}
                   title={t('landing.system.2.title')}
                   body={t('landing.system.2.body')}
                 />
                 <SystemRow
+                  icon={<BarChart className="w-4 h-4 text-green-400" />}
                   title={t('landing.system.3.title')}
                   body={t('landing.system.3.body')}
                 />
                 <SystemRow
+                  icon={<Bot className="w-4 h-4 text-purple-400" />}
                   title={t('landing.agentTitle')}
                   body={t('landing.agentBody')}
                 />
@@ -151,14 +177,17 @@ export function LandingPage() {
               </div>
               <div className="grid md:grid-cols-3 gap-6">
                 <PrincipleCard
+                  icon={<Brain className="w-6 h-6 text-purple-400" />}
                   title={t('landing.principle.1.title')}
                   description={t('landing.principle.1.body')}
                 />
                 <PrincipleCard
+                  icon={<Layout className="w-6 h-6 text-blue-400" />}
                   title={t('landing.principle.2.title')}
                   description={t('landing.principle.2.body')}
                 />
                 <PrincipleCard
+                  icon={<HeartHandshake className="w-6 h-6 text-rose-400" />}
                   title={t('landing.principle.3.title')}
                   description={t('landing.principle.3.body')}
                 />
@@ -213,14 +242,17 @@ export function LandingPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
               <TestimonialCard
+                icon={<GraduationCap className="w-6 h-6 text-blue-400" />}
                 role={t('landing.trust.user1.role')}
                 quote={t('landing.trust.user1.quote')}
               />
               <TestimonialCard
+                icon={<User className="w-6 h-6 text-amber-400" />}
                 role={t('landing.trust.user2.role')}
                 quote={t('landing.trust.user2.quote')}
               />
               <TestimonialCard
+                icon={<Briefcase className="w-6 h-6 text-green-400" />}
                 role={t('landing.trust.user3.role')}
                 quote={t('landing.trust.user3.quote')}
               />
@@ -233,28 +265,41 @@ export function LandingPage() {
   );
 }
 
-function SignalCard({ label, value, note }: { label: string; value: string; note: string }) {
+function SignalCard({ icon, label, value, note }: { icon: React.ReactNode; label: string; value: string; note: string }) {
   return (
     <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-soft)] p-4">
-      <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[var(--text-muted)]">{label}</div>
-      <div className="mt-2 font-mono text-lg uppercase tracking-tight text-[var(--text-primary)]">{value}</div>
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)]">
+          {icon}
+        </div>
+        <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[var(--text-muted)]">{label}</div>
+      </div>
+      <div className="font-mono text-lg uppercase tracking-tight text-[var(--text-primary)]">{value}</div>
       <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{note}</p>
     </div>
   );
 }
 
-function SystemRow({ title, body }: { title: string; body: string }) {
+function SystemRow({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
     <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-soft)] p-4">
-      <div className="text-xs font-mono uppercase tracking-[0.22em] text-[var(--text-primary)]">{title}</div>
-      <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{body}</p>
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)]">
+          {icon}
+        </div>
+        <div className="text-xs font-mono uppercase tracking-[0.22em] text-[var(--text-primary)]">{title}</div>
+      </div>
+      <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{body}</p>
     </div>
   );
 }
 
-function PrincipleCard({ title, description }: { title: string; description: string }) {
+function PrincipleCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
     <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-panel)]">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)]">
+        {icon}
+      </div>
       <div className="font-mono text-lg font-semibold uppercase tracking-tight text-[var(--text-primary)]">{title}</div>
       <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">{description}</p>
     </div>
@@ -273,14 +318,20 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
   );
 }
 
-function TestimonialCard({ role, quote }: { role: string; quote: string }) {
+function TestimonialCard({ icon, role, quote }: { icon: React.ReactNode; role: string; quote: string }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-8 shadow-[var(--shadow-panel)] relative overflow-hidden">
       <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-muted)]">
+          {icon}
+        </div>
+        <Quote className="h-8 w-8 text-[var(--border-color)] opacity-20" />
+      </div>
       <p className="text-lg italic leading-relaxed text-[var(--text-primary)] relative z-10">
         &ldquo;{quote}&rdquo;
       </p>
-      <div className="mt-auto">
+      <div className="mt-auto pt-4 border-t border-[var(--border-color)]/30">
         <div className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[var(--accent-amber)]">
           {role}
         </div>
