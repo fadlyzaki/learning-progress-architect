@@ -19,11 +19,11 @@ export function LandingPage() {
     <div className="app-shell min-h-screen font-sans selection:bg-amber-500/30">
       <header className="container mx-auto flex min-h-20 flex-col gap-4 border-b border-[var(--border-color)] px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-col">
-          <span className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
+          <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
             {t('brand.name')}
           </span>
-          <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
-            {t('brand.product')}
+          <span className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-0.5">
+            {t('brand.developer')}
           </span>
         </div>
         <div className="flex flex-col gap-4 lg:items-end">

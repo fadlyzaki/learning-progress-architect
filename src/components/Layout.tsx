@@ -76,7 +76,7 @@ function getMobilePageContext(pathname: string, t: (key: string, params?: Record
   }
 
   return {
-    title: t('brand.product'),
+    title: t('brand.name'),
     subtitle: t('layout.summary'),
   };
 }
@@ -105,14 +105,14 @@ export function Layout() {
     <div className="app-shell min-h-screen flex font-sans">
       <aside className="hidden w-72 flex-col border-r border-[var(--border-color)] bg-[var(--bg-panel)] backdrop-blur md:flex">
         <div className="flex h-20 items-center justify-between border-b border-[var(--border-color)] px-6">
-          <div className="flex flex-col">
-            <span className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)]">
-              {t('brand.name')}
-            </span>
-            <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
-              {t('brand.product')}
-            </span>
-          </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)] leading-tight">
+                {t('brand.name')}
+              </span>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-1">
+                {t('brand.developer')}
+              </span>
+            </div>
         </div>
 
         <div className="space-y-4 border-b border-[var(--border-color)] px-6 py-5">

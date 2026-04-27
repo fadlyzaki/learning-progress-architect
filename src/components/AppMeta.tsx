@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const SITE_URL = 'https://learning-architect-service-423182843084.us-central1.run.app';
-const SITE_NAME = 'The Autodidact Project | Learning Progress Architect';
+const SITE_NAME = 'Learning Progress Architect by The Autodidact Project';
 const PRODUCT_NAME = 'Learning Progress Architect';
 const DEFAULT_DESCRIPTION =
   'A calmer learning workspace that turns complex goals into structured roadmaps, focused study sessions, reviews, and reflection.';

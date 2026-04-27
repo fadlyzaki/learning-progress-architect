@@ -12,8 +12,8 @@ const messages: Record<Locale, MessageMap> = {
     'preferences.indonesian': 'Indonesia',
     'preferences.toggleTheme': 'Toggle theme',
     'preferences.toggleLanguage': 'Toggle language',
-    'brand.name': 'The Autodidact Project',
-    'brand.product': 'Learning Progress Architect',
+    'brand.name': 'Learning Progress Architect',
+    'brand.developer': 'By The Autodidact Project',
     'brand.tagline': 'Human By Design',
     'layout.summary':
       'A calmer learning system that turns complexity into a sequence you can trust.',
@@ -508,8 +508,8 @@ const messages: Record<Locale, MessageMap> = {
     'preferences.indonesian': 'Indonesia',
     'preferences.toggleTheme': 'Ganti tema',
     'preferences.toggleLanguage': 'Ganti bahasa',
-    'brand.name': 'The Autodidact Project',
-    'brand.product': 'Learning Progress Architect',
+    'brand.name': 'Learning Progress Architect',
+    'brand.developer': 'Oleh The Autodidact Project',
     'brand.tagline': 'Human By Design',
     'layout.summary':
       'Sistem belajar yang lebih tenang untuk mengubah kompleksitas menjadi urutan yang bisa kamu percaya.',
