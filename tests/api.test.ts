@@ -232,7 +232,7 @@ test('quick action endpoint validates action type and returns a service-unavaila
   );
   assert.equal(unavailable.status, 503);
   assert.deepEqual(await unavailable.json(), {
-    error: 'Gemini is not configured for quick action generation.',
+    error: 'The AI assistant is not fully configured for this feature yet. Please check your setup or try again later.',
     code: 'QUICK_ACTION_UNAVAILABLE',
   });
 });
@@ -288,7 +288,7 @@ test('stale quick action cache entries are hidden from app data and not returned
   );
   assert.equal(quickAction.status, 503);
   assert.deepEqual(await quickAction.json(), {
-    error: 'Gemini is not configured for quick action generation.',
+    error: 'The AI assistant is not fully configured for this feature yet. Please check your setup or try again later.',
     code: 'QUICK_ACTION_UNAVAILABLE',
   });
 });
@@ -324,6 +324,90 @@ test('workflow falls back to the legacy planner when AGENT_PROVIDER=adk is enabl
       note.content.includes('Planning mode: generated starting plan'),
     ),
   );
+});
+
+test('Google Calendar integration routes require auth and report disabled configuration safely', async () => {
+  const server = await startServer({
+    GOOGLE_CALENDAR_SYNC_ENABLED: 'false',
+  });
+  cleanupTasks.push(server.stop);
+
+  const unauthenticatedStatus = await fetch(`${server.baseUrl}/api/integrations/google-calendar/status`);
+  assert.equal(unauthenticatedStatus.status, 401);
+
+  const token = await signupAndGetToken(server.baseUrl, 'calendar-disabled@example.com');
+  const status = await fetch(`${server.baseUrl}/api/integrations/google-calendar/status`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  assert.equal(status.status, 200);
+  assert.deepEqual(await status.json(), {
+    configured: false,
+    connected: false,
+    status: 'disabled',
+    calendarId: null,
+    lastSyncedAt: null,
+    lastError: null,
+    summary: {
+      total: 0,
+      synced: 0,
+      failed: 0,
+      pending: 0,
+    },
+  });
+
+  const connect = await request(
+    server.baseUrl,
+    '/api/integrations/google-calendar/connect',
+    {},
+    token,
+  );
+  assert.equal(connect.status, 503);
+  assert.deepEqual(await connect.json(), {
+    error: 'Google Calendar sync is disabled.',
+    code: 'GOOGLE_CALENDAR_DISABLED',
+  });
+});
+
+test('Google Calendar status summary is scoped to the authenticated user', async () => {
+  const server = await startServer({
+    GOOGLE_CALENDAR_SYNC_ENABLED: 'false',
+  });
+  cleanupTasks.push(server.stop);
+  const firstToken = await signupAndGetToken(server.baseUrl, 'calendar-owner@example.com');
+  const secondToken = await signupAndGetToken(server.baseUrl, 'calendar-other@example.com');
+
+  const workflow = await request(
+    server.baseUrl,
+    '/api/agent/workflow',
+    {
+      goal: 'Learn calendar-safe systems',
+      level: 'Intermediate',
+      hours: 3,
+      preferredStyle: 'Mixed',
+      resourceMode: 'needs_plan',
+      resources: [],
+    },
+    firstToken,
+  );
+  assert.equal(workflow.status, 201);
+
+  const firstStatus = await fetch(`${server.baseUrl}/api/integrations/google-calendar/status`, {
+    headers: {
+      Authorization: `Bearer ${firstToken}`,
+    },
+  });
+  const secondStatus = await fetch(`${server.baseUrl}/api/integrations/google-calendar/status`, {
+    headers: {
+      Authorization: `Bearer ${secondToken}`,
+    },
+  });
+
+  assert.equal(firstStatus.status, 200);
+  assert.equal(secondStatus.status, 200);
+  assert.equal((await firstStatus.json()).summary.total, 3);
+  assert.equal((await secondStatus.json()).summary.total, 0);
 });
 
 test('internal MCP app routes require the shared service token', async () => {

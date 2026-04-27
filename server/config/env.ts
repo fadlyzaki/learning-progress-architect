@@ -14,6 +14,14 @@ function readNumber(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function readBoolean(value: string | undefined, fallback = false): boolean {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: readNumber(process.env.PORT, 3000),
@@ -35,6 +43,11 @@ export const env = {
   alloydbInstance: process.env.ALLOYDB_INSTANCE ?? '',
   alloydbDatabase: process.env.ALLOYDB_DATABASE ?? '',
   alloydbUser: process.env.ALLOYDB_USER ?? '',
+  googleCalendarSyncEnabled: readBoolean(process.env.GOOGLE_CALENDAR_SYNC_ENABLED),
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+  googleOAuthRedirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI ?? '',
+  googleTokenEncryptionKey: process.env.GOOGLE_TOKEN_ENCRYPTION_KEY ?? '',
 } as const;
 
 export function requireDatabaseUrl() {
@@ -72,5 +85,26 @@ export function requireInternalServiceToken() {
 export function getInternalServiceHeaders() {
   return {
     'x-internal-service-token': requireInternalServiceToken(),
+  };
+}
+
+export function getGoogleOAuthRedirectUri() {
+  return env.googleOAuthRedirectUri || `${env.appBaseUrl}/api/integrations/google-calendar/callback`;
+}
+
+export function requireGoogleCalendarConfig() {
+  if (!env.googleCalendarSyncEnabled) {
+    throw new Error('Google Calendar sync is disabled.');
+  }
+
+  if (!env.googleClientId || !env.googleClientSecret || !env.googleTokenEncryptionKey) {
+    throw new Error('Google Calendar integration is not configured.');
+  }
+
+  return {
+    clientId: env.googleClientId,
+    clientSecret: env.googleClientSecret,
+    redirectUri: getGoogleOAuthRedirectUri(),
+    tokenEncryptionKey: env.googleTokenEncryptionKey,
   };
 }

@@ -2,6 +2,9 @@ import { Pool, type PoolClient, type QueryResultRow } from 'pg';
 import type { AppRepositories } from '../types.ts';
 import type {
   AppDataSnapshot,
+  GoogleCalendarConnectionRow,
+  GoogleCalendarSyncEvent,
+  GoogleCalendarSyncSummary,
   GoalRow,
   QuickActionResource,
   QuickActionRow,
@@ -396,6 +399,174 @@ export function createPostgresRepositories(pool: Pool): AppRepositories {
 
           return { goalId };
         });
+      },
+    },
+    googleCalendar: {
+      async getConnection(userId) {
+        const result = await pool.query<GoogleCalendarConnectionRow>(
+          'SELECT * FROM google_calendar_connections WHERE user_id = $1',
+          [userId],
+        );
+        return mapRow(result);
+      },
+      async saveConnection(input) {
+        const result = await pool.query<GoogleCalendarConnectionRow>(
+          `
+            INSERT INTO google_calendar_connections (
+              user_id, encrypted_refresh_token, calendar_id, granted_scopes, status, connected_at, last_synced_at, last_error
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, NULL, NULL)
+            ON CONFLICT(user_id) DO UPDATE SET
+              encrypted_refresh_token = EXCLUDED.encrypted_refresh_token,
+              calendar_id = EXCLUDED.calendar_id,
+              granted_scopes = EXCLUDED.granted_scopes,
+              status = EXCLUDED.status,
+              connected_at = EXCLUDED.connected_at,
+              last_synced_at = NULL,
+              last_error = NULL
+            RETURNING *
+          `,
+          [
+            input.userId,
+            input.encryptedRefreshToken,
+            input.calendarId,
+            input.grantedScopes,
+            input.status,
+            input.connectedAt,
+          ],
+        );
+        return result.rows[0];
+      },
+      async markConnectionSynced(userId, syncedAt) {
+        await pool.query(
+          `
+            UPDATE google_calendar_connections
+            SET status = 'connected', last_synced_at = $1, last_error = NULL
+            WHERE user_id = $2
+          `,
+          [syncedAt, userId],
+        );
+      },
+      async markConnectionError(userId, error) {
+        await pool.query(
+          `
+            UPDATE google_calendar_connections
+            SET status = 'error', last_error = $1
+            WHERE user_id = $2
+          `,
+          [error, userId],
+        );
+      },
+      async disconnect(userId) {
+        await withTransaction(pool, async (client) => {
+          await client.query('DELETE FROM google_calendar_connections WHERE user_id = $1', [userId]);
+          await client.query(
+            `
+              UPDATE calendar_events
+              SET google_calendar_id = NULL,
+                  google_event_id = NULL,
+                  google_sync_status = 'not_synced',
+                  google_synced_at = NULL,
+                  google_sync_error = NULL
+              WHERE user_id = $1
+            `,
+            [userId],
+          );
+        });
+      },
+      async createOAuthState(input) {
+        await pool.query(
+          `
+            INSERT INTO google_oauth_states (user_id, state_hash, expires_at, consumed_at, created_at)
+            VALUES ($1, $2, $3, NULL, $4)
+          `,
+          [input.userId, input.stateHash, input.expiresAt, input.createdAt],
+        );
+      },
+      async consumeOAuthState(stateHash, consumedAt) {
+        return withTransaction(pool, async (client) => {
+          const result = await client.query<{ user_id: string }>(
+            `
+              SELECT user_id FROM google_oauth_states
+              WHERE state_hash = $1
+                AND consumed_at IS NULL
+                AND expires_at > $2
+              LIMIT 1
+            `,
+            [stateHash, consumedAt],
+          );
+          const state = mapRow(result);
+          if (!state) {
+            return null;
+          }
+
+          await client.query('UPDATE google_oauth_states SET consumed_at = $1 WHERE state_hash = $2', [
+            consumedAt,
+            stateHash,
+          ]);
+          return { userId: state.user_id };
+        });
+      },
+      async listSyncEvents(userId) {
+        const result = await pool.query<GoogleCalendarSyncEvent>(
+          `
+            SELECT
+              calendar_events.*,
+              tasks.title AS task_title,
+              tasks.description AS task_description,
+              goals.title AS goal_title
+            FROM calendar_events
+            INNER JOIN tasks ON tasks.id = calendar_events.task_id AND tasks.user_id = calendar_events.user_id
+            LEFT JOIN goals ON goals.id = tasks.goal_id AND goals.user_id = calendar_events.user_id
+            WHERE calendar_events.user_id = $1
+            ORDER BY calendar_events.date ASC, calendar_events.id ASC
+          `,
+          [userId],
+        );
+        return result.rows;
+      },
+      async getSyncSummary(userId) {
+        const result = await pool.query<GoogleCalendarSyncSummary>(
+          `
+            SELECT
+              COUNT(*)::int AS total,
+              SUM(CASE WHEN google_sync_status = 'synced' THEN 1 ELSE 0 END)::int AS synced,
+              SUM(CASE WHEN google_sync_status = 'failed' THEN 1 ELSE 0 END)::int AS failed,
+              SUM(CASE WHEN google_sync_status IS NULL OR google_sync_status = 'not_synced' THEN 1 ELSE 0 END)::int AS pending
+            FROM calendar_events
+            WHERE user_id = $1
+          `,
+          [userId],
+        );
+        const row = result.rows[0];
+        return {
+          total: Number(row.total ?? 0),
+          synced: Number(row.synced ?? 0),
+          failed: Number(row.failed ?? 0),
+          pending: Number(row.pending ?? 0),
+        };
+      },
+      async updateEventSync(input) {
+        await pool.query(
+          `
+            UPDATE calendar_events
+            SET google_calendar_id = $1,
+                google_event_id = $2,
+                google_sync_status = $3,
+                google_synced_at = $4,
+                google_sync_error = $5
+            WHERE id = $6 AND user_id = $7
+          `,
+          [
+            input.googleCalendarId,
+            input.googleEventId,
+            input.googleSyncStatus,
+            input.googleSyncedAt,
+            input.googleSyncError,
+            input.eventId,
+            input.userId,
+          ],
+        );
       },
     },
     agentRuns: {

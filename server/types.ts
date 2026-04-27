@@ -45,6 +45,11 @@ export type CalendarEventRow = {
   task_id: number;
   date: string;
   duration: number;
+  google_calendar_id: string | null;
+  google_event_id: string | null;
+  google_sync_status: 'not_synced' | 'synced' | 'failed';
+  google_synced_at: string | null;
+  google_sync_error: string | null;
 };
 
 export type NoteRow = {
@@ -152,6 +157,39 @@ export type AppDataSnapshot = {
   resources: ResourceRow[];
   task_resources: TaskResourceRow[];
   quick_actions: QuickActionRow[];
+};
+
+export type GoogleCalendarConnectionRow = {
+  user_id: string;
+  encrypted_refresh_token: string;
+  calendar_id: string;
+  granted_scopes: string | null;
+  status: 'connected' | 'error' | 'expired';
+  connected_at: string;
+  last_synced_at: string | null;
+  last_error: string | null;
+};
+
+export type GoogleOAuthStateRow = {
+  id: number;
+  user_id: string;
+  state_hash: string;
+  expires_at: string;
+  consumed_at: string | null;
+  created_at: string;
+};
+
+export type GoogleCalendarSyncEvent = CalendarEventRow & {
+  task_title: string;
+  task_description: string;
+  goal_title: string | null;
+};
+
+export type GoogleCalendarSyncSummary = {
+  total: number;
+  synced: number;
+  failed: number;
+  pending: number;
 };
 
 export type WorkflowTaskInput = {

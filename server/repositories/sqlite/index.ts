@@ -5,6 +5,9 @@ import type {
   GoalRow,
   QuickActionResource,
   QuickActionRow,
+  GoogleCalendarConnectionRow,
+  GoogleCalendarSyncEvent,
+  GoogleCalendarSyncSummary,
   ReviewRow,
   StudySessionRow,
   TaskRow,
@@ -417,6 +420,173 @@ export function createSQLiteRepositories(db: Database.Database): AppRepositories
         });
 
         return { goalId: tx() };
+      },
+    },
+    googleCalendar: {
+      async getConnection(userId) {
+        return (
+          (db
+            .prepare('SELECT * FROM google_calendar_connections WHERE user_id = ?')
+            .get(userId) as GoogleCalendarConnectionRow | undefined) ?? null
+        );
+      },
+      async saveConnection(input) {
+        db.prepare(
+          `
+            INSERT INTO google_calendar_connections (
+              user_id, encrypted_refresh_token, calendar_id, granted_scopes, status, connected_at, last_synced_at, last_error
+            )
+            VALUES (?, ?, ?, ?, ?, ?, NULL, NULL)
+            ON CONFLICT(user_id) DO UPDATE SET
+              encrypted_refresh_token = excluded.encrypted_refresh_token,
+              calendar_id = excluded.calendar_id,
+              granted_scopes = excluded.granted_scopes,
+              status = excluded.status,
+              connected_at = excluded.connected_at,
+              last_synced_at = NULL,
+              last_error = NULL
+          `,
+        ).run(
+          input.userId,
+          input.encryptedRefreshToken,
+          input.calendarId,
+          input.grantedScopes,
+          input.status,
+          input.connectedAt,
+        );
+
+        return db
+          .prepare('SELECT * FROM google_calendar_connections WHERE user_id = ?')
+          .get(input.userId) as GoogleCalendarConnectionRow;
+      },
+      async markConnectionSynced(userId, syncedAt) {
+        db.prepare(
+          `
+            UPDATE google_calendar_connections
+            SET status = 'connected', last_synced_at = ?, last_error = NULL
+            WHERE user_id = ?
+          `,
+        ).run(syncedAt, userId);
+      },
+      async markConnectionError(userId, error) {
+        db.prepare(
+          `
+            UPDATE google_calendar_connections
+            SET status = 'error', last_error = ?
+            WHERE user_id = ?
+          `,
+        ).run(error, userId);
+      },
+      async disconnect(userId) {
+        const tx = db.transaction(() => {
+          db.prepare('DELETE FROM google_calendar_connections WHERE user_id = ?').run(userId);
+          db.prepare(
+            `
+              UPDATE calendar_events
+              SET google_calendar_id = NULL,
+                  google_event_id = NULL,
+                  google_sync_status = 'not_synced',
+                  google_synced_at = NULL,
+                  google_sync_error = NULL
+              WHERE user_id = ?
+            `,
+          ).run(userId);
+        });
+        tx();
+      },
+      async createOAuthState(input) {
+        db.prepare(
+          `
+            INSERT INTO google_oauth_states (user_id, state_hash, expires_at, consumed_at, created_at)
+            VALUES (?, ?, ?, NULL, ?)
+          `,
+        ).run(input.userId, input.stateHash, input.expiresAt, input.createdAt);
+      },
+      async consumeOAuthState(stateHash, consumedAt) {
+        const tx = db.transaction(() => {
+          const state = db
+            .prepare(
+              `
+                SELECT user_id FROM google_oauth_states
+                WHERE state_hash = ?
+                  AND consumed_at IS NULL
+                  AND expires_at > ?
+                LIMIT 1
+              `,
+            )
+            .get(stateHash, consumedAt) as { user_id: string } | undefined;
+
+          if (!state) {
+            return null;
+          }
+
+          db.prepare('UPDATE google_oauth_states SET consumed_at = ? WHERE state_hash = ?')
+            .run(consumedAt, stateHash);
+          return { userId: state.user_id };
+        });
+
+        return tx();
+      },
+      async listSyncEvents(userId) {
+        return db
+          .prepare(
+            `
+              SELECT
+                calendar_events.*,
+                tasks.title AS task_title,
+                tasks.description AS task_description,
+                goals.title AS goal_title
+              FROM calendar_events
+              INNER JOIN tasks ON tasks.id = calendar_events.task_id AND tasks.user_id = calendar_events.user_id
+              LEFT JOIN goals ON goals.id = tasks.goal_id AND goals.user_id = calendar_events.user_id
+              WHERE calendar_events.user_id = ?
+              ORDER BY calendar_events.date ASC, calendar_events.id ASC
+            `,
+          )
+          .all(userId) as GoogleCalendarSyncEvent[];
+      },
+      async getSyncSummary(userId) {
+        const row = db
+          .prepare(
+            `
+              SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN google_sync_status = 'synced' THEN 1 ELSE 0 END) AS synced,
+                SUM(CASE WHEN google_sync_status = 'failed' THEN 1 ELSE 0 END) AS failed,
+                SUM(CASE WHEN google_sync_status IS NULL OR google_sync_status = 'not_synced' THEN 1 ELSE 0 END) AS pending
+              FROM calendar_events
+              WHERE user_id = ?
+            `,
+          )
+          .get(userId) as GoogleCalendarSyncSummary;
+
+        return {
+          total: Number(row.total ?? 0),
+          synced: Number(row.synced ?? 0),
+          failed: Number(row.failed ?? 0),
+          pending: Number(row.pending ?? 0),
+        };
+      },
+      async updateEventSync(input) {
+        db.prepare(
+          `
+            UPDATE calendar_events
+            SET google_calendar_id = ?,
+                google_event_id = ?,
+                google_sync_status = ?,
+                google_synced_at = ?,
+                google_sync_error = ?
+            WHERE id = ? AND user_id = ?
+          `,
+        ).run(
+          input.googleCalendarId,
+          input.googleEventId,
+          input.googleSyncStatus,
+          input.googleSyncedAt,
+          input.googleSyncError,
+          input.eventId,
+          input.userId,
+        );
       },
     },
     agentRuns: {

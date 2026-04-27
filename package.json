@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "googleapis": "^171.4.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "node-pg-migrate": "^8.0.4",

@@ -8,6 +8,7 @@ import { dataRouter } from './routes/data.ts';
 import { workflowRouter } from './routes/workflow.ts';
 import { tasksRouter } from './routes/tasks.ts';
 import { internalMcpRouter } from './routes/internalMcp.ts';
+import { googleCalendarRouter } from './routes/googleCalendar.ts';
 
 export async function startServer() {
   await initializeAppContext();
@@ -23,6 +24,7 @@ export async function startServer() {
   app.use('/api/data', dataRouter);
   app.use('/api/agent/workflow', workflowRouter);
   app.use('/api/tasks', tasksRouter);
+  app.use('/api/integrations/google-calendar', googleCalendarRouter);
   app.use('/internal/mcp', internalMcpRouter);
 
   if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {

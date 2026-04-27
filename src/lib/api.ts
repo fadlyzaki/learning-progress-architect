@@ -70,3 +70,48 @@ export function requestQuickAction(taskId: number, action: QuickActionKind) {
     body: JSON.stringify({ action }),
   });
 }
+
+export interface GoogleCalendarStatusResponse {
+  configured: boolean;
+  connected: boolean;
+  status: 'disabled' | 'disconnected' | 'connected' | 'error' | 'expired';
+  calendarId: string | null;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+  summary: {
+    total: number;
+    synced: number;
+    failed: number;
+    pending: number;
+  };
+}
+
+export interface GoogleCalendarSyncResponse {
+  total: number;
+  synced: number;
+  failed: number;
+  pending: number;
+  syncedAt: string | null;
+}
+
+export function getGoogleCalendarStatus() {
+  return apiFetch<GoogleCalendarStatusResponse>('/api/integrations/google-calendar/status');
+}
+
+export function connectGoogleCalendar() {
+  return apiFetch<{ authUrl: string }>('/api/integrations/google-calendar/connect', {
+    method: 'POST',
+  });
+}
+
+export function syncGoogleCalendar() {
+  return apiFetch<GoogleCalendarSyncResponse>('/api/integrations/google-calendar/sync', {
+    method: 'POST',
+  });
+}
+
+export function disconnectGoogleCalendar() {
+  return apiFetch<{ success: true }>('/api/integrations/google-calendar/disconnect', {
+    method: 'POST',
+  });
+}

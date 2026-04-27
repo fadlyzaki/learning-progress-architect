@@ -59,7 +59,12 @@ export function migrateDatabase() {
       user_id TEXT,
       task_id INTEGER,
       date TEXT,
-      duration INTEGER
+      duration INTEGER,
+      google_calendar_id TEXT,
+      google_event_id TEXT,
+      google_sync_status TEXT DEFAULT 'not_synced',
+      google_synced_at TEXT,
+      google_sync_error TEXT
     );
 
     CREATE TABLE IF NOT EXISTS notes (
@@ -171,6 +176,28 @@ export function migrateDatabase() {
       created_at TEXT NOT NULL,
       FOREIGN KEY(retrieval_source_id) REFERENCES retrieval_sources(id)
     );
+
+    CREATE TABLE IF NOT EXISTS google_calendar_connections (
+      user_id TEXT PRIMARY KEY,
+      encrypted_refresh_token TEXT NOT NULL,
+      calendar_id TEXT NOT NULL DEFAULT 'primary',
+      granted_scopes TEXT,
+      status TEXT NOT NULL DEFAULT 'connected',
+      connected_at TEXT NOT NULL,
+      last_synced_at TEXT,
+      last_error TEXT,
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS google_oauth_states (
+      id INTEGER PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      state_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      consumed_at TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
   `);
 
   ensureColumn('goals', 'user_id TEXT');
@@ -185,6 +212,11 @@ export function migrateDatabase() {
   ensureColumn('tasks', 'completed_at TEXT');
 
   ensureColumn('calendar_events', 'user_id TEXT');
+  ensureColumn('calendar_events', 'google_calendar_id TEXT');
+  ensureColumn('calendar_events', 'google_event_id TEXT');
+  ensureColumn('calendar_events', "google_sync_status TEXT DEFAULT 'not_synced'");
+  ensureColumn('calendar_events', 'google_synced_at TEXT');
+  ensureColumn('calendar_events', 'google_sync_error TEXT');
 
   ensureColumn('notes', 'user_id TEXT');
   ensureColumn('notes', "kind TEXT DEFAULT 'plan'");
@@ -197,5 +229,6 @@ export function migrateDatabase() {
     UPDATE tasks SET created_at = COALESCE(created_at, datetime('now')) WHERE created_at IS NULL;
     UPDATE notes SET created_at = COALESCE(created_at, datetime('now')) WHERE created_at IS NULL;
     UPDATE notes SET kind = COALESCE(kind, 'plan') WHERE kind IS NULL;
+    UPDATE calendar_events SET google_sync_status = COALESCE(google_sync_status, 'not_synced') WHERE google_sync_status IS NULL;
   `);
 }

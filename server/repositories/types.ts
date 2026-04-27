@@ -1,5 +1,8 @@
 import type {
   AppDataSnapshot,
+  GoogleCalendarConnectionRow,
+  GoogleCalendarSyncEvent,
+  GoogleCalendarSyncSummary,
   GoalRow,
   LearningResourceInput,
   QuickActionContext,
@@ -117,6 +120,45 @@ export interface WorkflowRepository {
   persistGeneratedWorkflow(input: WorkflowPersistenceInput): Promise<{ goalId: number }>;
 }
 
+export type SaveGoogleCalendarConnectionInput = {
+  userId: string;
+  encryptedRefreshToken: string;
+  calendarId: string;
+  grantedScopes: string | null;
+  status: GoogleCalendarConnectionRow['status'];
+  connectedAt: string;
+};
+
+export type CreateGoogleOAuthStateInput = {
+  userId: string;
+  stateHash: string;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export type UpdateCalendarEventSyncInput = {
+  userId: string;
+  eventId: number;
+  googleCalendarId: string | null;
+  googleEventId: string | null;
+  googleSyncStatus: 'synced' | 'failed';
+  googleSyncedAt: string | null;
+  googleSyncError: string | null;
+};
+
+export interface GoogleCalendarRepository {
+  getConnection(userId: string): Promise<GoogleCalendarConnectionRow | null>;
+  saveConnection(input: SaveGoogleCalendarConnectionInput): Promise<GoogleCalendarConnectionRow>;
+  markConnectionSynced(userId: string, syncedAt: string): Promise<void>;
+  markConnectionError(userId: string, error: string): Promise<void>;
+  disconnect(userId: string): Promise<void>;
+  createOAuthState(input: CreateGoogleOAuthStateInput): Promise<void>;
+  consumeOAuthState(stateHash: string, consumedAt: string): Promise<{ userId: string } | null>;
+  listSyncEvents(userId: string): Promise<GoogleCalendarSyncEvent[]>;
+  getSyncSummary(userId: string): Promise<GoogleCalendarSyncSummary>;
+  updateEventSync(input: UpdateCalendarEventSyncInput): Promise<void>;
+}
+
 export interface AgentRunRepository {
   createRun(input: CreateAgentRunInput): Promise<void>;
   appendEvent(input: {
@@ -166,6 +208,7 @@ export interface AppRepositories {
   quickActions: QuickActionRepository;
   workspace: WorkspaceRepository;
   workflow: WorkflowRepository;
+  googleCalendar: GoogleCalendarRepository;
   agentRuns: AgentRunRepository;
   retrieval: RetrievalRepository;
 }

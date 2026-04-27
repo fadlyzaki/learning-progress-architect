@@ -40,6 +40,11 @@ export interface EventRecord {
   task_id: number;
   date: string;
   duration: number;
+  google_calendar_id: string | null;
+  google_event_id: string | null;
+  google_sync_status: 'not_synced' | 'synced' | 'failed';
+  google_synced_at: string | null;
+  google_sync_error: string | null;
 }
 
 export interface NoteRecord {
