@@ -87,6 +87,8 @@ export function OnboardingPage() {
             value: materialsSummary,
           };
 
+  const [generatingHint, setGeneratingHint] = useState<string | null>(null);
+
   const handleNext = async () => {
     setError(null);
 
@@ -111,6 +113,14 @@ export function OnboardingPage() {
     }
 
     setIsGenerating(true);
+    setGeneratingHint(null);
+
+    const hintTimer = window.setTimeout(() => {
+      setGeneratingHint('AI is building your personalised roadmap…');
+    }, 8_000);
+    const timeoutTimer = window.setTimeout(() => {
+      setGeneratingHint('This is taking longer than expected. Your roadmap is still being generated — please hold on.');
+    }, 40_000);
 
     try {
       await apiFetch<{ success: boolean; goalId: number }>('/api/agent/workflow', {
@@ -134,6 +144,10 @@ export function OnboardingPage() {
       console.error(submitError);
       setError(submitError instanceof ApiError ? submitError.message : t('onboarding.errorPrefix'));
       setIsGenerating(false);
+    } finally {
+      window.clearTimeout(hintTimer);
+      window.clearTimeout(timeoutTimer);
+      setGeneratingHint(null);
     }
   };
 
@@ -431,6 +445,14 @@ export function OnboardingPage() {
                       title={error}
                       body={isGenerating ? t('onboarding.generating') : undefined}
                       tone="danger"
+                    />
+                  </div>
+                )}
+
+                {!error && generatingHint && (
+                  <div className="mt-6">
+                    <InlineStateMessage
+                      title={generatingHint}
                     />
                   </div>
                 )}

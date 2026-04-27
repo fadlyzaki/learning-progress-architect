@@ -33,7 +33,7 @@ export const env = {
   appBaseUrl:
     process.env.APP_BASE_URL ||
     process.env.APP_URL ||
-    `http://127.0.0.1:${readNumber(process.env.PORT, 3000)}`,
+    `http://localhost:${readNumber(process.env.PORT, 3000)}`,
   internalServiceToken: process.env.INTERNAL_SERVICE_TOKEN ?? '',
   mcpBaseUrl:
     process.env.MCP_BASE_URL ||

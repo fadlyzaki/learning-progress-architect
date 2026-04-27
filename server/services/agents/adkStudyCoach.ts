@@ -1,6 +1,8 @@
 import { getInternalServiceHeaders, requireAdkServiceUrl } from '../../config/env.ts';
 import type { StudyCoach } from '../../repositories/types.ts';
 
+const ADK_TIMEOUT_MS = 30_000;
+
 export const adkStudyCoach: StudyCoach = {
   async generateQuickAction(input, context) {
     const response = await fetch(`${requireAdkServiceUrl()}/study-coach/quick-action`, {
@@ -17,10 +19,12 @@ export const adkStudyCoach: StudyCoach = {
           requestId: context.requestId,
         },
       }),
+      signal: AbortSignal.timeout(ADK_TIMEOUT_MS),
     });
 
     if (!response.ok) {
-      throw new Error(`ADK study coach returned ${response.status}.`);
+      const body = await response.text().catch(() => '');
+      throw new Error(`ADK study coach returned ${response.status}: ${body.slice(0, 200)}`);
     }
 
     const payload = await response.json() as {

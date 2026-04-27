@@ -33,13 +33,22 @@ authRouter.post('/signup', async (req, res) => {
   const createdAt = nowIso();
   const passwordHash = hashPassword(password);
 
-  await authSessions.createUser({
-    id: userId,
-    name,
-    email,
-    passwordHash,
-    createdAt,
-  });
+  try {
+    await authSessions.createUser({
+      id: userId,
+      name,
+      email,
+      passwordHash,
+      createdAt,
+    });
+  } catch (createError) {
+    const message = createError instanceof Error ? createError.message : '';
+    if (message.includes('UNIQUE') || message.includes('unique') || message.includes('duplicate key')) {
+      jsonError(res, 409, 'An account with that email already exists.', 'EMAIL_IN_USE');
+      return;
+    }
+    throw createError;
+  }
 
   const token = createSessionToken();
   await authSessions.createSession({

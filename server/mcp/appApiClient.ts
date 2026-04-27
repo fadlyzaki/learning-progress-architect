@@ -5,6 +5,8 @@ type FetchOptions = {
   body: unknown;
 };
 
+const INTERNAL_TIMEOUT_MS = 15_000;
+
 async function callInternalRoute<T>({ path, body }: FetchOptions): Promise<T> {
   const response = await fetch(`${requireAppBaseUrl()}${path}`, {
     method: 'POST',
@@ -13,6 +15,7 @@ async function callInternalRoute<T>({ path, body }: FetchOptions): Promise<T> {
       'x-internal-service-token': requireInternalServiceToken(),
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(INTERNAL_TIMEOUT_MS),
   });
 
   if (!response.ok) {

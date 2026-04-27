@@ -85,6 +85,23 @@ export function ProgressPage() {
           20,
       )
     : 0;
+  const hasNoData = data.goals.length === 0 && completedSessions.length === 0;
+
+  if (hasNoData) {
+    return (
+      <div className="space-y-8 font-sans">
+        <PageIntro title={t('progress.title')} body={t('progress.subtitle')} />
+        <PageMessageState
+          eyebrow={t('progress.title')}
+          title={t('progress.noActiveGoal')}
+          body={t('progress.unlock')}
+          actionLabel={t('dashboard.emptyAction')}
+          actionTo="/onboarding"
+        />
+      </div>
+    );
+  }
+
   const recentSessions = completedSessions.slice(0, 5);
   const activeGoalTasks = activeGoal ? data.tasks.filter((task) => task.goal_id === activeGoal.id) : [];
   const activeGoalCompletion = activeGoalTasks.length

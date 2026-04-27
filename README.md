@@ -9,7 +9,7 @@ This repository is not organized as a generic CRUD application. It is a **workfl
 [![Status](https://img.shields.io/badge/SYSTEM-DEMO%20LIVE-brightgreen?style=flat-square&logo=googlecloud)](https://cloud.google.com/run)
 [![Runtime](https://img.shields.io/badge/ARCHITECTURE-Web%20→%20ADK%20→%20MCP-blue?style=flat-square)](#-architectural-topography--core-runtime)
 [![Stack](https://img.shields.io/badge/STACK-React%2019%20%2B%20Express%20%2B%20TypeScript-black?style=flat-square&logo=react)](#-architectural-topography--core-runtime)
-[![Persistence](https://img.shields.io/badge/STORAGE-SQLite%20%2F%20AlloyDB-orange?style=flat-square)](#-environment-topology)
+[![Persistence](https://img.shields.io/badge/STORAGE-AlloyDB-orange?style=flat-square)](#-environment-topology)
 [![License](https://img.shields.io/badge/LICENSE-MIT-white?style=flat-square)](./LICENSE)
 
 ---
@@ -30,11 +30,11 @@ A resilient system is measured by its fault tolerance, layered degradation, and 
 - **The Tool Layer — Internal MCP Service**
   Exposes trusted workspace operations via Model Context Protocol (MCP): task-context lookup, cached quick-action reads, quick-action persistence, workflow record creation, and resource search. Acts as the hardened boundary between AI reasoning and system-owned data mutations.
 
-- **The Persistence Layer — SQLite via `better-sqlite3`**
-  Keeps the current demo lightweight and locally runnable. The architecture is already shaped for AlloyDB-based durability at the next stage without changing the public API contract.
+- **The Persistence Layer — AlloyDB via pg**
+  Provides durable, highly-available cloud storage for workspaces and agent state. The public API contract remains stable on top of this layer.
 
 - **The Deployment Substrate — Cloud Run + Cloud Build**
-  Three-service demo topology: `web → ADK → MCP`. CI pipelines defined in `cloudbuild.adk.yaml` and `cloudbuild.mcp.yaml`.
+  Three-service production topology: `web → ADK → MCP`. CI pipelines defined in `cloudbuild.adk.yaml` and `cloudbuild.mcp.yaml`.
 
 ---
 
@@ -96,7 +96,7 @@ Every finished session records what the learner understood, where they got stuck
 A single workspace payload exposes task completion, cumulative study time, confidence trends, pending reviews, and past reflections. The dashboard is the learner's operational control surface — not a vanity metrics screen.
 
 ### 12. Resilient Agent Routing (`agentRuntime.ts`)
-The runtime is explicitly designed to degrade in layers. If ADK is unavailable, the public app falls back to the `legacy` provider path. If Gemini quota is constrained, the system returns deterministic, context-aware fallback content rather than failing immediately. Cached quick-action outputs are reused when available.
+The runtime is explicitly designed to degrade in layers. If ADK is unavailable, the public app falls back to the `legacy` provider path. If Gemini quota is constrained, the system returns deterministic, context-aware fallback content rather than failing immediately. Cached quick-action outputs are reused when available. All external service calls enforce strict fetch timeouts (30s for ADK, 15s for MCP internal routes) to prevent indefinite hangs when downstream services are unresponsive. The signup flow includes a DB-level UNIQUE constraint guard to prevent race-condition duplicate accounts.
 
 ### 13. Layered Authentication (`authService.ts`, `server/middleware/`)
 Standard auth layer protecting the learner workspace. Internal service-to-service communication is secured via a shared `INTERNAL_SERVICE_TOKEN` propagated across the `web → ADK → MCP` call chain. Token-based auth is the current model; the evolution path moves toward IAM-based identity.
@@ -148,7 +148,7 @@ The architecture follows a strict decoupled multi-layer pattern:
 - **State Layer** — App data managed via `useAppData` hook and server-owned workspace payload.
 - **Orchestration Layer** — Provider-agnostic agent runtime with ADK and legacy fallback paths.
 - **Tool Boundary** — MCP service as the hardened interface between AI reasoning and workspace data.
-- **Persistence Layer** — SQLite for local and demo runtime; AlloyDB-ready at the next migration step.
+- **Persistence Layer** — AlloyDB for durable, multi-instance cloud deployment.
 
 ---
 
@@ -271,11 +271,11 @@ For the full deployment runbook, see [`docs-private/cloud-run-demo-production.md
 
 ## 🚧 Current System Boundaries
 
-This system is live and operational as a demo stack. These boundaries are stated honestly:
+This system is live and operational as a production stack. These boundaries are stated honestly:
 
-- **SQLite** is the current persistence layer — lightweight and locally runnable, but not durable across multi-instance Cloud Run replicas.
+- **AlloyDB** is the current persistence layer—providing scalable, durable, multi-instance database access.
 - **ADK and MCP** are fully implemented in the demo topology and operational under the right environment configuration.
-- **AlloyDB and AlloyDB AI** are the next infrastructure migration — not the current production data layer.
+- **AlloyDB AI** vector search is the next planned step for semantic enrichment, building on top of the current AlloyDB instance.
 - **Gemini quota pressure** is handled via graceful degradation, but output quality still depends on external model availability when generation is actively requested.
 - **Service-to-service identity** currently relies on a shared token — IAM-based identity is the planned evolution.
 
@@ -285,9 +285,8 @@ This is a meaningful distinction between a cloud-hosted proof of concept and a p
 
 ## 🔭 Near-Term Evolution Path
 
-The architecture is already shaped for the next migration. No product philosophy changes are required — only infrastructure upgrades:
+The architecture is continuously evolving. No product philosophy changes are required — only infrastructure upgrades:
 
-- Migrate persistence from SQLite to **AlloyDB** — durable, scalable, multi-instance.
 - Enrich retrieval and memory with **AlloyDB AI** vector search — semantically-aware resource discovery.
 - Strengthen service-to-service identity from shared tokens toward **IAM-based auth**.
 - Improve agent reliability and expand roadmap depth within the existing ADK orchestration layer.
@@ -303,7 +302,7 @@ The public API contract (`POST /api/agent/workflow`, `POST /api/tasks/:taskId/qu
 User
   → React 19 + React Router 7 (Vite SPA)
     → Express + TypeScript (Public App)
-      → SQLite / AlloyDB (Persistence)
+      → AlloyDB (Persistence)
       → ADK Service (Python Agent Runtime)
          → MCP Service (Internal Tool Boundary)
             → App-Backed Workspace Operations

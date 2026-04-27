@@ -42,6 +42,13 @@ googleCalendarRouter.post('/connect', async (req, res) => {
 });
 
 googleCalendarRouter.get('/callback', async (req, res) => {
+  const errorParam = String(req.query.error ?? '').trim();
+  if (errorParam) {
+    console.warn(`Google Calendar OAuth denied: ${errorParam}`);
+    res.redirect(`/app?googleCalendar=error&reason=${encodeURIComponent(errorParam)}`);
+    return;
+  }
+
   const code = String(req.query.code ?? '').trim();
   const state = String(req.query.state ?? '').trim();
 

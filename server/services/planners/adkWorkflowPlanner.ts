@@ -1,6 +1,8 @@
 import { getInternalServiceHeaders, requireAdkServiceUrl } from '../../config/env.ts';
 import type { WorkflowPlanner } from '../../repositories/types.ts';
 
+const ADK_TIMEOUT_MS = 30_000;
+
 export const adkWorkflowPlanner: WorkflowPlanner = {
   async plan(input, context) {
     const response = await fetch(`${requireAdkServiceUrl()}/workflow/plan`, {
@@ -16,10 +18,12 @@ export const adkWorkflowPlanner: WorkflowPlanner = {
           requestId: context.requestId,
         },
       }),
+      signal: AbortSignal.timeout(ADK_TIMEOUT_MS),
     });
 
     if (!response.ok) {
-      throw new Error(`ADK workflow planner returned ${response.status}.`);
+      const body = await response.text().catch(() => '');
+      throw new Error(`ADK workflow planner returned ${response.status}: ${body.slice(0, 200)}`);
     }
 
     return response.json() as ReturnType<WorkflowPlanner['plan']>;

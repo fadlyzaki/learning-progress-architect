@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Progress } from '../components/ui/Progress';
-import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
+import { InlineStateMessage, PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { PrimaryActionPanel } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
@@ -17,6 +17,7 @@ export function RoadmapPage() {
   const { t } = usePreferences();
   const navigate = useNavigate();
   const [relearningTask, setRelearningTask] = useState<number | null>(null);
+  const [relearnError, setRelearnError] = useState<string | null>(null);
   useAppMeta({
     title: t('roadmap.title'),
     description: data?.goals[0]
@@ -54,12 +55,14 @@ export function RoadmapPage() {
   const handleRelearn = async (taskId: number) => {
     if (relearningTask) return;
     setRelearningTask(taskId);
+    setRelearnError(null);
     try {
       await apiFetch(`/api/tasks/${taskId}/relearn`, { method: 'POST' });
       await refetch();
       navigate(`/app/session/${taskId}`);
     } catch (err) {
       console.error(err);
+      setRelearnError(err instanceof Error ? err.message : 'Failed to restart this task. Please try again.');
     } finally {
       setRelearningTask(null);
     }
@@ -129,6 +132,14 @@ export function RoadmapPage() {
           )
         }
       />
+
+      {relearnError && (
+        <InlineStateMessage
+          title="Relearn failed"
+          body={relearnError}
+          tone="danger"
+        />
+      )}
 
       <Card className="app-card-supporting">
         <CardHeader className="pb-5">
