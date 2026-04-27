@@ -95,7 +95,7 @@ deploy-alloydb-web:
 		--image $(IMAGE) \
 		--set-env-vars NODE_ENV=production,DB_PROVIDER=alloydb,AGENT_PROVIDER=adk,ADK_SERVICE_URL=$(ADK_SERVICE_URL),APP_BASE_URL=$(APP_BASE_URL),INTERNAL_SERVICE_TOKEN=$(INTERNAL_SERVICE_TOKEN) \
 		--update-secrets DATABASE_URL=$(DATABASE_SECRET):latest \
-		$(SET_GEMINI_SECRET)
+		$(if $(GEMINI_SECRET),--update-secrets GEMINI_API_KEY=$(GEMINI_SECRET):latest,)
 
 deploy-demo-mcp:
 	gcloud run deploy $(MCP_SERVICE) \
