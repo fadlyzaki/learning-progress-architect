@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Layers, RefreshCw, Target } from 'lucide-react';
+import { AppFooter } from '../components/AppFooter';
 import { DeveloperBrand } from '../components/DeveloperBrand';
 import { useAppMeta } from '../components/AppMeta';
 import { Button } from '../components/ui/Button';
