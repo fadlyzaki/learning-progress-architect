@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, BookOpen, CalendarPlus, CheckCircle2, ExternalLink, HelpCircle, Lightbulb, Loader2, MessageSquare, Pause, Play, Sparkles, X } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -11,6 +11,7 @@ import { InlineStateMessage, PageLoadingState, PageMessageState } from '../compo
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
 import { ApiError, apiFetch, requestQuickAction, type QuickActionResponse } from '../lib/api';
+import { getGoogleCalendarUrl } from '../lib/calendar';
 import type { QuickActionKind, QuickActionRecord } from '../types';
 
 type SessionQuickAction = {
@@ -71,6 +72,8 @@ export function SessionPage() {
   const persistedQuickActions = task
     ? data?.quick_actions.filter((item) => item.task_id === task.id) ?? []
     : [];
+  const calendarEvent = task ? data?.events.find((e) => e.task_id === task.id) ?? null : null;
+  const defaultDurationMinutes = calendarEvent?.duration ?? 60;
 
   const [isActive, setIsActive] = useState(Boolean(openSession));
   const [hasStarted, setHasStarted] = useState(Boolean(openSession));
@@ -538,11 +541,28 @@ export function SessionPage() {
             </CardContent>
           </Card>
 
-          <Link to="/app" className="block">
-            <Button variant="ghost" className="w-full">
-              {t('nav.today')}
-            </Button>
-          </Link>
+          <div className="space-y-3">
+            <a
+              href={getGoogleCalendarUrl(
+                task.title,
+                task.description,
+                defaultDurationMinutes,
+              )}
+              target="_blank"
+              rel="noreferrer"
+              className="block"
+            >
+              <Button variant="outline" className="w-full gap-2">
+                <CalendarPlus className="h-4 w-4" />
+                {t('session.addToCalendar')}
+              </Button>
+            </a>
+            <Link to="/app" className="block">
+              <Button variant="ghost" className="w-full">
+                {t('nav.today')}
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
