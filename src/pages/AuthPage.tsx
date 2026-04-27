@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -78,16 +79,24 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
   return (
     <div className="app-shell flex min-h-screen flex-col justify-between gap-8 p-4 font-sans">
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <PreferenceControls />
+        <div className="flex w-full max-w-md items-center justify-between px-2">
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              <ArrowLeft className="h-4 w-4" />
+              {t('common.back')}
+            </Button>
+          </Link>
+          <PreferenceControls />
+        </div>
         <Card className="w-full max-w-md bg-[var(--bg-panel)] shadow-[var(--shadow-panel)]">
           <CardHeader className="space-y-4 pb-8 text-center">
-            <div className="mx-auto flex flex-col items-center">
+            <Link to="/" className="mx-auto flex flex-col items-center transition-opacity hover:opacity-80">
               <img src="/lia-logo.png" alt="Logo" className="mb-4 h-16 w-16 object-contain" />
               <span className="text-xl font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                 {t('brand.name')}
               </span>
               <DeveloperBrand className="text-sm font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-1" />
-            </div>
+            </Link>
             <CardTitle className="text-2xl font-mono uppercase tracking-tight">
               {type === 'login' ? t('auth.login.title') : t('auth.signup.title')}
             </CardTitle>
