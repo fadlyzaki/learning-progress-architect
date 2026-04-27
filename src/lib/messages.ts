@@ -83,8 +83,6 @@ const messages: Record<Locale, MessageMap> = {
     'landing.body':
       'Turn a broad goal into a clear roadmap, focused study sessions, and review loops that bring weak spots back before they disappear.',
     'landing.subbody': 'Structured enough to guide you. Quiet enough to stay out of your way.',
-    'landing.ctaPrimary': 'Start a Private Workspace',
-    'landing.ctaSecondary': "Return to Today's Flow",
     'landing.signal.goal.label': 'Goal',
     'landing.signal.goal.value': 'Roadmap',
     'landing.signal.goal.note':
@@ -142,6 +140,15 @@ const messages: Record<Locale, MessageMap> = {
     'landing.feature.4.title': 'Return With Purpose',
     'landing.feature.4.body':
       'Schedule review from confidence so weaker material comes back at the right time.',
+    'landing.ctaPrimary': 'Build Your Roadmap',
+    'landing.ctaSecondary': 'Enter Workspace',
+    'landing.trust.title': 'Trusted by Autodidacts',
+    'landing.trust.user1.role': 'High School Student learning Python',
+    'landing.trust.user1.quote': 'Learning Progress Architect gave me the exact step-by-step sequence I needed to understand Python without getting overwhelmed by generic tutorials.',
+    'landing.trust.user2.role': 'College Student learning AI',
+    'landing.trust.user2.quote': 'Finally, a workspace that doesn\'t just track my study time, but actually helps me map out complex AI topics and reflect on my understanding.',
+    'landing.trust.user3.role': 'Accountant preparing for IELTS',
+    'landing.trust.user3.quote': 'As a working professional, I don\'t have time for a rigid course. This app helps me structure my IELTS prep into focused, high-yield sessions.',
     'auth.login.title': 'Return to your system',
     'auth.login.subtitle':
       'Pick up the next step without rebuilding context from scratch.',
@@ -579,8 +586,6 @@ const messages: Record<Locale, MessageMap> = {
     'landing.body':
       'Ubah goal besar menjadi roadmap yang jelas, sesi belajar yang fokus, dan loop review yang mengembalikan titik lemah sebelum hilang.',
     'landing.subbody': 'Cukup terstruktur untuk membimbing. Cukup tenang untuk tidak mengganggu.',
-    'landing.ctaPrimary': 'Buat Workspace Pribadi',
-    'landing.ctaSecondary': 'Kembali ke Alur Hari Ini',
     'landing.signal.goal.label': 'Goal',
     'landing.signal.goal.value': 'Roadmap',
     'landing.signal.goal.note':
@@ -638,6 +643,15 @@ const messages: Record<Locale, MessageMap> = {
     'landing.feature.4.title': 'Kembali dengan Tujuan',
     'landing.feature.4.body':
       'Jadwalkan review dari skor keyakinan agar materi lemah kembali pada waktu yang tepat.',
+    'landing.ctaPrimary': 'Buat Roadmap Kamu',
+    'landing.ctaSecondary': 'Masuk ke Workspace',
+    'landing.trust.title': 'Dipercaya oleh Pembelajar Mandiri',
+    'landing.trust.user1.role': 'Siswa SMA belajar Python',
+    'landing.trust.user1.quote': 'Learning Progress Architect memberi saya urutan langkah demi langkah yang tepat untuk memahami Python tanpa merasa kewalahan oleh tutorial umum.',
+    'landing.trust.user2.role': 'Mahasiswa belajar AI',
+    'landing.trust.user2.quote': 'Akhirnya, workspace yang tidak hanya melacak waktu belajar saya, tetapi benar-benar membantu memetakan topik AI yang kompleks dan merefleksikan pemahaman saya.',
+    'landing.trust.user3.role': 'Akuntan persiapan IELTS',
+    'landing.trust.user3.quote': 'Sebagai profesional yang bekerja, saya tidak punya waktu untuk kursus kaku. Aplikasi ini membantu saya menyusun persiapan IELTS menjadi sesi yang fokus dan efisien.',
     'auth.login.title': 'Kembali ke sistemmu',
     'auth.login.subtitle':
       'Lanjutkan langkah berikutnya tanpa membangun konteks dari awal.',

@@ -104,7 +104,8 @@ export function Layout() {
   return (
     <div className="app-shell min-h-screen flex font-sans">
       <aside className="hidden w-72 flex-col border-r border-[var(--border-color)] bg-[var(--bg-panel)] backdrop-blur md:flex">
-        <div className="flex h-20 items-center justify-between border-b border-[var(--border-color)] px-6">
+        <div className="flex h-20 items-center gap-4 border-b border-[var(--border-color)] px-6">
+            <img src="/lia-logo.png" alt="Logo" className="h-8 w-8 object-contain" />
             <div className="flex flex-col">
               <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)] leading-tight">
                 {t('brand.name')}

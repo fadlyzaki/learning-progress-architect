@@ -18,13 +18,16 @@ export function LandingPage() {
   return (
     <div className="app-shell min-h-screen font-sans selection:bg-amber-500/30">
       <header className="container mx-auto flex min-h-20 flex-col gap-4 border-b border-[var(--border-color)] px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col">
-          <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
-            {t('brand.name')}
-          </span>
-          <span className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-0.5">
-            {t('brand.developer')}
-          </span>
+        <div className="flex items-center gap-4">
+          <img src="/lia-logo.png" alt="Logo" className="h-10 w-10 object-contain" />
+          <div className="flex flex-col">
+            <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
+              {t('brand.name')}
+            </span>
+            <span className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-0.5">
+              {t('brand.developer')}
+            </span>
+          </div>
         </div>
         <div className="flex flex-col gap-4 lg:items-end">
           <PreferenceControls />
@@ -202,6 +205,29 @@ export function LandingPage() {
             </div>
           </div>
         </section>
+        <section className="border-t border-[var(--border-color)] bg-[var(--bg-panel)]/40 py-24">
+          <div className="container mx-auto px-6">
+            <div className="max-w-5xl mx-auto mb-12 text-center">
+              <h2 className="text-3xl font-mono uppercase tracking-tight text-[var(--text-primary)] md:text-4xl">
+                {t('landing.trust.title')}
+              </h2>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              <TestimonialCard
+                role={t('landing.trust.user1.role')}
+                quote={t('landing.trust.user1.quote')}
+              />
+              <TestimonialCard
+                role={t('landing.trust.user2.role')}
+                quote={t('landing.trust.user2.quote')}
+              />
+              <TestimonialCard
+                role={t('landing.trust.user3.role')}
+                quote={t('landing.trust.user3.quote')}
+              />
+            </div>
+          </div>
+        </section>
       </main>
       <AppFooter className="border-x border-[var(--border-color)]" />
     </div>
@@ -244,6 +270,22 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
       </div>
       <h3 className="font-mono text-lg font-semibold uppercase tracking-tight text-[var(--text-primary)]">{title}</h3>
       <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{description}</p>
+    </div>
+  );
+}
+
+function TestimonialCard({ role, quote }: { role: string; quote: string }) {
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] p-8 shadow-[var(--shadow-panel)] relative overflow-hidden">
+      <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
+      <p className="text-lg italic leading-relaxed text-[var(--text-primary)] relative z-10">
+        &ldquo;{quote}&rdquo;
+      </p>
+      <div className="mt-auto">
+        <div className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[var(--accent-amber)]">
+          {role}
+        </div>
+      </div>
     </div>
   );
 }

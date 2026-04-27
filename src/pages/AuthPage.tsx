@@ -80,7 +80,8 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
         <PreferenceControls />
         <Card className="w-full max-w-md bg-[var(--bg-panel)] shadow-[var(--shadow-panel)]">
           <CardHeader className="space-y-4 pb-8 text-center">
-            <div className="mx-auto flex flex-col">
+            <div className="mx-auto flex flex-col items-center">
+              <img src="/lia-logo.png" alt="Logo" className="mb-4 h-16 w-16 object-contain" />
               <span className="text-xl font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                 {t('brand.name')}
               </span>
