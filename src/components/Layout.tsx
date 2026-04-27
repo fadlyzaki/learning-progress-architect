@@ -4,6 +4,7 @@ import { cn } from '../lib/utils';
 import { clearStoredSession, getStoredSession } from '../lib/auth';
 import { usePreferences } from '../lib/preferences';
 import { AppFooter } from './AppFooter';
+import { DeveloperBrand } from './DeveloperBrand';
 import { PreferenceControls } from './PreferenceControls';
 
 function isNavItemActive(pathname: string, path: string) {
@@ -110,9 +111,7 @@ export function Layout() {
               <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)] leading-tight">
                 {t('brand.name')}
               </span>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-1">
-                {t('brand.developer')}
-              </span>
+              <DeveloperBrand className="text-[10px] font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-1" />
             </div>
         </div>
 

@@ -11,6 +11,7 @@ import { ApiError, apiFetch } from '../lib/api';
 import type { AuthSession } from '../types';
 import { InlineStateMessage } from '../components/PageStates';
 import { PreferenceControls } from '../components/PreferenceControls';
+import { DeveloperBrand } from '../components/DeveloperBrand';
 import { usePreferences } from '../lib/preferences';
 
 export function AuthPage({ type }: { type: 'login' | 'signup' }) {
@@ -85,9 +86,7 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
               <span className="text-xl font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                 {t('brand.name')}
               </span>
-              <span className="text-sm font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-1">
-                {t('brand.developer')}
-              </span>
+              <DeveloperBrand className="text-sm font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-1" />
             </div>
             <CardTitle className="text-2xl font-mono uppercase tracking-tight">
               {type === 'login' ? t('auth.login.title') : t('auth.signup.title')}

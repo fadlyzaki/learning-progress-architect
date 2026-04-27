@@ -13,6 +13,7 @@ import { ReviewsPage } from './pages/ReviewsPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { ReflectionsPage } from './pages/ReflectionsPage';
 import { PreferencesProvider } from './lib/preferences';
+import { TeamModalProvider } from './lib/teamModal';
 
 function RequireAuth() {
   return getStoredSession() ? <Outlet /> : <Navigate to="/login" replace />;
@@ -28,35 +29,37 @@ import { TermsPage } from './pages/TermsPage';
 export default function App() {
   return (
     <PreferencesProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
+      <TeamModalProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
 
-          <Route element={<RedirectIfAuthenticated />}>
-            <Route path="/login" element={<AuthPage type="login" />} />
-            <Route path="/signup" element={<AuthPage type="signup" />} />
-          </Route>
-
-          <Route element={<RequireAuth />}>
-            <Route path="/onboarding" element={<OnboardingPage />} />
-
-            <Route path="/app" element={<Layout />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="goals" element={<GoalsPage />} />
-              <Route path="roadmap" element={<RoadmapPage />} />
-              <Route path="session/:id" element={<SessionPage />} />
-              <Route path="comprehension/:id" element={<ComprehensionPage />} />
-              <Route path="reviews" element={<ReviewsPage />} />
-              <Route path="progress" element={<ProgressPage />} />
-              <Route path="reflections" element={<ReflectionsPage />} />
+            <Route element={<RedirectIfAuthenticated />}>
+              <Route path="/login" element={<AuthPage type="login" />} />
+              <Route path="/signup" element={<AuthPage type="signup" />} />
             </Route>
-          </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
+            <Route element={<RequireAuth />}>
+              <Route path="/onboarding" element={<OnboardingPage />} />
+
+              <Route path="/app" element={<Layout />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="goals" element={<GoalsPage />} />
+                <Route path="roadmap" element={<RoadmapPage />} />
+                <Route path="session/:id" element={<SessionPage />} />
+                <Route path="comprehension/:id" element={<ComprehensionPage />} />
+                <Route path="reviews" element={<ReviewsPage />} />
+                <Route path="progress" element={<ProgressPage />} />
+                <Route path="reflections" element={<ReflectionsPage />} />
+              </Route>
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </TeamModalProvider>
     </PreferencesProvider>
   );
 }

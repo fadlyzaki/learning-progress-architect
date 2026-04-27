@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Layers, RefreshCw, Target } from 'lucide-react';
-import { AppFooter } from '../components/AppFooter';
+import { DeveloperBrand } from '../components/DeveloperBrand';
 import { useAppMeta } from '../components/AppMeta';
 import { Button } from '../components/ui/Button';
 import { PreferenceControls } from '../components/PreferenceControls';
@@ -24,9 +24,7 @@ export function LandingPage() {
             <span className="text-sm font-mono font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
               {t('brand.name')}
             </span>
-            <span className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-0.5">
-              {t('brand.developer')}
-            </span>
+            <DeveloperBrand className="text-xs font-mono font-bold uppercase tracking-[0.28em] text-[var(--accent-amber)] mt-0.5" />
           </div>
         </div>
         <div className="flex flex-col gap-4 lg:items-end">
