@@ -32,6 +32,7 @@ class WorkflowPlanInput(BaseModel):
     preferredStyle: str | None = None
     resourceMode: str
     resources: list[dict[str, Any]] = Field(default_factory=list)
+    locale: str | None = None
 
 
 class WorkflowRequestContext(BaseModel):
@@ -49,6 +50,7 @@ class QuickActionContext(BaseModel):
     taskDescription: str
     goalTitle: str | None = None
     resources: list[dict[str, Any]] = Field(default_factory=list)
+    locale: str | None = None
 
 
 class QuickActionInput(BaseModel):
@@ -243,8 +245,8 @@ Requirements:
 - The 3 tasks should move through: orientation, applied practice, real-world synthesis.
 - Each description should explain what the learner will actually do and what outcome they should get.
 - Each task needs a searchQuery optimized for official docs, credible tutorials, or high-quality references.
-- Return valid JSON only as an array of 3 objects.
 - Each object must contain: title, description, searchQuery.
+{"CRITICAL INSTRUCTION: You MUST generate the task title and description entirely in Indonesian language. Only the searchQuery should remain in English if it helps find better technical resources." if request.input.locale == "id" else ""}
 """.strip()
 
 
@@ -320,9 +322,10 @@ Output rules:
 - Be specific and useful, not generic.
 - Write 2 short paragraphs or 3 short bullet points.
 - Aim for roughly 120 to 220 words.
-- Finish the explanation completely and end on a full sentence.
+- End on a full sentence.
 - Include at least one concrete detail tied to the task, goal, or resource context.
 - Do not use markdown code fences or JSON.
+{"CRITICAL INSTRUCTION: You MUST generate the response entirely in Indonesian language." if context.locale == "id" else ""}
 """.strip()
 
 
@@ -562,6 +565,7 @@ def merge_quick_action_context(
                 taskDescription=task.get("description") or request.input.context.taskDescription,
                 goalTitle=goal.get("title") or request.input.context.goalTitle,
                 resources=resources if isinstance(resources, list) else request.input.context.resources,
+                locale=request.input.context.locale,
             ),
         ),
         context=request.context,

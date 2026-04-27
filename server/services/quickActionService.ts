@@ -92,7 +92,8 @@ export function buildQuickActionPrompt(action: QuickActionKind, context: QuickAc
     `Session context:\n${buildQuickActionContextBlock(context)}`,
     '',
     QUICK_ACTION_OUTPUT_INSTRUCTION,
-  ].join('\n');
+    context.locale === 'id' ? '\nCRITICAL INSTRUCTION: You MUST generate the response entirely in Indonesian language.' : '',
+  ].filter(Boolean).join('\n');
 }
 
 export function normalizeQuickActionContent(content: string): string {

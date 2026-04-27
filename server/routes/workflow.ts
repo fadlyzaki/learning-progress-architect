@@ -21,6 +21,9 @@ workflowRouter.post('/', async (req, res) => {
     const preferredStyle = req.body?.preferredStyle ? String(req.body.preferredStyle) : null;
     const resourceMode = normalizeResourceMode(req.body?.resourceMode);
     const resources = sanitizeResourceInput(req.body?.resources);
+    
+    const acceptLanguage = req.headers['accept-language'];
+    const locale = typeof acceptLanguage === 'string' && acceptLanguage.toLowerCase().startsWith('id') ? 'id' : 'en';
 
     if (!goal) {
       jsonError(res, 400, 'A learning goal is required.', 'GOAL_REQUIRED');
@@ -46,6 +49,7 @@ workflowRouter.post('/', async (req, res) => {
       preferredStyle,
       resourceMode,
       resources,
+      locale,
     });
 
     res.status(201).json({ success: true, goalId });

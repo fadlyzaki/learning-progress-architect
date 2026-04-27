@@ -8,10 +8,11 @@ type WorkflowPlanInput = {
   preferredStyle: string | null;
   resourceMode: ResourceMode;
   resources: LearningResourceInput[];
+  locale?: string;
 };
 
 export async function generateWorkflowPlan(input: WorkflowPlanInput): Promise<HydratedTask[]> {
-  const { goal, level, preferredStyle, resourceMode, resources } = input;
+  const { goal, level, preferredStyle, resourceMode, resources, locale } = input;
 
   let plannedTasks;
   try {
@@ -21,9 +22,10 @@ export async function generateWorkflowPlan(input: WorkflowPlanInput): Promise<Hy
       preferredStyle ?? undefined,
       resources,
       resourceMode,
+      locale,
     );
   } catch {
-    plannedTasks = buildFallbackPlan(goal, level, preferredStyle ?? undefined, resources, resourceMode);
+    plannedTasks = buildFallbackPlan(goal, level, preferredStyle ?? undefined, resources, resourceMode, locale);
   }
 
   const searchResults = await Promise.all(

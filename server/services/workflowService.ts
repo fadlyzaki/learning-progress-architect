@@ -16,6 +16,7 @@ type WorkflowInput = {
   preferredStyle: string | null;
   resourceMode: ResourceMode;
   resources: LearningResourceInput[];
+  locale?: string;
 };
 
 type WorkflowResult = {
@@ -120,6 +121,7 @@ export async function runWorkflow(
       preferredStyle: string | null;
       resourceMode: ResourceMode;
       resources: LearningResourceInput[];
+      locale?: string;
     }, context: { user: UserRow; requestId: string }) => Promise<Array<{
       title: string;
       description: string;
@@ -135,7 +137,7 @@ export async function runWorkflow(
   user: UserRow,
   input: WorkflowInput,
 ): Promise<WorkflowResult> {
-  const { goal, level, hours, targetDate, preferredStyle, resourceMode, resources } = input;
+  const { goal, level, hours, targetDate, preferredStyle, resourceMode, resources, locale } = input;
   const createdAt = nowIso();
 
   const hydratedTasks = await planner.planWorkflow({
@@ -144,6 +146,7 @@ export async function runWorkflow(
     preferredStyle,
     resourceMode,
     resources,
+    locale,
   }, {
     user,
     requestId: createRequestId(),

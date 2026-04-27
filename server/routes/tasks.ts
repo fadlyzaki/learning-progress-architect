@@ -212,6 +212,10 @@ tasksRouter.post('/:taskId/quick-action', async (req, res) => {
 
     const goal = await goals.getByIdForUser(task.goal_id, user.id);
     const taskResources = await resources.getTaskResources(taskId, user.id);
+    
+    const acceptLanguage = req.headers['accept-language'];
+    const locale = typeof acceptLanguage === 'string' && acceptLanguage.toLowerCase().startsWith('id') ? 'id' : 'en';
+
     const quickActionResult = await appContext.agents.generateQuickAction({
       action,
       context: {
@@ -219,6 +223,7 @@ tasksRouter.post('/:taskId/quick-action', async (req, res) => {
         taskDescription: task.description,
         goalTitle: goal?.title ?? null,
         resources: taskResources,
+        locale,
       },
     }, {
       user,

@@ -12,6 +12,7 @@ export function buildFallbackPlan(
   preferredStyle?: string,
   resources: LearningResourceInput[] = [],
   resourceMode: ResourceMode = 'needs_plan',
+  locale?: string,
 ): PlannedTask[] {
   const styleLabel = preferredStyle ? ` using a ${preferredStyle.toLowerCase()} approach` : '';
   const resourceHint =
@@ -52,9 +53,10 @@ export async function planSyllabusTasks(
   preferredStyle?: string,
   resources: LearningResourceInput[] = [],
   resourceMode: ResourceMode = 'needs_plan',
+  locale?: string,
 ): Promise<PlannedTask[]> {
   if (!ai) {
-    return buildFallbackPlan(goal, level, preferredStyle, resources, resourceMode);
+    return buildFallbackPlan(goal, level, preferredStyle, resources, resourceMode, locale);
   }
 
   try {
@@ -85,6 +87,7 @@ export async function planSyllabusTasks(
         ${resourceContext}
         Each task description should either reference the learner materials or explain how to begin without them.
         For each task, also produce a concise searchQuery string a learner would type into a search engine to find the best documentation or tutorial for that task.
+        ${locale === 'id' ? 'CRITICAL INSTRUCTION: You MUST generate the task title and description entirely in Indonesian language. Only the searchQuery should remain in English if it helps find better technical resources.' : ''}
         Return only JSON.
       `,
       config: {

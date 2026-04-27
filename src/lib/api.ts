@@ -28,6 +28,11 @@ export async function apiFetch<T>(input: RequestInfo | URL, init: RequestInit = 
   Object.entries(authHeaders).forEach(([key, value]) => {
     headers.set(key, value);
   });
+  
+  if (!headers.has('Accept-Language') && typeof window !== 'undefined') {
+    const locale = window.localStorage.getItem('lpa-locale') || 'en';
+    headers.set('Accept-Language', locale);
+  }
 
   const response = await fetch(input, {
     ...init,

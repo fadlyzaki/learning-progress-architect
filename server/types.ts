@@ -125,6 +125,7 @@ export type QuickActionContext = {
   taskDescription: string;
   goalTitle: string | null;
   resources: QuickActionResource[];
+  locale?: string;
 };
 
 export type QuickActionRow = {
