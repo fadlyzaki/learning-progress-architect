@@ -211,7 +211,7 @@ export function RoadmapPage() {
                       {!isDone ? (
                         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                           <a
-                            href={getGoogleCalendarUrl(task.title, task.description, defaultDurationMinutes)}
+                            href={getGoogleCalendarUrl(task.title, task.description, defaultDurationMinutes, task.id)}
                             target="_blank"
                             rel="noreferrer"
                             className="w-full sm:w-auto"
@@ -236,7 +236,7 @@ export function RoadmapPage() {
                       ) : (
                         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                           <a
-                            href={getGoogleCalendarUrl(task.title, task.description, defaultDurationMinutes)}
+                            href={getGoogleCalendarUrl(task.title, task.description, defaultDurationMinutes, task.id)}
                             target="_blank"
                             rel="noreferrer"
                             className="w-full sm:w-auto"

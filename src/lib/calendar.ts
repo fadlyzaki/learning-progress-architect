@@ -1,12 +1,20 @@
 export function getGoogleCalendarUrl(
   title: string,
   description: string,
-  durationMinutes: number
+  durationMinutes: number,
+  taskId?: number
 ): string {
   const url = new URL('https://calendar.google.com/calendar/render');
   url.searchParams.set('action', 'TEMPLATE');
   url.searchParams.set('text', `Study: ${title}`);
-  url.searchParams.set('details', description);
+  
+  let fullDescription = description;
+  if (taskId && typeof window !== 'undefined') {
+    const sessionUrl = `${window.location.origin}/app/session/${taskId}`;
+    fullDescription = `${description}\n\nSession Link: ${sessionUrl}`;
+  }
+  
+  url.searchParams.set('details', fullDescription);
   
   // Calculate next hour for default start time
   const start = new Date();

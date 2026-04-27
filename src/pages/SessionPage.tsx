@@ -547,6 +547,7 @@ export function SessionPage() {
                 task.title,
                 task.description,
                 defaultDurationMinutes,
+                task.id
               )}
               target="_blank"
               rel="noreferrer"
