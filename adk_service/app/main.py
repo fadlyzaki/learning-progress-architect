@@ -273,12 +273,13 @@ The analogy should make the mechanism easier to picture, not just make it sound 
 After the analogy, briefly connect it back to the actual task.
 """.strip(),
         "confused": """
-Reset the idea in very simple language.
+Explain the lesson material as if you are explaining it to a 5-year-old.
+Reset the idea in very simple, elementary language.
 Break it into tiny steps using:
 - first
 - then
 - finally
-Use plain words, remove jargon, and help the learner recover confidence quickly.
+Use plain words, remove all jargon, and tell a simple story so the learner recovers confidence quickly.
 """.strip(),
     }[request.input.action]
 

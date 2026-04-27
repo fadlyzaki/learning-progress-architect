@@ -30,7 +30,7 @@ export const QUICK_ACTION_PROMPTS: Record<QuickActionKind, string> = {
   analogy:
     'Give me a universal analogy for [Concept] that anyone-regardless of their technical background-can understand. Use a common daily activity (like grocery shopping, driving, or household chores) to illustrate how it works. Focus on making the invisible logic of the concept visible through this story.',
   confused:
-    "I am lost on [Concept]. Please reset and explain this to me like I am an elementary school student. Break it down into tiny, simple steps. Use 'first, then, finally' logic, and tell me a story where I am the main character interacting with this concept. No big words allowed.",
+    "I am lost on [Concept]. Please reset and explain the lesson material to me as if I am a 5-year-old. Break it down into tiny, simple steps. Use 'first, then, finally' logic, and tell me a story where I am the main character interacting with this concept. No big words allowed.",
 };
 
 export class QuickActionGenerationError extends Error {
