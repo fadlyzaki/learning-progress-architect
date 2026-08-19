@@ -108,7 +108,7 @@ Allows learners to inspect, update, and reflect on their declared learning goals
 Zero-friction, user-controlled calendar scheduling. Rather than requesting invasive OAuth scopes and maintaining automated sync loops, the system generates stateless Google Calendar templates. Learners click "Add to Calendar" on any generated study task, and the system pre-fills the task title, duration, and embeds direct deep-links (`/app/session/:taskId`) back into their workspace.
 
 ### 16. Instant 1-Click Live Demo Sandbox (`DemoLaunchPage.tsx`, `demoService.ts`)
-Zero-friction evaluation sandbox. Evaluators, recruiters, and prospective learners can click "Live Demo" to instantly launch a pre-seeded, high-fidelity workspace (*Distributed Systems & Cloud Architecture*) containing completed tasks, active in-progress study sessions, cached AI quick actions, and scheduled reviews without registration.
+Zero-friction evaluation sandbox. Evaluators, recruiters, and prospective learners can click "Live Demo" to instantly launch a pre-seeded, high-fidelity workspace (*IELTS Academic: Band 7.5+ Preparation*) containing completed tasks, active in-progress study sessions, cached AI quick actions, and scheduled reviews without registration.
 
 ### 17. Local-First In-Session Scratchpad & Note Ledger Sync (`SessionPage.tsx`, `ComprehensionPage.tsx`)
 Zero-data-loss study environment. In-session notes are continuously auto-saved to browser storage on every keystroke with visual state indicators, seamlessly passed into post-session comprehension checks, and permanently written to the workspace `notes` ledger upon session completion.

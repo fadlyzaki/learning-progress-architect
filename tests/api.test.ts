@@ -71,7 +71,7 @@ test('demo and guest endpoints enable instant workspace access without registrat
 
   const demoData = await getData(server.baseUrl, demoSession.token);
   assert.equal(demoData.goals.length, 1);
-  assert.equal(demoData.goals[0].title, 'Distributed Systems & Cloud Architecture');
+  assert.equal(demoData.goals[0].title, 'IELTS Academic: Band 7.5+ Preparation');
   assert.ok(demoData.tasks.length >= 4);
   assert.ok(demoData.sessions.length >= 1);
   assert.ok(demoData.reviews.length >= 1);

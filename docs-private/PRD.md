@@ -153,7 +153,7 @@ The architecture is designed to be flat, mobile-friendly, and execution-oriented
 - **Feature 3.3 Explicit Deep-Linked Calendar Integration:** Generate zero-friction Google Calendar URL templates embedding direct links back to `/app/session/:taskId` without OAuth permissions friction.
 
 ### Epic 4: Data Portability, Identity & Live Sandbox
-- **Feature 4.1 1-Click Live Demo & Guest Sandbox:** Instant evaluation engine (`/demo`, `POST /api/auth/demo`, `POST /api/auth/guest`) pre-seeded with a comprehensive Distributed Systems roadmap, completed sessions, in-progress tasks, and cached quick actions.
+- **Feature 4.1 1-Click Live Demo & Guest Sandbox:** Instant evaluation engine (`/demo`, `POST /api/auth/demo`, `POST /api/auth/guest`) pre-seeded with a comprehensive IELTS Academic (Band 7.5+) preparation roadmap, completed sessions, in-progress tasks, and cached quick actions.
 - **Feature 4.2 Account Persistence:** Seamless upgrade path from Guest/Demo to Registered user.
 - **Feature 4.3 Markdown Export:** One-click compilation of all goals, roadmaps, notes, and reflections into clean, Obsidian/Notion/Logseq-ready Markdown files.
 
