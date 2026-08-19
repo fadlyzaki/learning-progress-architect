@@ -1,103 +1,109 @@
-# GCP Handoff: Learning Progress Architect
+# GCP & Platform Handoff: Learning Progress Architect
 
 ## Current Repo State
 
-- `production` and `ui-ux-improvement` both point to commit `75fe92d3ff59def55bc45cfe68346f0928403a3a`
+- Production branch: `production`
+- Deployment options: **Google Cloud Run (3-service architecture)** and **Vercel (Serverless single-bundle execution)**.
 
-## What Is Already Implemented
+## What Is Implemented & Operational
 
-- Provider-based storage seam
+- **1-Click Live Demo & Guest Sandbox**:
+  - `POST /api/auth/demo` and `POST /api/auth/guest` (`demoService.ts`)
+  - Dedicated `/demo` launch page (`DemoLaunchPage.tsx`)
+  - Pre-seeds realistic multi-phase workspace (*Distributed Systems & Cloud Architecture*) with completed sessions, in-progress tasks, cached quick actions, and scheduled reviews.
+- **Provider-Based Storage Seam**:
   - `DB_PROVIDER=sqlite|alloydb`
-  - SQLite and Postgres repository implementations are in place
-- Postgres migration scaffolding
+  - SQLite and Postgres/AlloyDB repository implementations in place (`server/repositories/`).
+  - In-memory / `/tmp` SQLite mode enabled for serverless execution.
+- **Postgres / AlloyDB Migrations**:
   - `migrations/001_initial_schema.ts`
   - `migrations/002_agent_runtime_and_retrieval.ts`
-  - `node-pg-migrate.config.cjs`
-- SQLite to Postgres import script
-  - `server/scripts/importSqliteToPostgres.ts`
-- Agent routing seam
+  - `migrations/003_google_calendar_integration.ts`
+  - Managed via `node-pg-migrate.config.cjs` (`npm run db:migrate:alloydb`).
+- **Data Migration Tooling**:
+  - SQLite to Postgres import script: `server/scripts/importSqliteToPostgres.ts`
+- **Agent Routing Seam & Fallback**:
   - `AGENT_PROVIDER=legacy|adk`
-  - fallback from ADK to legacy is already implemented
-- Internal MCP server scaffold
-  - `server/mcp/index.ts`
-- Python ADK service scaffold
-  - `adk_service/app/main.py`
-- Tracing and retrieval persistence
-  - `agent_runs`
-  - `agent_run_events`
-  - `retrieval_sources`
-  - `document_embeddings`
-- Public API remains unchanged
+  - Automatic fallback from ADK service to in-process Gemini or deterministic domain planners.
+  - Strict 30s ADK / 15s MCP fetch timeouts.
+- **Internal MCP Server**:
+  - `server/mcp/index.ts` exposes 7 trusted tools over Streamable HTTP transport.
+  - Hardened with shared `INTERNAL_SERVICE_TOKEN` verification.
+- **Python ADK Service**:
+  - `adk_service/app/main.py` FastAPI service handling `/workflow/plan` and `/study-coach/quick-action`.
+  - Automated quick-action quality repair loop and locale-aware prompts.
+- **Explicit Google Calendar Deep Linking**:
+  - Client-side template generator (`src/lib/calendar.ts`) with direct task deep links (`/app/session/:taskId`).
+- **Vercel Serverless Integration**:
+  - `server/serverless.ts`, `api/index.js`, `vercel.json` for zero-configuration serverless cloud deployment.
+- **Public API Contract**:
+  - `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/demo`, `POST /api/auth/guest`
   - `POST /api/agent/workflow`
-  - `POST /api/tasks/:taskId/quick-action`
+  - `POST /api/tasks/:taskId/start`, `POST /api/tasks/:taskId/complete`, `POST /api/tasks/:taskId/quick-action`
   - `GET /api/data`
 
-## What Still Needs GCP Credentials / Infra Work
+## What Needs GCP Credentials / Production Cloud Infra Work
 
 1. Create AlloyDB cluster, instance, database, and user.
-2. Set up private connectivity from Cloud Run to AlloyDB.
-3. Create and deploy 3 services:
-   - public Node app
-   - internal MCP service
-   - internal Python ADK service
-4. Store and wire secrets:
+2. Set up private connectivity (VPC connector) from Cloud Run to AlloyDB.
+3. Deploy the three services via `Makefile`:
+   - `web`: Public Express + React frontend container
+   - `mcp`: Internal MCP tool service
+   - `adk`: Internal Python ADK service
+4. Configure Secret Manager / Cloud Run environment variables:
    - `DATABASE_URL`
    - `GEMINI_API_KEY`
-   - `VERTEX_PROJECT_ID`
-   - any AlloyDB-specific values if needed
+   - `INTERNAL_SERVICE_TOKEN`
+   - `ADK_SERVICE_URL`
+   - `MCP_BASE_URL`
+   - `APP_BASE_URL`
 5. Run Postgres migrations:
-   - `npm run db:migrate:alloydb`
-6. Import SQLite data if needed:
-   - `npm run db:import:sqlite`
+   ```bash
+   npm run db:migrate:alloydb
+   ```
+6. (Optional) Import SQLite data:
+   ```bash
+   npm run db:import:sqlite
+   ```
 7. Deploy the public app first with:
    - `DB_PROVIDER=alloydb`
    - `AGENT_PROVIDER=legacy`
-8. Verify production works on AlloyDB before enabling ADK.
-9. Deploy MCP and ADK services.
-10. Switch the public app to:
+8. Verify production functionality on AlloyDB before enabling ADK.
+9. Deploy MCP and ADK services and switch public app:
    - `AGENT_PROVIDER=adk`
    - `ADK_SERVICE_URL=<internal-adk-url>`
-11. On the ADK side, set:
-   - `MCP_BASE_URL=<internal-mcp-url>`
-12. After stable rollout, optionally enable AlloyDB AI / embedding retrieval.
+10. (Future) Enable AlloyDB AI vector search with `document_embeddings` and `retrieval_sources`.
 
 ## Important Environment Variables
 
-- `DB_PROVIDER`
-- `DATABASE_URL`
-- `DATABASE_FILE`
-- `AGENT_PROVIDER`
-- `ADK_SERVICE_URL`
-- `MCP_PORT`
-- `MCP_BASE_URL`
-- `VERTEX_PROJECT_ID`
-- `ALLOYDB_INSTANCE`
-- `ALLOYDB_DATABASE`
-- `ALLOYDB_USER`
+| Variable | Values / Default | Purpose |
+|---|---|---|
+| `DB_PROVIDER` | `sqlite` \| `alloydb` | Selects database implementation |
+| `DATABASE_URL` | Postgres URI | Connection string for AlloyDB |
+| `DATABASE_FILE` | `app.db` | File path for SQLite persistence |
+| `AGENT_PROVIDER` | `legacy` \| `adk` | Selects agent planner and study coach path |
+| `ADK_SERVICE_URL` | `http://127.0.0.1:8081` | Python ADK service URL |
+| `MCP_BASE_URL` | `http://127.0.0.1:3101` | MCP tool server URL |
+| `MCP_PORT` | `3101` | MCP server listening port |
+| `INTERNAL_SERVICE_TOKEN` | Secret String | Shared secret for `web <-> ADK <-> MCP` |
+| `GEMINI_API_KEY` | Secret String | Google Gemini API key |
+| `APP_BASE_URL` | Public App URL | Base URL for deep links |
 
-See `.env.example` for the current expected shape.
+## Key Files
 
-## Helpful Files
-
-- `.env.example`
-- `server/appContext.ts`
+- `server/serverless.ts` & `api/index.js`
+- `server/services/demoService.ts`
 - `server/mcp/index.ts`
 - `adk_service/app/main.py`
-- `server/scripts/importSqliteToPostgres.ts`
+- `src/lib/calendar.ts`
 - `migrations/001_initial_schema.ts`
 - `migrations/002_agent_runtime_and_retrieval.ts`
+- `migrations/003_google_calendar_integration.ts`
+- `Makefile` & `cloudbuild.*.yaml`
 
-## Local Verification Already Done
+## Verification Commands
 
-- `npm run lint`
-- `npm test`
-- `python3 -m py_compile adk_service/app/main.py`
-
-## Recommended Rollout Order
-
-1. AlloyDB plus migrations
-2. Public app on AlloyDB with legacy agent mode
-3. MCP service
-4. ADK service
-5. Switch `AGENT_PROVIDER=adk`
-6. Enable retrieval / AlloyDB AI later
+- TypeScript lint: `npm run lint`
+- Automated test suite: `npm test`
+- Python syntax check: `python3 -m py_compile adk_service/app/main.py`
+- Serverless build: `npx esbuild server/serverless.ts --bundle --platform=node --target=node18 --outfile=api/index.js --external:better-sqlite3 --external:pg-native`

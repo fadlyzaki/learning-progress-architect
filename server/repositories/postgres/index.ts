@@ -240,6 +240,17 @@ export function createPostgresRepositories(pool: Pool): AppRepositories {
         });
       },
     },
+    notes: {
+      async create(input) {
+        await pool.query(
+          `
+            INSERT INTO notes (user_id, topic, content, kind, created_at)
+            VALUES ($1, $2, $3, $4, $5)
+          `,
+          [input.userId, input.topic, input.content, input.kind, input.createdAt],
+        );
+      },
+    },
     quickActions: {
       async findByTaskAndAction(taskId, userId, action) {
         const result = await pool.query<QuickActionRow>(

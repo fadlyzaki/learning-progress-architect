@@ -8,6 +8,7 @@ import { Progress } from '../components/ui/Progress';
 import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
+import { useActiveGoal } from '../lib/activeGoal';
 import { exportDataToMarkdown, downloadMarkdown } from '../lib/export';
 
 function calculateStreak(sessionDates: string[]) {
@@ -45,6 +46,7 @@ function calculateStreak(sessionDates: string[]) {
 
 export function ProgressPage() {
   const { data, loading, error, refetch } = useAppData();
+  const { activeGoal } = useActiveGoal(data?.goals);
   const { formatDate, t } = usePreferences();
   useAppMeta({
     title: t('progress.title'),
@@ -66,8 +68,6 @@ export function ProgressPage() {
       />
     );
   }
-
-  const activeGoal = data.goals[0] ?? null;
   const completedSessions = data.sessions.filter((session) => session.completed_at);
   const totalStudyMinutes = Math.round(
     completedSessions.reduce((sum, session) => sum + session.duration_seconds, 0) / 60,

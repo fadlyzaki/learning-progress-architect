@@ -206,6 +206,7 @@ test('workflow persists learner materials, links them to tasks, and completes th
       confusion: 'Need more examples for edge-case governance.',
       confidence: 2,
       durationSeconds: 1800,
+      notes: 'Deep-work session notes about design tokens and primitives.',
     },
     token,
   );
@@ -217,6 +218,12 @@ test('workflow persists learner materials, links them to tasks, and completes th
   assert.equal(data.sessions[0].reflection, 'I can now explain the core system layers.');
   assert.equal(data.reviews.length, 1);
   assert.equal(data.reviews[0].priority, 'high');
+  assert.ok(
+    data.notes.some(
+      (n: { content: string; kind: string }) =>
+        n.content === 'Deep-work session notes about design tokens and primitives.' && n.kind === 'note',
+    ),
+  );
 });
 
 test('quick action endpoint validates action type and returns a service-unavailable error without Gemini', async () => {

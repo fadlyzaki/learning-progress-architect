@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CalendarDays, CheckCircle2, Clock, Layers3, Play, RefreshCw, Sparkles, Target } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
@@ -9,8 +9,10 @@ import { Progress } from '../components/ui/Progress';
 import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { PrimaryActionPanel, SecondaryActionHint } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
+import { useActiveGoal } from '../lib/activeGoal';
 import {
   ApiError,
+  apiFetch,
 } from '../lib/api';
 import { usePreferences } from '../lib/preferences';
 
@@ -24,24 +26,18 @@ function truncate(text: string, maxLength: number) {
 
 export function DashboardPage() {
   const { data, loading, error, refetch } = useAppData();
+  const { activeGoal, setActiveGoalId, allGoals } = useActiveGoal(data?.goals);
   const { t } = usePreferences();
+  const navigate = useNavigate();
+  const [levelingUp, setLevelingUp] = useState(false);
+  const [levelUpError, setLevelUpError] = useState<string | null>(null);
   useAppMeta({
     title: t('nav.today'),
     description: t('dashboard.body'),
   });
 
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-
-    return () => {
-      // isMounted = false;
-    };
-  }, [data, t]);
-
   if (loading) {
-    return <PageLoadingState variant="dashboard" rows={2} />;
+    return <PageLoadingState variant="dashboard" rows={3} />;
   }
 
   if (!data) {
@@ -59,8 +55,6 @@ export function DashboardPage() {
       </div>
     );
   }
-
-  const activeGoal = data.goals[0];
 
   if (!activeGoal) {
     return (
@@ -122,10 +116,32 @@ export function DashboardPage() {
 
         <Card className="app-card-muted max-w-sm">
           <CardHeader className="pb-4">
-            <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-              {t('dashboard.currentFocus')}
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] font-mono font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                {t('dashboard.currentFocus')}
+              </div>
+              {allGoals.length > 1 && (
+                <Link to="/app/goals" className="text-xs text-[var(--accent-amber)] hover:underline font-mono">
+                  {allGoals.length} {t('nav.goals')}
+                </Link>
+              )}
             </div>
-            <CardTitle className="line-clamp-2 text-xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
+            {allGoals.length > 1 ? (
+              <select
+                aria-label={t('goals.switchGoal')}
+                className="mt-1 w-full truncate bg-[var(--bg-surface)] text-base font-semibold text-[var(--text-primary)] rounded-lg border border-[var(--border-color)] p-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                value={activeGoal.id}
+                onChange={(e) => setActiveGoalId(Number(e.target.value))}
+              >
+                {allGoals.map((g) => (
+                  <option key={g.id} value={g.id} className="bg-[var(--bg-card)] text-[var(--text-primary)]">
+                    {g.title}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <CardTitle className="line-clamp-2 text-xl text-[var(--text-primary)]">{activeGoal.title}</CardTitle>
+            )}
             <CardDescription className="text-sm leading-relaxed">
               {t('dashboard.currentFocusBody')}
             </CardDescription>

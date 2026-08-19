@@ -10,27 +10,27 @@ import { InlineStateMessage, PageIntro, PageLoadingState, PageMessageState } fro
 import { PrimaryActionPanel } from '../components/PrimaryActionPanel';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
+import { useActiveGoal } from '../lib/activeGoal';
 import { apiFetch } from '../lib/api';
 import { getGoogleCalendarUrl } from '../lib/calendar';
 
 export function RoadmapPage() {
   const { data, loading, error, refetch } = useAppData();
+  const { activeGoal, setActiveGoalId, allGoals } = useActiveGoal(data?.goals);
   const { t } = usePreferences();
   const navigate = useNavigate();
   const [relearningTask, setRelearningTask] = useState<number | null>(null);
   const [relearnError, setRelearnError] = useState<string | null>(null);
   useAppMeta({
     title: t('roadmap.title'),
-    description: data?.goals[0]
-      ? t('roadmap.subtitle', { goal: data.goals[0].title })
+    description: activeGoal
+      ? t('roadmap.subtitle', { goal: activeGoal.title })
       : t('roadmap.empty'),
   });
 
   if (loading) {
     return <PageLoadingState variant="detail" rows={3} />;
   }
-
-  const activeGoal = data?.goals[0] ?? null;
 
   if (!data || !activeGoal) {
     return (
@@ -71,6 +71,31 @@ export function RoadmapPage() {
 
   return (
     <div className="space-y-8 font-sans">
+      {allGoals.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-color)] pb-4">
+          <span className="text-xs font-mono uppercase tracking-wider text-[var(--text-muted)] mr-1">
+            {t('goals.title')}:
+          </span>
+          {allGoals.map((goal) => {
+            const isActive = goal.id === activeGoal.id;
+            return (
+              <button
+                key={goal.id}
+                type="button"
+                onClick={() => setActiveGoalId(goal.id)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                    : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:border-[var(--text-muted)]'
+                }`}
+              >
+                {goal.title}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <PageIntro
         eyebrow={t('roadmap.activeGoal')}
         title={t('roadmap.title')}

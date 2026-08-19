@@ -234,6 +234,16 @@ export function createSQLiteRepositories(db: Database.Database): AppRepositories
         tx();
       },
     },
+    notes: {
+      async create(input) {
+        db.prepare(
+          `
+            INSERT INTO notes (user_id, topic, content, kind, created_at)
+            VALUES (?, ?, ?, ?, ?)
+          `,
+        ).run(input.userId, input.topic, input.content, input.kind, input.createdAt);
+      },
+    },
     quickActions: {
       async findByTaskAndAction(taskId, userId, action) {
         return (

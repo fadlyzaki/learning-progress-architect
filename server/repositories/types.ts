@@ -198,6 +198,16 @@ export interface RetrievalRepository {
   }): Promise<void>;
 }
 
+export interface NoteRepository {
+  create(input: {
+    userId: string;
+    topic: string;
+    content: string;
+    kind: 'plan' | 'note' | 'reflection';
+    createdAt: string;
+  }): Promise<void>;
+}
+
 export interface AppRepositories {
   authSessions: AuthSessionRepository;
   goals: GoalRepository;
@@ -205,6 +215,7 @@ export interface AppRepositories {
   sessions: StudySessionRepository;
   reviews: ReviewRepository;
   resources: ResourceRepository;
+  notes: NoteRepository;
   quickActions: QuickActionRepository;
   workspace: WorkspaceRepository;
   workflow: WorkflowRepository;

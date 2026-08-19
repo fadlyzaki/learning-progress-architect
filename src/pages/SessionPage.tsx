@@ -79,7 +79,10 @@ export function SessionPage() {
   const [hasStarted, setHasStarted] = useState(Boolean(openSession));
   const [time, setTime] = useState(openSession?.duration_seconds ?? 0);
   const [starting, setStarting] = useState(false);
-  const [scratchNotes, setScratchNotes] = useState('');
+  const [scratchNotes, setScratchNotes] = useState(() => {
+    if (typeof window === 'undefined' || !taskId) return '';
+    return window.localStorage.getItem(`lpa-scratch-task-${taskId}`) ?? '';
+  });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [quickActionState, setQuickActionState] = useState<Record<QuickActionKind, QuickActionRecord | null>>(EMPTY_QUICK_ACTION_STATE);
   const [quickActionLoading, setQuickActionLoading] = useState<Record<QuickActionKind, boolean>>({
@@ -97,6 +100,23 @@ export function SessionPage() {
     setHasStarted(Boolean(openSession));
     setIsActive(Boolean(openSession));
   }, [openSession?.duration_seconds, openSession?.id]);
+
+  useEffect(() => {
+    if (!taskId) return;
+    const savedNotes = window.localStorage.getItem(`lpa-scratch-task-${taskId}`);
+    if (savedNotes !== null && savedNotes !== scratchNotes) {
+      setScratchNotes(savedNotes);
+    }
+  }, [taskId]);
+
+  useEffect(() => {
+    if (!taskId) return;
+    if (scratchNotes) {
+      window.localStorage.setItem(`lpa-scratch-task-${taskId}`, scratchNotes);
+    } else {
+      window.localStorage.removeItem(`lpa-scratch-task-${taskId}`);
+    }
+  }, [taskId, scratchNotes]);
 
   useEffect(() => {
     setQuickActionState(buildQuickActionState(persistedQuickActions));
@@ -185,6 +205,7 @@ export function SessionPage() {
     navigate(`/app/comprehension/${task.id}`, {
       state: {
         durationSeconds: time,
+        scratchNotes: scratchNotes.trim(),
       },
     });
   };
@@ -474,7 +495,14 @@ export function SessionPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <CardTitle className="text-xl text-[var(--text-primary)]">{t('session.notesScratch')}</CardTitle>
-                    <Badge variant="outline">{t('session.scratchLocal')}</Badge>
+                    {scratchNotes.trim().length > 0 ? (
+                      <Badge variant="success" className="gap-1 text-xs">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {t('session.scratchSaved')}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">{t('session.scratchLocal')}</Badge>
+                    )}
                   </div>
                   <CardDescription className="mt-2 text-base leading-relaxed">
                     {t('session.notesScratchHint')}

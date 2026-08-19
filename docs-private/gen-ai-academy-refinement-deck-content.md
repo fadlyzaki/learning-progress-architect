@@ -3,11 +3,12 @@
 This document reflects the polished, deployment-ready state of the system as of late April 2026. 
 
 Current reality:
-- The product is deployed to production on Cloud Run with a fully orchestrated `web -> ADK -> MCP` flow.
+- The product is deployed to production on Cloud Run with a fully orchestrated `web -> ADK -> MCP` flow, with additional support for zero-configuration Vercel serverless deployment.
+- Instant 1-Click Live Demo & Sandbox Mode (`/demo`) enabling instant evaluations with pre-seeded distributed systems curriculum, in-progress tasks, and cached quick actions.
 - A highly polished, visually engaging UI with modern design patterns, interactive iconography, and a cohesive brand identity (Learning Progress Architect).
 - Robust global developer attribution (Meet the Team modal).
 - Complete user flow optimization, including comprehensive egress (back-to-home) navigation on all auxiliary views.
-- Persistence is now driven by `AlloyDB`, providing a durable, scalable, and multi-instance cloud data layer for the production system.
+- Persistence is multi-provider driven by `AlloyDB` / PostgreSQL for production durability, with SQLite support for local and serverless execution.
 
 Use the `Long Version` as speaker notes or a written submission. Use the `Short Version` as paste-ready slide copy.
 
@@ -114,6 +115,7 @@ Key differentiators:
 
 ### Long Version
 
+- 1-Click Instant Live Demo Sandbox (`/demo`) and Guest Mode
 - Email and password authentication with a secure, guided flow
 - Guided onboarding for goal, level, pace, target date, and study style
 - AI-assisted roadmap generation with deterministic fallback
@@ -127,20 +129,21 @@ Key differentiators:
 - Quick-action caching for repeated study needs
 - Reflection, blocker logging, and confidence capture
 - Confidence-based review scheduling
-- Zero-friction, client-side Google Calendar template generation for private scheduling
+- Zero-friction, client-side Google Calendar template generation with direct session deep links (`/app/session/:taskId`)
 - Reviews page for due and upcoming revision work
-- Progress page for study time, streak, and completion visibility
+- Progress page for study time, streak, and Markdown export
 - Reflections page for reviewing past learning notes
 - Global interactive "Meet the Team" developer attribution modal
 - English and Indonesian interface support
 
 ### Short Version
 
+- 1-Click Instant Live Demo & Guest Sandbox
 - Guided onboarding & AI roadmap generation
 - Resource attachment and suggestion
 - Focused study sessions with ADK-routed quick actions
 - MCP-backed context and persistence
-- Zero-friction manual Google Calendar integration
+- Zero-friction Google Calendar deep-link integration
 - Reflection and confidence capture
 - Adaptive reviews & historical progress
 - Multi-lingual (EN/ID) premium interface
@@ -265,8 +268,9 @@ Architecture:
 - Vite
 - TypeScript
 - Express
-- AlloyDB via Postgres Driver
+- AlloyDB & SQLite Multi-Provider Architecture
 - Tailwind CSS 4
+- Vercel Serverless Function Substrate
 
 **Google and AI services**
 - Cloud Run for the live multi-service production deployment
@@ -281,14 +285,14 @@ Architecture:
 - ADK cleanly separates orchestration from the public app.
 - MCP separates reasoning from trusted data access.
 - AlloyDB ensures scalable and durable persistence across cloud instances.
-- Cloud Run provides a scalable, zero-ops bridge from prototype to production.
+- Cloud Run and Vercel provide scalable, zero-ops bridges from prototype to production.
 
 ### Short Version
 
 Technologies used:
 - React 19, TypeScript, Express, Tailwind CSS 4
-- AlloyDB
-- Cloud Run & Cloud Build
+- AlloyDB & SQLite
+- Cloud Run, Cloud Build & Vercel
 - Gemini
 - Python ADK
 - MCP

@@ -105,7 +105,16 @@ Standard auth layer protecting the learner workspace. Internal service-to-servic
 Allows learners to inspect, update, and reflect on their declared learning goals. Goals are the root node of the entire system — they anchor roadmap generation, session context, and review prioritization.
 
 ### 15. Client-Side Explicit Google Calendar Integration (`calendar.ts`)
-Zero-friction, user-controlled calendar scheduling. Rather than requesting invasive OAuth scopes and maintaining automated sync loops, the system generates stateless Google Calendar templates. Learners click "Add to Calendar" on any generated study task, and the system intelligently pre-fills the task title, context, and AI-calculated duration directly into their own calendar interface.
+Zero-friction, user-controlled calendar scheduling. Rather than requesting invasive OAuth scopes and maintaining automated sync loops, the system generates stateless Google Calendar templates. Learners click "Add to Calendar" on any generated study task, and the system pre-fills the task title, duration, and embeds direct deep-links (`/app/session/:taskId`) back into their workspace.
+
+### 16. Instant 1-Click Live Demo Sandbox (`DemoLaunchPage.tsx`, `demoService.ts`)
+Zero-friction evaluation sandbox. Evaluators, recruiters, and prospective learners can click "Live Demo" to instantly launch a pre-seeded, high-fidelity workspace (*Distributed Systems & Cloud Architecture*) containing completed tasks, active in-progress study sessions, cached AI quick actions, and scheduled reviews without registration.
+
+### 17. Local-First In-Session Scratchpad & Note Ledger Sync (`SessionPage.tsx`, `ComprehensionPage.tsx`)
+Zero-data-loss study environment. In-session notes are continuously auto-saved to browser storage on every keystroke with visual state indicators, seamlessly passed into post-session comprehension checks, and permanently written to the workspace `notes` ledger upon session completion.
+
+### 18. Multi-Goal Operational Focus Switcher (`activeGoal.ts`, `Layout.tsx`, `GoalsPage.tsx`)
+Enables autodidacts to pursue multiple independent learning goals simultaneously. The `useActiveGoal` hook provides a reactive, persistent active-focus layer allowing learners to switch roadmaps, dashboards, and upcoming milestones with a single click across the sidebar, dashboard, and goal cards.
 
 ---
 
@@ -115,31 +124,35 @@ The architecture follows a strict decoupled multi-layer pattern:
 
 ```text
 .
-├── server.ts                    # Application entrypoint
+├── server.ts                    # Application entrypoint (Container / Local)
+├── api/
+│   └── index.js                 # Compiled Vercel Serverless Function entrypoint
 ├── server/
+│   ├── serverless.ts            # Express serverless handler wrapper
 │   ├── routes/                  # Public and internal HTTP boundaries
-│   ├── services/                # Orchestration, planning, quick-action, review, search
+│   ├── services/                # Orchestration, planning, quick-action, review, demo
 │   │   ├── agents/              # ADK-backed agent orchestration
 │   │   ├── planners/            # Deterministic fallback planners
 │   │   └── retrieval/           # Resource search and future vector enrichment
-│   ├── repositories/            # Data access layer
-│   ├── middleware/              # Auth, error handling
+│   ├── repositories/            # Multi-provider data access layer (SQLite / Postgres)
+│   ├── middleware/              # Auth, internal token validation
 │   ├── mcp/                     # MCP server and app-backed tool bridge
 │   ├── config/                  # Runtime configuration
 │   ├── utils/                   # Shared utilities
 │   └── scripts/                 # Migration and import tooling
 ├── adk_service/
-│   └── app/                     # Python ADK runtime (main.py)
+│   └── app/                     # Python ADK FastAPI runtime (main.py)
 ├── src/
-│   ├── components/              # Layout, UI system, shared surfaces
+│   ├── components/              # Layout, UI system, shared surfaces, Team modal
 │   ├── hooks/                   # useAppData
-│   ├── lib/                     # Shared client utilities
+│   ├── lib/                     # Shared client utilities (calendar, export, auth, i18n)
 │   ├── data/                    # Client-side data definitions
-│   └── pages/                   # 11 learner-facing product surfaces
+│   └── pages/                   # 12 learner-facing product surfaces
 ├── docs-private/                # Architecture and deployment documentation
 ├── tests/                       # Node test suite
-├── migrations/                  # Database migration scripts
+├── migrations/                  # Database migration scripts (001, 002, 003)
 ├── Makefile                     # Deployment and build helpers
+├── vercel.json                  # Vercel serverless routing configuration
 ├── package.json
 ├── vite.config.ts
 └── tsconfig.json
@@ -147,7 +160,7 @@ The architecture follows a strict decoupled multi-layer pattern:
 
 **Layer model:**
 
-- **View Layer** — 11 product screens across the full learning lifecycle, from onboarding to reflections.
+- **View Layer** — 12 product screens across the full learning lifecycle, from onboarding to deep-work sessions and live demo sandbox.
 - **State Layer** — App data managed via `useAppData` hook and server-owned workspace payload.
 - **Orchestration Layer** — Provider-agnostic agent runtime with ADK and legacy fallback paths.
 - **Tool Boundary** — MCP service as the hardened interface between AI reasoning and workspace data.

@@ -36,6 +36,13 @@ export function ComprehensionPage() {
       ? Number(location.state.durationSeconds) || 0
       : 0;
 
+  const scratchNotes =
+    typeof location.state === 'object' && location.state && 'scratchNotes' in location.state
+      ? String(location.state.scratchNotes)
+      : typeof window !== 'undefined'
+        ? window.localStorage.getItem(`lpa-scratch-task-${taskId}`) ?? ''
+        : '';
+
   const handleNext = async () => {
     if (step < 3) {
       setStep((currentStep) => currentStep + 1);
@@ -60,8 +67,13 @@ export function ComprehensionPage() {
           confusion: blockers,
           confidence,
           durationSeconds,
+          notes: scratchNotes,
         }),
       });
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(`lpa-scratch-task-${task.id}`);
+      }
 
       navigate('/app', { replace: true });
     } catch (submitError) {
@@ -178,14 +190,34 @@ export function ComprehensionPage() {
               </CardContent>
             </Card>
 
-            <Card className="app-card-muted">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg text-[var(--text-primary)]">{t('comprehension.afterFinishTitle')}</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
-                  {t('comprehension.afterFinishBody')}
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            {scratchNotes ? (
+              <Card className="app-card-supporting border-dashed">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-mono uppercase tracking-wider text-[var(--text-muted)]">
+                      {t('comprehension.sessionNotes')}
+                    </CardTitle>
+                    <Badge variant="outline" className="text-xs">
+                      {t('session.scratchLocal')}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="max-h-28 overflow-y-auto text-xs leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap">
+                    {scratchNotes}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="app-card-muted">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg text-[var(--text-primary)]">{t('comprehension.afterFinishTitle')}</CardTitle>
+                  <CardDescription className="text-sm leading-relaxed">
+                    {t('comprehension.afterFinishBody')}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            )}
           </div>
 
           {step === 1 && (

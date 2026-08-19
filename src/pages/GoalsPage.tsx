@@ -9,10 +9,12 @@ import { Progress } from '../components/ui/Progress';
 import { PageIntro, PageLoadingState, PageMessageState } from '../components/PageStates';
 import { useAppData } from '../hooks/useAppData';
 import { usePreferences } from '../lib/preferences';
+import { useActiveGoal } from '../lib/activeGoal';
 import type { AppDataPayload, GoalRecord } from '../types';
 
 export function GoalsPage() {
   const { data, loading, error, refetch } = useAppData();
+  const { activeGoal, setActiveGoalId } = useActiveGoal(data?.goals);
   const { t } = usePreferences();
   useAppMeta({
     title: t('goals.title'),
@@ -35,7 +37,9 @@ export function GoalsPage() {
     );
   }
 
-  const [activeGoal, ...otherGoals] = data.goals;
+  const otherGoals = activeGoal
+    ? data.goals.filter((g) => g.id !== activeGoal.id)
+    : data.goals.slice(1);
 
   return (
     <div className="space-y-8 font-sans">
@@ -53,7 +57,7 @@ export function GoalsPage() {
       />
 
       {activeGoal ? (
-        <GoalCard goal={activeGoal} isPrimary data={data} />
+        <GoalCard goal={activeGoal} isPrimary data={data} onSetActive={() => setActiveGoalId(activeGoal.id)} />
       ) : (
         <PageMessageState
           title={t('goals.empty')}
@@ -67,7 +71,7 @@ export function GoalsPage() {
         <div className="grid gap-6 md:grid-cols-2">
           {otherGoals.map((goal) => (
             <div key={goal.id}>
-              <GoalCard goal={goal} data={data} />
+              <GoalCard goal={goal} data={data} onSetActive={() => setActiveGoalId(goal.id)} />
             </div>
           ))}
         </div>
@@ -80,10 +84,12 @@ function GoalCard({
   goal,
   data,
   isPrimary = false,
+  onSetActive,
 }: {
   goal: GoalRecord;
   data: AppDataPayload;
   isPrimary?: boolean;
+  onSetActive?: () => void;
 }) {
   const { t } = usePreferences();
   const tasks = data.tasks.filter((task) => task.goal_id === goal.id);
@@ -96,9 +102,14 @@ function GoalCard({
       <CardHeader className="pb-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <Badge variant={goal.status === 'completed' ? 'success' : isPrimary ? 'warning' : 'outline'}>
-              {t(`status.${goal.status}`)}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={goal.status === 'completed' ? 'success' : isPrimary ? 'warning' : 'outline'}>
+                {isPrimary ? t('goals.activeFocus') : t(`status.${goal.status}`)}
+              </Badge>
+              {goal.status === 'completed' && isPrimary && (
+                <Badge variant="success">{t('status.completed')}</Badge>
+              )}
+            </div>
             <CardTitle className="mt-4 line-clamp-2 text-2xl text-[var(--text-primary)]">{goal.title}</CardTitle>
             <CardDescription className="mt-2 text-base leading-relaxed">
               {t(`option.level.${goal.level}`)}
@@ -122,11 +133,18 @@ function GoalCard({
           <GoalSignal label={t('goals.resources', { count: resources.length })} />
         </div>
 
-        <Link to="/app/roadmap">
-          <Button variant={isPrimary ? 'accent' : 'outline'} className="w-full sm:w-auto">
-            {t('goals.viewRoadmap')}
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          {!isPrimary && onSetActive && (
+            <Button variant="accent" onClick={onSetActive} className="w-full sm:w-auto">
+              {t('goals.setActiveFocus')}
+            </Button>
+          )}
+          <Link to="/app/roadmap" onClick={isPrimary ? undefined : onSetActive} className="w-full sm:w-auto">
+            <Button variant={isPrimary ? 'accent' : 'outline'} className="w-full sm:w-auto">
+              {t('goals.viewRoadmap')}
+            </Button>
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

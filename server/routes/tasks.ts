@@ -46,7 +46,7 @@ tasksRouter.post('/:taskId/complete', async (req, res) => {
   }
 
   const taskId = Number(req.params.taskId);
-  const { tasks, sessions, reviews } = getAppContext().repositories;
+  const { tasks, sessions, reviews, notes } = getAppContext().repositories;
   const task = await tasks.findByIdForUser(taskId, user.id);
 
   if (!task) {
@@ -56,12 +56,23 @@ tasksRouter.post('/:taskId/complete', async (req, res) => {
 
   const reflection = String(req.body?.reflection ?? '').trim();
   const confusion = String(req.body?.confusion ?? '').trim();
+  const sessionNotes = String(req.body?.notes ?? '').trim();
   const confidence =
     req.body?.confidence === null || req.body?.confidence === undefined
       ? null
       : Math.max(1, Math.min(5, Number(req.body.confidence)));
   const durationSeconds = Math.max(0, Number(req.body?.durationSeconds ?? 0));
   const completedAt = nowIso();
+
+  if (sessionNotes) {
+    await notes.create({
+      userId: user.id,
+      topic: task.title,
+      content: sessionNotes,
+      kind: 'note',
+      createdAt: completedAt,
+    });
+  }
 
   const existingOpenSession = await sessions.findOpenByTask(taskId, user.id);
 

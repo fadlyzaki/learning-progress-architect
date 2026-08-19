@@ -82,10 +82,15 @@ function getMobilePageContext(pathname: string, t: (key: string, params?: Record
   };
 }
 
+import { useAppData } from '../hooks/useAppData';
+import { useActiveGoal } from '../lib/activeGoal';
+
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const session = getStoredSession();
+  const { data } = useAppData();
+  const { activeGoal, setActiveGoalId } = useActiveGoal(data?.goals);
   const { t } = usePreferences();
   const mobilePage = getMobilePageContext(location.pathname, t);
   const isDemo = session?.user.email.includes('demo') || session?.user.email.includes('guest');
@@ -142,6 +147,41 @@ export function Layout() {
               <LogOut className="h-4 w-4" />
             </button>
           </div>
+
+          {activeGoal && (
+            <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] p-2.5">
+              <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] mb-1">
+                <span className="flex items-center gap-1 text-[var(--accent-amber)]">
+                  <Target className="h-3 w-3" />
+                  {t('goals.activeFocus')}
+                </span>
+                {data && data.goals.length > 1 && (
+                  <Link to="/app/goals" className="text-[9px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                    {t('goals.tasks', { count: data.goals.length }).replace('Tasks', 'Goals')}
+                  </Link>
+                )}
+              </div>
+              {data && data.goals.length > 1 ? (
+                <select
+                  aria-label={t('goals.switchGoal')}
+                  className="w-full truncate bg-transparent text-xs font-semibold text-[var(--text-primary)] border-0 focus:outline-none focus:ring-0 cursor-pointer p-0"
+                  value={activeGoal.id}
+                  onChange={(e) => setActiveGoalId(Number(e.target.value))}
+                >
+                  {data.goals.map((g) => (
+                    <option key={g.id} value={g.id} className="bg-[var(--bg-card)] text-[var(--text-primary)]">
+                      {g.title}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="truncate text-xs font-semibold text-[var(--text-primary)]">
+                  {activeGoal.title}
+                </div>
+              )}
+            </div>
+          )}
+
           <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
             {t('layout.summary')}
           </p>

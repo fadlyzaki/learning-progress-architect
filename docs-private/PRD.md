@@ -115,19 +115,19 @@ graph TD
 
 The architecture is designed to be flat, mobile-friendly, and execution-oriented.
 
-- **`/` (Landing Page):** Value proposition, social proof, guest entry.
-- **`/auth`:** Sign up, Log in, Password recovery.
+- **`/` (Landing Page):** Value proposition, social proof, feature tour, demo CTA.
+- **`/auth`:** Sign up, Log in, Password recovery, 1-Click Demo entry.
+- **`/demo`:** Instant 1-Click Sandbox launcher with pre-seeded rich workspace data.
 - **`/onboarding`:** Goal parameter collection, resource ingestion, AI roadmap generation.
 - **App Core (Authenticated):**
-  - **`/dashboard`:** The operational hub. Active goal, next recommended action, high-level metrics.
-  - **`/roadmap`:** The tactical view. Full sequence of tasks, status indicators.
-  - **`/materials`:** Resource library. User-provided links and AI-suggested trusted sources.
-  - **`/session/[id]`:** The deep work zone. Timer, task context, scratchpad, AI Quick Actions.
-  - **`/session/[id]/reflect`:** Post-session comprehension capture.
-  - **`/reviews`:** The reinforcement queue. Due-now vs. upcoming reviews.
-  - **`/progress`:** The momentum view. Velocity, streak, confidence trends.
-  - **`/reflections`:** Historical ledger of past session notes.
-  - **`/settings`:** Markdown export engine, account management.
+  - **`/app` (Dashboard):** The operational hub. Active goal, next recommended action, high-level metrics.
+  - **`/app/roadmap`:** The tactical view. Full sequence of tasks, status indicators, and Google Calendar deep-links.
+  - **`/app/goals`:** Portfolio view of all declared learning goals.
+  - **`/app/session/:id`:** The deep work zone. Timer, task context, linked materials, scratchpad, AI Quick Actions.
+  - **`/app/comprehension/:id`:** Post-session comprehension capture, blocker notes, and confidence score.
+  - **`/app/reviews`:** The reinforcement queue. Due-now vs. upcoming reviews.
+  - **`/app/progress`:** The momentum view. Velocity, streak, confidence trends, and Markdown export engine.
+  - **`/app/reflections`:** Historical ledger of past session reflections and insights.
 
 ---
 
@@ -136,24 +136,30 @@ The architecture is designed to be flat, mobile-friendly, and execution-oriented
 ### Epic 1: Workflow Orchestration & Roadmap
 - **Feature 1.1 Goal Definition:** Capture goal string, mastery level, time budget, target date, and learning modality.
 - **Feature 1.2 Resource Ingestion:** Accept URLs, free-form text, or file drops to anchor the syllabus.
-- **Feature 1.3 AI Syllabus Generation:** Generate sequenced tasks, study objectives, and search queries using generative AI, biased towards user resources if provided.
+- **Feature 1.3 AI Syllabus Generation:** Generate sequenced tasks, study objectives, and search queries using generative AI (Gemini 2.5 Flash / ADK), biased towards user resources if provided.
 - **Feature 1.4 Fallback Generation:** Guarantee a functional baseline syllabus if external AI services degrade.
+- **Feature 1.5 Multi-Goal Portfolio & Active Focus Switcher:** Enable users to maintain multiple concurrent learning goals with explicit 1-click active focus switching across the sidebar, dashboard, roadmap tabs, and goal cards (`useActiveGoal`).
 
 ### Epic 2: The Study Environment
 - **Feature 2.1 State Management:** Robust tracking of task states (Pending -> In Progress -> Completed -> Review Due).
 - **Feature 2.2 Time Tracking:** Client-side session timer with pause/resume mechanics.
-- **Feature 2.3 Contextual Quick Actions:** Pre-prompted AI helpers (`Explain`, `Give Example`, `Analogy`, `Clarify`) that are context-aware of the current task.
-- **Feature 2.4 Persistent Scratchpad:** Auto-saving local notes during the session.
+- **Feature 2.3 Contextual Quick Actions:** Pre-prompted AI helpers (`Explain`, `Give Example`, `Analogy`, `Confused` / ELI5) that are context-aware of the current task, supported by quality repair heuristics and response caching.
+- **Feature 2.4 Local-First Scratchpad & Note Ledger Sync:** Continuous keystroke auto-saving to local storage with visual indicators, seamless handoff to comprehension reflection, and permanent synchronization to the workspace `notes` table upon task completion.
+- **Feature 2.5 Locale Adaptation:** Automatic prompt language enforcement and full UI catalog for English and Indonesian.
 
 ### Epic 3: Comprehension & Spaced Reinforcement
 - **Feature 3.1 Post-Session Form:** Capture reflection notes, explicit blockers, and a 1-5 confidence score.
-- **Feature 3.2 Dynamic Scheduling Algorithm:** Schedule review events based on the confidence score (e.g., low confidence = review tomorrow; high confidence = review in 7 days).
-- **Feature 3.3 Explicit Calendar Egress:** Generate `.ics` or direct Google Calendar URL templates for blocking out study time, circumventing the need for heavy OAuth calendar scopes.
+- **Feature 3.2 Dynamic Scheduling Algorithm:** Schedule review events based on the confidence score (e.g., low confidence = review in 2 days; high confidence = review in 7 days).
+- **Feature 3.3 Explicit Deep-Linked Calendar Integration:** Generate zero-friction Google Calendar URL templates embedding direct links back to `/app/session/:taskId` without OAuth permissions friction.
 
-### Epic 4: Data Portability & Identity
-- **Feature 4.1 Guest Mode Engine:** Frictionless instant access utilizing local storage/session states.
-- **Feature 4.2 Account Persistence:** Seamless upgrade path from Guest to Registered user.
-- **Feature 4.3 Markdown Export:** One-click compilation of all goals, roadmaps, notes, and reflections into clean, Obsidian/Notion-ready Markdown files.
+### Epic 4: Data Portability, Identity & Live Sandbox
+- **Feature 4.1 1-Click Live Demo & Guest Sandbox:** Instant evaluation engine (`/demo`, `POST /api/auth/demo`, `POST /api/auth/guest`) pre-seeded with a comprehensive Distributed Systems roadmap, completed sessions, in-progress tasks, and cached quick actions.
+- **Feature 4.2 Account Persistence:** Seamless upgrade path from Guest/Demo to Registered user.
+- **Feature 4.3 Markdown Export:** One-click compilation of all goals, roadmaps, notes, and reflections into clean, Obsidian/Notion/Logseq-ready Markdown files.
+
+### Epic 5: Deployment Substrates & Agent Layer
+- **Feature 5.1 Dual Cloud Run & Vercel Deployments:** Multi-service containerized architecture (`web -> ADK -> MCP`) and zero-ops Vercel Serverless Function support.
+- **Feature 5.2 Multi-Provider Database Seam:** Seamless runtime switching between SQLite and AlloyDB / PostgreSQL.
 
 ---
 
