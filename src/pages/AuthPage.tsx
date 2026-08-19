@@ -1,13 +1,13 @@
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { useAppMeta } from '../components/AppMeta';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
 import { AppFooter } from '../components/AppFooter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { setStoredSession } from '../lib/auth';
+import { setStoredSession, startDemoSession } from '../lib/auth';
 import { ApiError, apiFetch } from '../lib/api';
 import type { AuthSession } from '../types';
 import { InlineStateMessage } from '../components/PageStates';
@@ -28,8 +28,24 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
   const [error, setError] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  const handleDemoClick = async () => {
+    try {
+      setDemoLoading(true);
+      setError(null);
+      await startDemoSession(false);
+      navigate('/app', { replace: true });
+    } catch (demoErr) {
+      console.error(demoErr);
+      setError('Could not start demo session. Please try again.');
+    } finally {
+      setDemoLoading(false);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent) => {
+
     event.preventDefault();
     setSubmitting(true);
     setError(null);
@@ -106,7 +122,35 @@ export function AuthPage({ type }: { type: 'login' | 'signup' }) {
                 : t('auth.signup.subtitle')}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-b from-amber-500/10 to-transparent p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-[11px] font-mono font-semibold uppercase tracking-[0.2em] text-amber-400">
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                {t('auth.demoKicker')}
+              </div>
+              <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
+                {t('auth.demoDescription')}
+              </p>
+              <Button
+                type="button"
+                variant="accent"
+                size="sm"
+                onClick={handleDemoClick}
+                disabled={demoLoading || submitting}
+                className="mt-3.5 w-full font-mono uppercase tracking-wider gap-2 bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+              >
+                {demoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-current" />}
+                {t('auth.demoButton')}
+              </Button>
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <div className="w-full border-t border-[var(--border-color)]" />
+              <span className="absolute bg-[var(--bg-panel)] px-3 text-xs font-mono uppercase tracking-wider text-[var(--text-muted)]">
+                {t('auth.orDivider')}
+              </span>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {fieldError && (
                 <InlineStateMessage title={fieldError} tone="warning" />

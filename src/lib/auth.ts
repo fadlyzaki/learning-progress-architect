@@ -46,3 +46,22 @@ export function getAuthHeaders() {
       }
     : {};
 }
+
+export async function startDemoSession(isGuest = false): Promise<AuthSession> {
+  const endpoint = isGuest ? '/api/auth/guest' : '/api/auth/demo';
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to launch demo session');
+  }
+
+  const session = (await response.json()) as AuthSession;
+  setStoredSession(session);
+  return session;
+}
+

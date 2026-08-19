@@ -1,11 +1,11 @@
 import express from 'express';
-import { initializeAppContext } from '../server/appContext.ts';
-import { authRouter } from '../server/routes/auth.ts';
-import { dataRouter } from '../server/routes/data.ts';
-import { workflowRouter } from '../server/routes/workflow.ts';
-import { tasksRouter } from '../server/routes/tasks.ts';
-import { internalMcpRouter } from '../server/routes/internalMcp.ts';
-import { googleCalendarRouter } from '../server/routes/googleCalendar.ts';
+import { initializeAppContext } from './appContext.ts';
+import { authRouter } from './routes/auth.ts';
+import { dataRouter } from './routes/data.ts';
+import { workflowRouter } from './routes/workflow.ts';
+import { tasksRouter } from './routes/tasks.ts';
+import { internalMcpRouter } from './routes/internalMcp.ts';
+import { googleCalendarRouter } from './routes/googleCalendar.ts';
 
 const app = express();
 app.use(express.json());

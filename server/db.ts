@@ -1,6 +1,27 @@
+import fs from 'fs';
+import path from 'path';
 import Database from 'better-sqlite3';
 
-export const db = new Database(process.env.DATABASE_FILE || 'app.db');
+function resolveDatabasePath() {
+  if (process.env.DATABASE_FILE) {
+    return process.env.DATABASE_FILE;
+  }
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    const tmpDbPath = path.join('/tmp', 'app.db');
+    const sourceDbPath = path.join(process.cwd(), 'app.db');
+    if (!fs.existsSync(tmpDbPath) && fs.existsSync(sourceDbPath)) {
+      try {
+        fs.copyFileSync(sourceDbPath, tmpDbPath);
+      } catch (e) {
+        console.warn('Could not copy seed database to /tmp:', e);
+      }
+    }
+    return tmpDbPath;
+  }
+  return 'app.db';
+}
+
+export const db = new Database(resolveDatabasePath());
 
 function hasColumn(tableName: string, columnName: string) {
   const columns = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;

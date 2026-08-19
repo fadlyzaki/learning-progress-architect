@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Activity, 
   Layers, 
@@ -18,7 +18,9 @@ import {
   FileText,
   CheckSquare,
   BarChart,
-  Bot
+  Bot,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { AppFooter } from '../components/AppFooter';
 import { DeveloperBrand } from '../components/DeveloperBrand';
@@ -26,14 +28,30 @@ import { useAppMeta } from '../components/AppMeta';
 import { Button } from '../components/ui/Button';
 import { PreferenceControls } from '../components/PreferenceControls';
 import { usePreferences } from '../lib/preferences';
+import { startDemoSession } from '../lib/auth';
 
 export function LandingPage() {
   const { t } = usePreferences();
+  const navigate = useNavigate();
+  const [startingDemo, setStartingDemo] = useState(false);
+
   useAppMeta({
     title: 'Learning Progress Architect',
     description:
       'A calmer learning workspace that turns complex goals into structured roadmaps, focused study sessions, reviews, and reflection.',
   });
+
+  const handleStartDemo = async () => {
+    try {
+      setStartingDemo(true);
+      await startDemoSession(false);
+      navigate('/app');
+    } catch (err) {
+      console.error('Failed to launch demo:', err);
+    } finally {
+      setStartingDemo(false);
+    }
+  };
 
   return (
     <div className="app-shell min-h-screen font-sans selection:bg-amber-500/30">
@@ -49,18 +67,28 @@ export function LandingPage() {
         </div>
         <div className="flex flex-col gap-4 lg:items-end">
           <PreferenceControls />
-          <nav className="hidden items-center gap-8 text-sm font-medium text-[var(--text-secondary)] md:flex">
+          <nav className="hidden items-center gap-6 text-sm font-medium text-[var(--text-secondary)] md:flex">
           <a href="#principles" className="transition-colors hover:text-[var(--text-primary)]">
             {t('landing.navPrinciples')}
           </a>
           <a href="#workflow" className="transition-colors hover:text-[var(--text-primary)]">
             {t('landing.navWorkflow')}
           </a>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleStartDemo}
+            disabled={startingDemo}
+            className="font-mono text-xs uppercase tracking-wider text-[var(--accent-amber)] hover:bg-amber-500/10 hover:text-amber-400 gap-1.5"
+          >
+            {startingDemo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-amber-400" />}
+            {t('landing.tryDemo')}
+          </Button>
           <Link to="/login" className="transition-colors hover:text-[var(--text-primary)]">
             {t('landing.navSignIn')}
           </Link>
           <Link to="/signup">
-            <Button variant="outline">
+            <Button variant="outline" size="sm">
               {t('landing.navStart')}
             </Button>
           </Link>
@@ -84,18 +112,29 @@ export function LandingPage() {
               <p className="mt-4 max-w-2xl text-base font-serif italic text-[var(--text-muted)] md:text-lg">
                 {t('landing.subbody')}
               </p>
-              <div className="mt-10 flex flex-col sm:flex-row gap-4">
-                <Link to="/signup">
-                  <Button size="lg" variant="accent" className="w-full sm:w-auto font-mono uppercase tracking-wider">
+              <div className="mt-10 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  variant="accent"
+                  onClick={handleStartDemo}
+                  disabled={startingDemo}
+                  className="w-full sm:w-auto font-mono uppercase tracking-wider gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-[0_0_24px_rgba(245,158,11,0.25)]"
+                >
+                  {startingDemo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-current" />}
+                  {t('landing.tryDemo')}
+                </Button>
+                <Link to="/signup" className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto font-mono uppercase tracking-wider">
                     {t('landing.ctaPrimary')}
                   </Button>
                 </Link>
-                <Link to="/login">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto font-mono uppercase tracking-wider">
+                <Link to="/login" className="w-full sm:w-auto">
+                  <Button size="lg" variant="ghost" className="w-full sm:w-auto font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                     {t('landing.ctaSecondary')}
                   </Button>
                 </Link>
               </div>
+
               <div className="mt-12 grid sm:grid-cols-3 gap-4 w-full max-w-3xl">
                 <SignalCard
                   icon={<Compass className="w-4 h-4 text-blue-400" />}

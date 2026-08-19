@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, BookOpen, Clock, LayoutDashboard, LogOut, Map, Target } from 'lucide-react';
+import { Activity, BookOpen, Clock, LayoutDashboard, LogOut, Map, Sparkles, Target } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { clearStoredSession, getStoredSession } from '../lib/auth';
 import { usePreferences } from '../lib/preferences';
@@ -88,6 +88,7 @@ export function Layout() {
   const session = getStoredSession();
   const { t } = usePreferences();
   const mobilePage = getMobilePageContext(location.pathname, t);
+  const isDemo = session?.user.email.includes('demo') || session?.user.email.includes('guest');
   const navItems = [
     { icon: LayoutDashboard, label: t('nav.today'), path: '/app' },
     { icon: Target, label: t('nav.goals'), path: '/app/goals' },
@@ -118,8 +119,16 @@ export function Layout() {
         <div className="space-y-4 border-b border-[var(--border-color)] px-6 py-5">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-[var(--text-muted)]">
-                {t('brand.tagline')}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono uppercase tracking-[0.28em] text-[var(--text-muted)]">
+                  {t('brand.tagline')}
+                </span>
+                {isDemo && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-amber-400">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    {t('workspace.demoBadge')}
+                  </span>
+                )}
               </div>
               <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">{session?.user.name}</div>
               <div className="text-xs text-[var(--text-muted)]">{session?.user.email}</div>

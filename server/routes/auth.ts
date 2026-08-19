@@ -96,3 +96,32 @@ authRouter.post('/login', async (req, res) => {
     },
   });
 });
+
+authRouter.post('/demo', async (req, res) => {
+  try {
+    const { repositories } = getAppContext();
+    const reset = req.body?.reset === true;
+    const { importDemo } = await import('../services/demoService.ts').then((m) => ({
+      importDemo: m.provisionDemoSession,
+    }));
+    const result = await importDemo(repositories, { isGuest: false, reset });
+    res.json(result);
+  } catch (error) {
+    console.error('Failed to provision demo session:', error);
+    jsonError(res, 500, 'Failed to start demo session.', 'DEMO_SESSION_ERROR');
+  }
+});
+
+authRouter.post('/guest', async (req, res) => {
+  try {
+    const { repositories } = getAppContext();
+    const { importDemo } = await import('../services/demoService.ts').then((m) => ({
+      importDemo: m.provisionDemoSession,
+    }));
+    const result = await importDemo(repositories, { isGuest: true });
+    res.json(result);
+  } catch (error) {
+    console.error('Failed to provision guest session:', error);
+    jsonError(res, 500, 'Failed to start guest session.', 'GUEST_SESSION_ERROR');
+  }
+});

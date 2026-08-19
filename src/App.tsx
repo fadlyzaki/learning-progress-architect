@@ -25,6 +25,7 @@ function RedirectIfAuthenticated() {
 
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
+import { DemoLaunchPage } from './pages/DemoLaunchPage';
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
         <Router>
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/demo" element={<DemoLaunchPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
 

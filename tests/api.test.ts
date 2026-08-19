@@ -58,6 +58,37 @@ test('auth flow protects private data and returns structured auth errors', async
   });
 });
 
+test('demo and guest endpoints enable instant workspace access without registration', async () => {
+  const server = await startServer();
+  cleanupTasks.push(server.stop);
+
+  const demoRes = await request(server.baseUrl, '/api/auth/demo', {});
+  assert.equal(demoRes.status, 200);
+  const demoSession = (await demoRes.json()) as { token: string; user: { email: string; name: string } };
+  assert.ok(demoSession.token);
+  assert.equal(demoSession.user.name, 'Demo Learner');
+  assert.equal(demoSession.user.email, 'demo@learningprogress.app');
+
+  const demoData = await getData(server.baseUrl, demoSession.token);
+  assert.equal(demoData.goals.length, 1);
+  assert.equal(demoData.goals[0].title, 'Distributed Systems & Cloud Architecture');
+  assert.ok(demoData.tasks.length >= 4);
+  assert.ok(demoData.sessions.length >= 1);
+  assert.ok(demoData.reviews.length >= 1);
+  assert.ok(demoData.quick_actions.length >= 1);
+
+  const guestRes = await request(server.baseUrl, '/api/auth/guest', {});
+  assert.equal(guestRes.status, 200);
+  const guestSession = (await guestRes.json()) as { token: string; user: { email: string; name: string } };
+  assert.ok(guestSession.token);
+  assert.equal(guestSession.user.name, 'Guest Learner');
+  assert.ok(guestSession.user.email.startsWith('guest_'));
+
+  const guestData = await getData(server.baseUrl, guestSession.token);
+  assert.equal(guestData.goals.length, 1);
+  assert.ok(guestData.tasks.length >= 4);
+});
+
 test('workflow supports no-resource planning mode and persists starter materials when search output is unavailable', async () => {
   const server = await startServer();
   cleanupTasks.push(server.stop);

@@ -26,7 +26,9 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: readNumber(process.env.PORT, 3000),
   databaseProvider: normalizeDatabaseProvider(process.env.DB_PROVIDER),
-  databaseFile: process.env.DATABASE_FILE || 'app.db',
+  databaseFile:
+    process.env.DATABASE_FILE ||
+    (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME ? '/tmp/app.db' : 'app.db'),
   databaseUrl: process.env.DATABASE_URL ?? '',
   agentProvider: normalizeAgentProvider(process.env.AGENT_PROVIDER),
   adkServiceUrl: process.env.ADK_SERVICE_URL ?? '',

@@ -9,3 +9,4 @@ docs-private/
 .env*
 !.env.example
 local-backups/
+.vercel
